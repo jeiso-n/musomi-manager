@@ -89,19 +89,46 @@
                 <!-- Username field -->
                 <VBox spacing="8">
                     <Label text="Username or Email" styleClass="form-label"/>
-                    <TextField fx:id="usernameField"
-                               styleClass="input"
-                               promptText="Enter your username or email"
-                               onAction="#handleLogin"/>
+                    <StackPane alignment="CENTER_LEFT">
+                        <TextField fx:id="usernameField"
+                                   styleClass="input"
+                                   promptText="Enter your username or email"
+                                   onAction="#handleLogin"
+                                   style="-fx-padding: 0 12 0 36;"/>
+                        <Label text="👤"
+                               mouseTransparent="true"
+                               style="-fx-font-size: 14px;
+                                      -fx-text-fill: #94a3b8;
+                                      -fx-padding: 0 0 0 12;"/>
+                    </StackPane>
                 </VBox>
 
                 <!-- Password field -->
                 <VBox spacing="8">
                     <Label text="Password" styleClass="form-label"/>
-                    <PasswordField fx:id="passwordField"
+                    <StackPane alignment="CENTER_LEFT">
+                        <PasswordField fx:id="passwordField"
+                                       styleClass="input"
+                                       promptText="Enter your password"
+                                       onAction="#handleLogin"
+                                       style="-fx-padding: 0 40 0 12;"/>
+                        <TextField fx:id="visiblePasswordField"
                                    styleClass="input"
                                    promptText="Enter your password"
-                                   onAction="#handleLogin"/>
+                                   onAction="#handleLogin"
+                                   visible="false"
+                                   managed="false"
+                                   style="-fx-padding: 0 40 0 12;"/>
+                        <Button fx:id="togglePasswordButton"
+                                text="👁"
+                                onAction="#togglePasswordVisibility"
+                                StackPane.alignment="CENTER_RIGHT"
+                                style="-fx-background-color: transparent;
+                                       -fx-cursor: hand;
+                                       -fx-font-size: 14px;
+                                       -fx-text-fill: #64748b;
+                                       -fx-padding: 4 10 4 10;"/>
+                    </StackPane>
                 </VBox>
 
                 <!-- Error label — hidden and collapsed by default -->

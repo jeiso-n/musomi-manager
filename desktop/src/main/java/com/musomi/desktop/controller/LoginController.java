@@ -54,6 +54,8 @@ public class LoginController implements Initializable {
     @FXML private Label versionLabel;
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
+    @FXML private TextField visiblePasswordField;
+    @FXML private Button togglePasswordButton;
     @FXML private Label errorLabel;
     @FXML private Button loginButton;
     @FXML private ProgressIndicator spinner;
@@ -83,6 +85,11 @@ public class LoginController implements Initializable {
         // Collapse nodes from layout flow when they are not visible
         errorLabel.managedProperty().bind(errorLabel.visibleProperty());
         spinner.managedProperty().bind(spinner.visibleProperty());
+
+        visiblePasswordField.textProperty().addListener(
+            (obs, oldVal, newVal) -> passwordField.setText(newVal));
+        passwordField.textProperty().addListener(
+            (obs, oldVal, newVal) -> visiblePasswordField.setText(newVal));
     }
 
     // -------------------------------------------------------------------------
@@ -133,6 +140,29 @@ public class LoginController implements Initializable {
                 showError(resolveErrorMessage(error));
             }
         );
+    }
+
+    @FXML
+    private void togglePasswordVisibility() {
+        boolean currentlyHidden = !visiblePasswordField.isVisible();
+
+        if (currentlyHidden) {
+            visiblePasswordField.setText(passwordField.getText());
+            visiblePasswordField.setVisible(true);
+            visiblePasswordField.setManaged(true);
+            passwordField.setVisible(false);
+            passwordField.setManaged(false);
+            visiblePasswordField.requestFocus();
+            visiblePasswordField.positionCaret(visiblePasswordField.getText().length());
+        } else {
+            passwordField.setText(visiblePasswordField.getText());
+            visiblePasswordField.setVisible(false);
+            visiblePasswordField.setManaged(false);
+            passwordField.setVisible(true);
+            passwordField.setManaged(true);
+            passwordField.requestFocus();
+            passwordField.positionCaret(passwordField.getText().length());
+        }
     }
 
     // -------------------------------------------------------------------------
