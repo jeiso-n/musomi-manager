@@ -339,6 +339,7 @@ public class AssessmentsController {
             AssessmentStore.addAssessment(name, cls, subject, topic, formattedDate, maxMarks);
         }
 
+        AssessmentStore.saveDefault();
         refreshList();
 
         showSuccess(editingAssessment != null
@@ -453,6 +454,7 @@ public class AssessmentsController {
 
         // ── Perform publish ───────────────────────────────────────────────────
         AssessmentStore.publish(a);
+        AssessmentStore.saveDefault();
         reviewingAssessment = null;
 
         refreshList();

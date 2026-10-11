@@ -276,6 +276,12 @@ public final class AssessmentStore {
         }
     }
 
+    /** Saves the current state using the default user-home repository. */
+    public static void saveDefault() {
+        LoggerFactory.getLogger(AssessmentStore.class).debug("saveDefault triggered");
+        save(new AssessmentRepository());
+    }
+
     /**
      * Resets store state for test isolation only.
      */

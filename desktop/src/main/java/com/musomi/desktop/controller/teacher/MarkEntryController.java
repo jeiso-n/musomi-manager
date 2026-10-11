@@ -420,6 +420,7 @@ public class MarkEntryController {
         private void save(String value) {
             String normalized = value == null ? "" : value.trim();
             studentMark.setMark(normalized);
+            AssessmentStore.saveDefault();
             mark.set(normalized);
             updatePreview(normalized);
         }
