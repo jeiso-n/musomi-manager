@@ -5,15 +5,168 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.musomi.desktop.controller.teacher.AssessmentStore.Assessment;
 import com.musomi.desktop.controller.teacher.AssessmentStore.StudentMark;
 
 class AssessmentStoreTest {
+
+    @Nested
+    class PersistenceTests {
+
+        @TempDir
+        Path temporaryDirectory;
+
+        private List<Assessment> originalAssessments;
+
+        @BeforeEach
+        void setUp() {
+            originalAssessments = List.copyOf(AssessmentStore.getAssessments());
+            resetToSeedState(originalAssessments);
+        }
+
+        @AfterEach
+        void tearDown() {
+            resetToSeedState(originalAssessments);
+        }
+
+        @Test
+        void shouldSeedWhenNoPersistedFileExists() throws ReflectiveOperationException {
+            AssessmentRepository repository = new AssessmentRepository(
+                    temporaryDirectory.resolve("assessments.json"));
+
+            AssessmentStore.initialize(repository);
+
+            assertEquals(3, AssessmentStore.getAssessments().size());
+            Field loadedFromDisk = AssessmentStore.class.getDeclaredField("loadedFromDisk");
+            loadedFromDisk.setAccessible(true);
+            assertFalse(loadedFromDisk.getBoolean(null));
+        }
+
+        @Test
+        void shouldLoadPersistedAssessmentsAndReplaceSeed() throws IOException {
+            AssessmentRepository repository = new AssessmentRepository(
+                    temporaryDirectory.resolve("assessments.json"));
+            repository.save(new AssessmentsDocument(1, List.of(
+                    new AssessmentDto("Persisted Test", "S3 Blue", "Mathematics", "Algebra",
+                            "15 Sep 2026", 40, "Draft", List.of(
+                            new StudentMarkDto("1", "John Mugisha", "35"),
+                            new StudentMarkDto("2", "Sarah Namukasa", "32")
+                    ))
+            )));
+
+            AssessmentStore.initialize(repository);
+
+            assertEquals(1, AssessmentStore.getAssessments().size());
+            Assessment assessment = AssessmentStore.getAssessments().get(0);
+            assertEquals("Persisted Test", assessment.getName());
+            assertEquals(List.of(
+                    new StudentMarkDto("1", "John Mugisha", "35"),
+                    new StudentMarkDto("2", "Sarah Namukasa", "32")
+            ), AssessmentStore.getMarks(assessment).stream()
+                    .map(mark -> new StudentMarkDto(mark.getNumber(), mark.getStudent(), mark.getMark()))
+                    .toList());
+        }
+
+        @Test
+        void shouldPreserveLazyMarksWhenSavedDocumentHasNoMarks() throws IOException {
+            AssessmentRepository repository = new AssessmentRepository(
+                    temporaryDirectory.resolve("assessments.json"));
+            repository.save(new AssessmentsDocument(1, List.of(
+                    new AssessmentDto("No Marks", "S3 Blue", "Mathematics", "Algebra",
+                            "15 Sep 2026", 40, "Draft", null)
+            )));
+
+            AssessmentStore.initialize(repository);
+
+            assertEquals(1, AssessmentStore.getAssessments().size());
+            List<StudentMark> marks = AssessmentStore.getMarks(AssessmentStore.getAssessments().get(0));
+            assertEquals(12, marks.size());
+            assertTrue(marks.stream().allMatch(mark -> mark.getMark().isEmpty()));
+        }
+
+        @Test
+        void shouldNotReloadAfterFirstInitialize() throws IOException {
+            AssessmentRepository repositoryA = new AssessmentRepository(
+                    temporaryDirectory.resolve("assessments-a.json"));
+            AssessmentRepository repositoryB = new AssessmentRepository(
+                    temporaryDirectory.resolve("assessments-b.json"));
+            repositoryA.save(new AssessmentsDocument(1, List.of(
+                    new AssessmentDto("Assessment A", "S3 Blue", "Mathematics", "Algebra",
+                            "15 Sep 2026", 40, "Draft", List.of())
+            )));
+            repositoryB.save(new AssessmentsDocument(1, List.of(
+                    new AssessmentDto("Assessment B", "S3 Red", "Mathematics", "Geometry",
+                            "20 Sep 2026", 40, "Draft", List.of())
+            )));
+
+            AssessmentStore.initialize(repositoryA);
+            AssessmentStore.initialize(repositoryB);
+
+            assertEquals(1, AssessmentStore.getAssessments().size());
+            assertEquals("Assessment A", AssessmentStore.getAssessments().get(0).getName());
+        }
+
+        @Test
+        void shouldRoundTripThroughSaveAndInitialize() {
+            AssessmentRepository repository = new AssessmentRepository(
+                    temporaryDirectory.resolve("assessments.json"));
+            Assessment published = AssessmentStore.getAssessments().stream()
+                    .filter(assessment -> "Published".equals(assessment.getStatus()))
+                    .findFirst()
+                    .orElseThrow();
+            List<StudentMark> originalMarks = List.copyOf(AssessmentStore.getMarks(published));
+
+            AssessmentStore.save(repository);
+            AssessmentStore.resetForTesting(List.of());
+            AssessmentStore.initialize(repository);
+
+            assertEquals(3, AssessmentStore.getAssessments().size());
+            assertEquals(1, AssessmentStore.countPublished());
+            assertEquals(3, AssessmentStore.countDistinctClasses());
+            Assessment loadedPublished = AssessmentStore.getAssessments().stream()
+                    .filter(assessment -> "Published".equals(assessment.getStatus()))
+                    .findFirst()
+                    .orElseThrow();
+            List<StudentMark> loadedMarks = AssessmentStore.getMarks(loadedPublished);
+            assertEquals(originalMarks.size(), loadedMarks.size());
+            assertEquals(originalMarks.get(0).getMark(), loadedMarks.get(0).getMark());
+            assertEquals(originalMarks.get(originalMarks.size() - 1).getMark(),
+                    loadedMarks.get(loadedMarks.size() - 1).getMark());
+        }
+
+        private void resetToSeedState(List<Assessment> assessments) {
+            AssessmentStore.resetForTesting(assessments);
+            if (assessments.size() < 2) {
+                return;
+            }
+
+            String[] draftMarks = {"35", "32", "28", "30", "24", "38",
+                    "", "34", "27", "31", "", "36"};
+            String[] publishedMarks = {"35", "29", "32", "38", "25", "36",
+                    "21", "34", "28", "33", "20", "37"};
+            List<StudentMark> draftList = AssessmentStore.getMarks(assessments.get(0));
+            for (int i = 0; i < draftList.size(); i++) {
+                draftList.get(i).setMark(draftMarks[i]);
+            }
+
+            List<StudentMark> marks = AssessmentStore.getMarks(assessments.get(1));
+            for (int i = 0; i < marks.size(); i++) {
+                marks.get(i).setMark(publishedMarks[i]);
+            }
+        }
+    }
 
     @Test
     void calculatesGradeAgainstAssessmentMaximum() {

@@ -1,9 +1,14 @@
 package com.musomi.desktop.controller.teacher;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Shared, in-process store for assessments and their student mark data.
@@ -143,6 +148,8 @@ public final class AssessmentStore {
     private static final Map<Assessment, List<StudentMark>> MARKS =
             new LinkedHashMap<>();
 
+    private static boolean loadedFromDisk;
+
     /** Default mock student roster — shared across all classes for now. */
     private static final String[][] MOCK_STUDENTS = {
         {"1",  "John Mugisha"},
@@ -186,6 +193,98 @@ public final class AssessmentStore {
     // =========================================================================
     // Public API
     // =========================================================================
+
+    /** Loads persisted assessment data, retaining the seed state when no document is available. */
+    public static void initialize(AssessmentRepository repository) {
+        Logger log = LoggerFactory.getLogger(AssessmentStore.class);
+        if (loadedFromDisk) {
+            return;
+        }
+
+        final Optional<AssessmentsDocument> loadedDocument;
+        try {
+            loadedDocument = repository.load();
+        } catch (RuntimeException ex) {
+            log.error("Failed to load persisted assessment data; retaining current state", ex);
+            return;
+        }
+
+        if (loadedDocument.isEmpty()) {
+            log.info("No persisted data found; using seed data");
+            return;
+        }
+
+        try {
+            AssessmentsDocument document = loadedDocument.get();
+            List<Assessment> assessments = new ArrayList<>();
+            Map<Assessment, List<StudentMark>> marksByAssessment = new LinkedHashMap<>();
+
+            for (AssessmentDto dto : document.assessments()) {
+                Assessment assessment = new Assessment(
+                        dto.name(), dto.className(), dto.subject(), dto.topic(),
+                        dto.date(), dto.maxMarks(), dto.status());
+                assessments.add(assessment);
+
+                if (dto.marks() != null && !dto.marks().isEmpty()) {
+                    List<StudentMark> marks = new ArrayList<>();
+                    for (StudentMarkDto markDto : dto.marks()) {
+                        marks.add(new StudentMark(
+                                markDto.number(), markDto.student(), markDto.mark()));
+                    }
+                    marksByAssessment.put(assessment, marks);
+                }
+            }
+
+            ASSESSMENTS.clear();
+            ASSESSMENTS.addAll(assessments);
+            MARKS.clear();
+            MARKS.putAll(marksByAssessment);
+            loadedFromDisk = true;
+            log.info("Loaded {} assessments from persisted data", assessments.size());
+        } catch (RuntimeException ex) {
+            log.error("Failed to apply persisted assessment data; retaining current state", ex);
+        }
+    }
+
+    /** Saves a snapshot of the current assessment state without propagating I/O failures. */
+    public static void save(AssessmentRepository repository) {
+        Logger log = LoggerFactory.getLogger(AssessmentStore.class);
+        List<AssessmentDto> assessmentDtos = new ArrayList<>();
+
+        for (Assessment assessment : ASSESSMENTS) {
+            List<StudentMarkDto> markDtos = new ArrayList<>();
+            List<StudentMark> marks = MARKS.get(assessment);
+            if (marks != null) {
+                for (StudentMark mark : marks) {
+                    markDtos.add(new StudentMarkDto(mark.getNumber(), mark.getStudent(), mark.getMark()));
+                }
+            }
+
+            assessmentDtos.add(new AssessmentDto(
+                    assessment.getName(), assessment.getClassName(), assessment.getSubject(),
+                    assessment.getTopic(), assessment.getDate(), assessment.getMaxMarks(),
+                    assessment.getStatus(), markDtos));
+        }
+
+        AssessmentsDocument document = new AssessmentsDocument(
+                AssessmentRepository.CURRENT_VERSION, assessmentDtos);
+        try {
+            repository.save(document);
+            log.info("Saved {} assessments to persisted data", assessmentDtos.size());
+        } catch (IOException ex) {
+            log.error("Failed to save assessment data to persisted storage", ex);
+        }
+    }
+
+    /**
+     * Resets store state for test isolation only.
+     */
+    static void resetForTesting(List<Assessment> assessments) {
+        ASSESSMENTS.clear();
+        MARKS.clear();
+        ASSESSMENTS.addAll(assessments);
+        loadedFromDisk = false;
+    }
 
     /** Returns the live mutable assessment list. */
     public static List<Assessment> getAssessments() {
