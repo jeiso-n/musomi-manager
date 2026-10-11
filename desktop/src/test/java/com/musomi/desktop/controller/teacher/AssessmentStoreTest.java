@@ -10,6 +10,7 @@ import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.musomi.desktop.controller.teacher.AssessmentStore.Assessment;
+import com.musomi.desktop.controller.teacher.AssessmentStore.RosterStudent;
 import com.musomi.desktop.controller.teacher.AssessmentStore.StudentMark;
 
 class AssessmentStoreTest {
@@ -166,6 +168,81 @@ class AssessmentStoreTest {
                 marks.get(i).setMark(publishedMarks[i]);
             }
         }
+    }
+
+    @Test
+    void shouldReturnRosterForKnownClass() {
+        assertEquals(12, AssessmentStore.getClassRoster("S3 Blue").size());
+        assertEquals(10, AssessmentStore.getClassRoster("S3 Red").size());
+        assertEquals(14, AssessmentStore.getClassRoster("S4 Blue").size());
+        assertEquals(11, AssessmentStore.getClassRoster("S4 Red").size());
+        assertEquals(8, AssessmentStore.getClassRoster("S5").size());
+    }
+
+    @Test
+    void shouldReturnEmptyRosterForUnknownClass() {
+        assertTrue(AssessmentStore.getClassRoster("Nonexistent").isEmpty());
+        assertTrue(AssessmentStore.getClassRoster(null).isEmpty());
+    }
+
+    @Test
+    void shouldReturnImmutableRosterCopy() {
+        List<RosterStudent> roster = AssessmentStore.getClassRoster("S3 Blue");
+
+        assertThrows(UnsupportedOperationException.class, () -> roster.add(
+                new RosterStudent("13", "ADM-2024-013", "Test Student", "Male", "Active")));
+
+        List<RosterStudent> secondCall = AssessmentStore.getClassRoster("S3 Blue");
+        assertEquals(12, secondCall.size());
+        assertEquals("John Mugisha", secondCall.get(0).getName());
+    }
+
+    @Test
+    void shouldUseClassRosterForNewAssessmentMarks() throws ReflectiveOperationException {
+        Assessment assessment = AssessmentStore.addAssessment(
+                "Roster test", "S4 Blue", "Mathematics", "Algebra", "11 Oct 2026", 40);
+
+        try {
+            List<StudentMark> marks = AssessmentStore.getMarks(assessment);
+
+            assertEquals(14, marks.size());
+            assertEquals("1", marks.get(0).getNumber());
+            assertEquals("Kevin Ssemakula", marks.get(0).getStudent());
+        } finally {
+            removeAssessmentAndMarks(assessment);
+        }
+    }
+
+    @Test
+    void shouldFallBackToGlobalRosterForUnknownClass() throws ReflectiveOperationException {
+        Assessment assessment = AssessmentStore.addAssessment(
+                "Fallback test", "Unknown Class", "Mathematics", "Algebra", "11 Oct 2026", 40);
+
+        try {
+            assertEquals(12, AssessmentStore.getMarks(assessment).size());
+        } finally {
+            removeAssessmentAndMarks(assessment);
+        }
+    }
+
+    @Test
+    void shouldNotChangeExistingSeededAssessmentMarks() {
+        Assessment assessment = AssessmentStore.getAssessments().stream()
+                .filter(candidate -> "Mathematics Test 1".equals(candidate.getName()))
+                .findFirst()
+                .orElseThrow();
+        List<StudentMark> marks = AssessmentStore.getMarks(assessment);
+
+        assertEquals(12, marks.size());
+        assertEquals("35", marks.get(0).getMark());
+    }
+
+    private static void removeAssessmentAndMarks(Assessment assessment)
+            throws ReflectiveOperationException {
+        AssessmentStore.getAssessments().remove(assessment);
+        Field marksField = AssessmentStore.class.getDeclaredField("MARKS");
+        marksField.setAccessible(true);
+        ((Map<?, ?>) marksField.get(null)).remove(assessment);
     }
 
     @Test

@@ -127,6 +127,29 @@ public final class AssessmentStore {
         }
     }
 
+    public static class RosterStudent {
+        private final String number;
+        private final String admissionNumber;
+        private final String name;
+        private final String gender;
+        private final String status;
+
+        public RosterStudent(String number, String admissionNumber,
+                             String name, String gender, String status) {
+            this.number = number;
+            this.admissionNumber = admissionNumber;
+            this.name = name;
+            this.gender = gender;
+            this.status = status;
+        }
+
+        public String getNumber() { return number; }
+        public String getAdmissionNumber() { return admissionNumber; }
+        public String getName() { return name; }
+        public String getGender() { return gender; }
+        public String getStatus() { return status; }
+    }
+
     // =========================================================================
     // Singleton store
     // =========================================================================
@@ -165,6 +188,77 @@ public final class AssessmentStore {
         {"11", "Samuel Tumusiime"},
         {"12", "Angela Nabirye"}
     };
+
+    private static final Map<String, List<RosterStudent>> CLASS_ROSTERS =
+            new LinkedHashMap<>();
+
+    static {
+        CLASS_ROSTERS.put("S3 Blue", List.of(
+                new RosterStudent("1", "ADM-2024-001", "John Mugisha", "Male", "Active"),
+                new RosterStudent("2", "ADM-2024-002", "Sarah Namukasa", "Female", "Active"),
+                new RosterStudent("3", "ADM-2024-003", "Brian Okello", "Male", "Active"),
+                new RosterStudent("4", "ADM-2024-004", "Mary Achieng", "Female", "Active"),
+                new RosterStudent("5", "ADM-2024-005", "David Kato", "Male", "Active"),
+                new RosterStudent("6", "ADM-2024-006", "Grace Nakato", "Female", "Active"),
+                new RosterStudent("7", "ADM-2024-007", "Daniel Ouma", "Male", "Active"),
+                new RosterStudent("8", "ADM-2024-008", "Rebecca Atim", "Female", "Active"),
+                new RosterStudent("9", "ADM-2024-009", "Peter Ssekandi", "Male", "Active"),
+                new RosterStudent("10", "ADM-2024-010", "Esther Nankya", "Female", "Active"),
+                new RosterStudent("11", "ADM-2024-011", "Samuel Tumusiime", "Male", "Inactive"),
+                new RosterStudent("12", "ADM-2024-012", "Angela Nabirye", "Female", "Active")
+        ));
+        CLASS_ROSTERS.put("S3 Red", List.of(
+                new RosterStudent("1", "ADM-2024-101", "Michael Ochieng", "Male", "Active"),
+                new RosterStudent("2", "ADM-2024-102", "Winnie Akello", "Female", "Active"),
+                new RosterStudent("3", "ADM-2024-103", "Charles Otim", "Male", "Active"),
+                new RosterStudent("4", "ADM-2024-104", "Betty Aciro", "Female", "Active"),
+                new RosterStudent("5", "ADM-2024-105", "Patrick Ojok", "Male", "Active"),
+                new RosterStudent("6", "ADM-2024-106", "Sylvia Adong", "Female", "Active"),
+                new RosterStudent("7", "ADM-2024-107", "Moses Odongo", "Male", "Active"),
+                new RosterStudent("8", "ADM-2024-108", "Juliet Auma", "Female", "Active"),
+                new RosterStudent("9", "ADM-2024-109", "Simon Okot", "Male", "Active"),
+                new RosterStudent("10", "ADM-2024-110", "Prossy Ayo", "Female", "Inactive")
+        ));
+        CLASS_ROSTERS.put("S4 Blue", List.of(
+                new RosterStudent("1", "ADM-2023-201", "Kevin Ssemakula", "Male", "Active"),
+                new RosterStudent("2", "ADM-2023-202", "Diana Nakalema", "Female", "Active"),
+                new RosterStudent("3", "ADM-2023-203", "Ronald Mukasa", "Male", "Active"),
+                new RosterStudent("4", "ADM-2023-204", "Sharon Nakintu", "Female", "Active"),
+                new RosterStudent("5", "ADM-2023-205", "Ivan Kawooya", "Male", "Active"),
+                new RosterStudent("6", "ADM-2023-206", "Mercy Nabukenya", "Female", "Active"),
+                new RosterStudent("7", "ADM-2023-207", "Fred Ssempala", "Male", "Active"),
+                new RosterStudent("8", "ADM-2023-208", "Joan Nalubega", "Female", "Active"),
+                new RosterStudent("9", "ADM-2023-209", "Tonny Kigozi", "Male", "Active"),
+                new RosterStudent("10", "ADM-2023-210", "Racheal Nabbosa", "Female", "Active"),
+                new RosterStudent("11", "ADM-2023-211", "Dennis Musoke", "Male", "Active"),
+                new RosterStudent("12", "ADM-2023-212", "Sarah Nansubuga", "Female", "Active"),
+                new RosterStudent("13", "ADM-2023-213", "Arnold Kizza", "Male", "Active"),
+                new RosterStudent("14", "ADM-2023-214", "Lydia Namuli", "Female", "Active")
+        ));
+        CLASS_ROSTERS.put("S4 Red", List.of(
+                new RosterStudent("1", "ADM-2023-301", "Andrew Byaruhanga", "Male", "Active"),
+                new RosterStudent("2", "ADM-2023-302", "Josephine Kyomuhendo", "Female", "Active"),
+                new RosterStudent("3", "ADM-2023-303", "Robert Tumwebaze", "Male", "Active"),
+                new RosterStudent("4", "ADM-2023-304", "Annet Kembabazi", "Female", "Active"),
+                new RosterStudent("5", "ADM-2023-305", "Julius Ainembabazi", "Male", "Active"),
+                new RosterStudent("6", "ADM-2023-306", "Justine Atuhaire", "Female", "Active"),
+                new RosterStudent("7", "ADM-2023-307", "Emmanuel Baguma", "Male", "Active"),
+                new RosterStudent("8", "ADM-2023-308", "Doreen Kobusingye", "Female", "Active"),
+                new RosterStudent("9", "ADM-2023-309", "Godfrey Turyasingura", "Male", "Active"),
+                new RosterStudent("10", "ADM-2023-310", "Prossy Kembabazi", "Female", "Active"),
+                new RosterStudent("11", "ADM-2023-311", "Bosco Mugisha", "Male", "Inactive")
+        ));
+        CLASS_ROSTERS.put("S5", List.of(
+                new RosterStudent("1", "ADM-2022-401", "Timothy Ssentongo", "Male", "Active"),
+                new RosterStudent("2", "ADM-2022-402", "Margaret Nakawuki", "Female", "Active"),
+                new RosterStudent("3", "ADM-2022-403", "Vincent Lubega", "Male", "Active"),
+                new RosterStudent("4", "ADM-2022-404", "Rebecca Nalwoga", "Female", "Active"),
+                new RosterStudent("5", "ADM-2022-405", "Joseph Mukiibi", "Male", "Active"),
+                new RosterStudent("6", "ADM-2022-406", "Sarah Nakayiza", "Female", "Active"),
+                new RosterStudent("7", "ADM-2022-407", "Paul Kaggwa", "Male", "Active"),
+                new RosterStudent("8", "ADM-2022-408", "Teddy Nalubwama", "Female", "Active")
+        ));
+    }
 
     // Pre-populate marks for the already-Published assessment so it isn't empty
     static {
@@ -297,6 +391,20 @@ public final class AssessmentStore {
         return ASSESSMENTS;
     }
 
+    /**
+     * Returns an immutable copy of the roster for the given class name.
+     * Returns an empty list if the class has no configured roster.
+     */
+    public static List<RosterStudent> getClassRoster(String className) {
+        if (className == null) return List.of();
+        List<RosterStudent> roster = CLASS_ROSTERS.get(className);
+        return roster == null ? List.of() : List.copyOf(roster);
+    }
+
+    public static int getClassRosterSize(String className) {
+        return getClassRoster(className).size();
+    }
+
     /** Returns assessments that are incomplete or have not yet been published. */
     public static List<Assessment> getPendingAssessments() {
         return ASSESSMENTS.stream()
@@ -317,8 +425,17 @@ public final class AssessmentStore {
     public static List<StudentMark> getMarks(Assessment assessment) {
         return MARKS.computeIfAbsent(assessment, a -> {
             List<StudentMark> list = new ArrayList<>();
-            for (String[] s : MOCK_STUDENTS) {
-                list.add(new StudentMark(s[0], s[1], ""));
+            List<RosterStudent> roster = getClassRoster(a.getClassName());
+
+            if (!roster.isEmpty()) {
+                for (RosterStudent rs : roster) {
+                    list.add(new StudentMark(rs.getNumber(), rs.getName(), ""));
+                }
+            } else {
+                // Fallback for unknown classes — preserve existing behaviour
+                for (String[] s : MOCK_STUDENTS) {
+                    list.add(new StudentMark(s[0], s[1], ""));
+                }
             }
             return list;
         });
