@@ -134,8 +134,10 @@
 
 
                 <!-- REPORTS -->
-                <Button text="Reports"
+                <Button fx:id="reportsButton"
+                        text="Reports"
                         maxWidth="1.7976931348623157E308"
+                        onAction="#onReportsClicked"
                         style="-fx-background-color: transparent;
                                -fx-text-fill: #475569;
                                -fx-font-size: 14px;
