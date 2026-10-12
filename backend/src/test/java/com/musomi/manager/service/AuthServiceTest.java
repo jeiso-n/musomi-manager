@@ -11,6 +11,7 @@ import com.musomi.manager.exception.ErrorCode;
 import com.musomi.manager.repository.UserRepository;
 import com.musomi.manager.repository.UserSessionRepository;
 import com.musomi.manager.security.JwtTokenProvider;
+import com.musomi.manager.service.LoginHistoryService;
 import com.musomi.manager.util.TokenHasher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,9 @@ class AuthServiceTest {
 
     @Mock
     private JwtTokenProvider jwtTokenProvider;
+
+    @Mock
+    private LoginHistoryService loginHistoryService;
 
     @InjectMocks
     private AuthService authService;
