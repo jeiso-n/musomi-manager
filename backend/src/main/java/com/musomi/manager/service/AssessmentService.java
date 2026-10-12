@@ -56,6 +56,7 @@ public class AssessmentService {
     private final TopicRepository topicRepository;
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
+    private final AuditService auditService;
 
     /** Lists assessments for the teacher with optional filtering. */
     @Transactional(readOnly = true)
@@ -77,7 +78,8 @@ public class AssessmentService {
                         && termId.equals(assessment.getTerm().getId()))
                 .filter(assessment -> status == null || assessment.getStatus() != null
                         && assessment.getStatus().equalsIgnoreCase(status))
-                .map(AssessmentMapper::toResponse)
+                .map(assessment -> AssessmentMapper.toResponse(
+                        assessment, assessmentTopicRepository.findByAssessmentId(assessment.getId())))
                 .toList();
     }
 
@@ -180,7 +182,8 @@ public class AssessmentService {
 
         log.info("Assessment created: assessmentId={}, teacherId={}, classId={}",
                 saved.getId(), teacherId, classEntity.getId());
-        return AssessmentMapper.toResponse(saved);
+        auditService.log("ASSESSMENT_CREATED", "Assessment", saved.getId(), teacherId, resolvedSchoolId);
+        return AssessmentMapper.toResponse(saved, assessmentTopicRepository.findByAssessmentId(saved.getId()));
     }
 
     /** Returns a single assessment by id. */
@@ -188,7 +191,7 @@ public class AssessmentService {
     public AssessmentResponse getAssessment(Long id) {
         Assessment assessment = assessmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ASSESSMENT_NOT_FOUND));
-        return AssessmentMapper.toResponse(assessment);
+        return AssessmentMapper.toResponse(assessment, assessmentTopicRepository.findByAssessmentId(id));
     }
 
     /** Updates a draft assessment and replaces its topics. */
@@ -232,7 +235,8 @@ public class AssessmentService {
 
         Assessment saved = assessmentRepository.save(assessment);
 
-        assessmentTopicRepository.deleteByAssessmentId(saved.getId());
+        assessmentTopicRepository.deleteByAssessmentId(id);
+        assessmentTopicRepository.flush();
         List<AssessmentTopic> topics = new ArrayList<>();
         for (Long topicId : req.topicIds()) {
             Topic topic = topicRepository.findById(topicId)
@@ -250,7 +254,10 @@ public class AssessmentService {
         assessmentTopicRepository.saveAll(topics);
 
         log.info("Assessment updated: assessmentId={}, title={}", saved.getId(), saved.getTitle());
-        return AssessmentMapper.toResponse(saved);
+        // TODO(backend-lead): pass real userId once @CurrentUser is wired in services
+        // TODO(backend-lead): pass real schoolId once school context is wired in services
+        auditService.log("ASSESSMENT_UPDATED", "Assessment", saved.getId(), 1L, 1L);
+        return AssessmentMapper.toResponse(saved, assessmentTopicRepository.findByAssessmentId(saved.getId()));
     }
 
     /** Deletes a draft assessment after removing associated topics and scores. */
@@ -271,6 +278,9 @@ public class AssessmentService {
         assessmentRepository.deleteById(id);
 
         log.info("Assessment deleted: assessmentId={}", id);
+        // TODO(backend-lead): pass real userId once @CurrentUser is wired in services
+        // TODO(backend-lead): pass real schoolId once school context is wired in services
+        auditService.log("ASSESSMENT_DELETED", "Assessment", id, 1L, 1L);
     }
 
     /** Publishes an assessment after verifying every student has a mark. */
@@ -300,5 +310,7 @@ public class AssessmentService {
         assessmentRepository.save(assessment);
 
         log.info("Assessment published: assessmentId={}, publishedBy={} ", id, teacherId);
+        // TODO(backend-lead): pass real schoolId once school context is wired in services
+        auditService.log("ASSESSMENT_PUBLISHED", "Assessment", id, teacherId, 1L);
     }
 }
