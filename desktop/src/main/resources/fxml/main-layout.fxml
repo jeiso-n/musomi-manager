@@ -15,218 +15,107 @@
             prefWidth="1280.0"
             prefHeight="720.0">
 
-    <!-- =========================================================
-         TOP BAR
-         ========================================================= -->
-
     <top>
-
         <HBox spacing="20.0"
               alignment="CENTER_LEFT"
               styleClass="top-bar">
 
-            <!-- BRAND -->
-
-            <HBox spacing="10.0"
-                  alignment="CENTER_LEFT">
-
-                <Label text="MM"
-                       styleClass="logo-mark"/>
-
+            <HBox spacing="10.0" alignment="CENTER_LEFT">
+                <Label text="MM" styleClass="logo-mark"/>
                 <VBox spacing="0.0">
-
-                    <Label text="Musomi"
-                           styleClass="brand-name"/>
-
-                    <Label text="Manager"
-                           styleClass="brand-subtitle"/>
-
+                    <Label text="Musomi" styleClass="brand-name"/>
+                    <Label text="Manager" styleClass="brand-subtitle"/>
                 </VBox>
-
             </HBox>
 
-
-            <!-- PUSH CONTENT TO RIGHT -->
-
             <Region HBox.hgrow="ALWAYS"/>
-
-
-            <!-- SEARCH -->
 
             <TextField fx:id="globalSearchField"
                        promptText="Search anything..."
                        prefWidth="280.0"
                        styleClass="search-field"/>
 
-            <!-- NOTIFICATION -->
-
-            <Button text="●"
-                    styleClass="notification-button"/>
-
-
-            <!-- USER PROFILE -->
+            <Button text="●" styleClass="notification-button"/>
 
             <HBox spacing="12.0"
                   alignment="CENTER_LEFT"
                   styleClass="user-profile">
-
-                <!-- Avatar -->
-
-                <Label text="A"
-                       styleClass="avatar"/>
-
-
-                <!-- User information -->
-
-                <VBox spacing="2.0"
-                      alignment="CENTER_LEFT">
-
-                    <Label text="Administrator"
-                           styleClass="user-name"/>
-
-                    <Label text="System Administrator"
-                           styleClass="user-role"/>
-
+                <Label text="A" styleClass="avatar"/>
+                <VBox spacing="2.0" alignment="CENTER_LEFT">
+                    <Label text="Administrator" styleClass="user-name"/>
+                    <Label text="System Administrator" styleClass="user-role"/>
                 </VBox>
-
-
-                <!-- Logout -->
-
                 <Button text="Logout"
                         onAction="#handleLogout"
                         styleClass="logout-button"/>
-
             </HBox>
-
         </HBox>
-
     </top>
 
-
-    <!-- =========================================================
-         LEFT SIDEBAR
-         ========================================================= -->
-
     <left>
-
         <VBox prefWidth="240.0"
               spacing="8.0"
               styleClass="sidebar">
 
-            <!-- NAVIGATION TITLE -->
-
-            <Label text="NAVIGATION"
-                   styleClass="sidebar-title"/>
-
-
-            <!-- DASHBOARD -->
+            <Label text="NAVIGATION" styleClass="sidebar-title"/>
 
             <Button text="Dashboard"
                     maxWidth="Infinity"
                     styleClass="nav-button-active"
                     onAction="#showDashboard"/>
 
+            <!-- Admin-only navigation -->
+            <VBox fx:id="adminNavSection" spacing="8.0">
+                <Label text="ADMIN" styleClass="sidebar-title"/>
 
-            <!-- USERS -->
+                <Button text="Users" maxWidth="Infinity"
+                        onAction="#showUsers"/>
+                <Button text="Classes" maxWidth="Infinity"
+                        onAction="#showClasses"/>
+                <Button text="Subjects" maxWidth="Infinity"
+                        onAction="#showSubjects"/>
+                <Button text="Topics" maxWidth="Infinity"
+                        onAction="#showTopics"/>
+                <Button text="Students" maxWidth="Infinity"
+                        onAction="#showStudents"/>
 
-            <Button text="Users"
-                    maxWidth="Infinity"
-                    onAction="#showUsers"/>
+                <Region prefHeight="15.0"/>
 
+                <Label text="SYSTEM" styleClass="sidebar-title"/>
 
-            <!-- CLASSES -->
+                <Button text="Settings" maxWidth="Infinity"
+                        onAction="#showSettings"/>
+                <Button text="Audit Log" maxWidth="Infinity"
+                        onAction="#showAuditLog"/>
+            </VBox>
 
-            <Button text="Classes"
-                    maxWidth="Infinity"
-                    onAction="#showClasses"/>
+            <!-- Teacher-only navigation -->
+            <VBox fx:id="teacherNavSection" spacing="8.0">
+                <Label text="TEACHER" styleClass="sidebar-title"/>
 
-
-            <!-- SUBJECTS -->
-
-            <Button text="Subjects"
-                    maxWidth="Infinity"
-                    onAction="#showSubjects"/>
-
-
-            <!-- TOPICS -->
-
-            <Button text="Topics"
-                    maxWidth="Infinity"
-                    onAction="#showTopics"/>
-
-
-            <!-- STUDENTS -->
-
-            <Button text="Students"
-                    maxWidth="Infinity"
-                    onAction="#showStudents"/>
-
-
-            <!-- SPACE BETWEEN SECTIONS -->
-
-            <Region prefHeight="15.0"/>
-
-
-            <!-- SYSTEM TITLE -->
-
-            <Label text="SYSTEM"
-                   styleClass="sidebar-title"/>
-
-
-            <!-- SETTINGS -->
-
-            <Button text="Settings"
-                    maxWidth="Infinity"
-                    onAction="#showSettings"/>
-
-
-            <!-- AUDIT LOG -->
-
-            <Button text="Audit Log"
-                    maxWidth="Infinity"
-                    onAction="#showAuditLog"/>
-
-
-            <!-- PUSH USER SECTION TO BOTTOM -->
+                <Button text="My Classes" maxWidth="Infinity"
+                        onAction="#showMyClasses"/>
+            </VBox>
 
             <Region VBox.vgrow="ALWAYS"/>
-
-
-            <!-- SIDEBAR USER -->
 
             <HBox spacing="10.0"
                   alignment="CENTER_LEFT"
                   styleClass="sidebar-user">
-
-                <Label text="A"
-                       styleClass="sidebar-avatar"/>
-
+                <Label text="A" styleClass="sidebar-avatar"/>
                 <VBox spacing="2.0">
-
                     <Label text="Administrator"
                            styleClass="sidebar-user-name"/>
-
                     <Label text="System Administrator"
                            styleClass="sidebar-user-role"/>
-
                 </VBox>
-
             </HBox>
-
         </VBox>
-
     </left>
 
-
-    <!-- =========================================================
-         MAIN CONTENT
-         ========================================================= -->
-
     <center>
-
         <StackPane fx:id="contentArea"
                    styleClass="content-area"/>
-
     </center>
 
 </BorderPane>

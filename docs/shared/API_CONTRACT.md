@@ -170,6 +170,8 @@ Query parameters on list endpoints:
 
 ## 5. Authentication Endpoints
 
+> **Not yet implemented:** `POST /api/v1/auth/change-password`
+
 ### POST /auth/login
 
 Log in with username and password.
@@ -232,10 +234,9 @@ Get the currently logged-in user.
     "id": 5,
     "username": "teacher1",
     "fullName": "Mr. Okello",
-    "email": "okello@school.ug",
-    "phone": "+256700000000",
     "role": "TEACHER",
-    "schoolId": 1
+    "schoolId": 1,
+    "schoolName": "St. Mary's Secondary School"
   }
 }
 ```
@@ -281,22 +282,25 @@ List users with filters.
 **Response 200:**
 ```json
 {
-  "data": [
-    {
-      "id": 5,
-      "username": "teacher1",
-      "fullName": "Mr. Okello",
-      "email": "okello@school.ug",
-      "phone": "+256700000000",
-      "role": "TEACHER",
-      "isActive": true,
-      "lastLoginAt": "2026-09-23T08:15:00Z"
-    }
-  ],
-  "page": 0,
-  "size": 20,
-  "total": 45,
-  "totalPages": 3
+  "data": {
+    "data": [
+      {
+        "id": 5,
+        "username": "teacher1",
+        "fullName": "Mr. Okello",
+        "email": "okello@school.ug",
+        "phone": "+256700000000",
+        "role": "TEACHER",
+        "isActive": true,
+        "createdAt": "2026-02-01T10:00:00Z",
+        "lastLoginAt": "2026-09-23T08:15:00Z"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "total": 45,
+    "totalPages": 3
+  }
 }
 ```
 
@@ -327,8 +331,12 @@ Create a new user.
     "id": 6,
     "username": "teacher2",
     "fullName": "Ms. Achieng",
+    "email": "achieng@school.ug",
+    "phone": "+256700000001",
     "role": "TEACHER",
-    "isActive": true
+    "isActive": true,
+    "createdAt": "2026-02-01T10:00:00Z",
+    "lastLoginAt": null
   }
 }
 ```
@@ -426,9 +434,9 @@ Admin shares this with the user. User must change on next login (future enhancem
 ```json
 {
   "data": [
-    { "id": 3, "year": 2026, "isCurrent": true },
-    { "id": 2, "year": 2025, "isCurrent": false },
-    { "id": 1, "year": 2024, "isCurrent": false }
+    { "id": 3, "year": 2026, "isCurrent": true, "createdAt": "2026-01-10T08:00:00Z" },
+    { "id": 2, "year": 2025, "isCurrent": false, "createdAt": "2025-01-10T08:00:00Z" },
+    { "id": 1, "year": 2024, "isCurrent": false, "createdAt": "2024-01-10T08:00:00Z" }
   ]
 }
 ```
@@ -468,7 +476,8 @@ Set as the current year. Only one can be current.
       "name": "Term 1",
       "startDate": "2026-02-01",
       "endDate": "2026-05-01",
-      "isCurrent": true
+      "isCurrent": true,
+      "createdAt": "2026-01-10T08:00:00Z"
     }
   ]
 }
@@ -506,9 +515,9 @@ Set as current term.
 ```json
 {
   "data": [
-    { "id": 1, "name": "S1", "sortOrder": 1 },
-    { "id": 2, "name": "S2", "sortOrder": 2 },
-    { "id": 3, "name": "S3", "sortOrder": 3 }
+    { "id": 1, "name": "S1", "sortOrder": 1, "isActive": true },
+    { "id": 2, "name": "S2", "sortOrder": 2, "isActive": true },
+    { "id": 3, "name": "S3", "sortOrder": 3, "isActive": true }
   ]
 }
 ```
@@ -526,6 +535,22 @@ Set as current term.
 
 ---
 
+### GET /admin/streams?classId={id}
+
+**Auth:** ADMIN
+
+**Response 200:**
+```json
+{
+  "data": [
+    { "id": 1, "classId": 1, "name": "Blue", "capacity": 50, "isActive": true },
+    { "id": 2, "classId": 1, "name": "Red", "capacity": 50, "isActive": true }
+  ]
+}
+```
+
+---
+
 ### GET /admin/classes?yearId={id}
 
 **Response 200:**
@@ -538,10 +563,8 @@ Set as current term.
       "classLevelId": 3,
       "academicYearId": 3,
       "classTeacherId": 5,
-      "streams": [
-        { "id": 1, "name": "Blue", "capacity": 50, "studentCount": 42 },
-        { "id": 2, "name": "Red", "capacity": 50, "studentCount": 45 }
-      ]
+      "isActive": true,
+      "createdAt": "2026-01-10T08:00:00Z"
     }
   ]
 }
@@ -592,8 +615,7 @@ Set as current term.
       "name": "Mathematics",
       "description": null,
       "isCore": true,
-      "isActive": true,
-      "classLevels": [1, 2, 3, 4]
+      "isActive": true
     }
   ]
 }
@@ -608,8 +630,8 @@ Set as current term.
 {
   "code": "ENG",
   "name": "English",
-  "isCore": true,
-  "classLevelIds": [1, 2, 3, 4]
+  "description": null,
+  "isCore": true
 }
 ```
 
@@ -623,8 +645,8 @@ Set as current term.
 ```json
 {
   "data": [
-    { "id": 1, "name": "Algebra", "sortOrder": 1, "assessmentCount": 12 },
-    { "id": 2, "name": "Geometry", "sortOrder": 2, "assessmentCount": 8 }
+    { "id": 1, "subjectId": 1, "name": "Algebra", "description": null, "sortOrder": 1 },
+    { "id": 2, "subjectId": 1, "name": "Geometry", "description": null, "sortOrder": 2 }
   ]
 }
 ```
@@ -635,14 +657,34 @@ Set as current term.
 
 **Request:**
 ```json
-{ "name": "Statistics", "sortOrder": 3, "description": null }
+{ "subjectId": 1, "name": "Statistics", "description": null, "sortOrder": 3 }
 ```
+
+**Note:** The subject ID is derived from the path `/admin/subjects/{id}/topics`; the controller binds the path value and overwrites any client-supplied `subjectId`.
 
 **Response 201**
 
 ---
 
+### GET /admin/topics?subjectId={id}
+
+**Auth:** ADMIN
+
+**Response 200:**
+```json
+{
+  "data": [
+    { "id": 1, "subjectId": 1, "name": "Algebra", "description": null, "sortOrder": 1 },
+    { "id": 2, "subjectId": 1, "name": "Geometry", "description": null, "sortOrder": 2 }
+  ]
+}
+```
+
+---
+
 ## 8. Admin Endpoints — Students
+
+> **Not yet implemented:** `GET /api/v1/admin/students`, `POST /api/v1/admin/students`, `GET /api/v1/admin/students/{id}`, `PUT /api/v1/admin/students/{id}`, `DELETE /api/v1/admin/students/{id}` (planned for Phase 3)
 
 ### GET /admin/students
 
@@ -841,25 +883,22 @@ Download the Excel template.
 
 ## 10. Admin Endpoints — School Settings
 
+> **Not yet implemented:** `POST /api/v1/admin/settings/logo` (planned for Phase 2)
+
 ### GET /admin/settings
 
 **Response 200:**
 ```json
 {
   "data": {
+    "id": 1,
+    "schoolId": 1,
     "schoolName": "St. Mary's Secondary School",
     "logoUrl": "/uploads/schools/1/logo.png",
     "address": "P.O. Box 1234, Kampala",
     "phone": "+256414000000",
     "email": "info@stmarys.ac.ug",
-    "gradingScale": [
-      { "grade": "A", "min": 80, "max": 100 },
-      { "grade": "B", "min": 70, "max": 79 },
-      { "grade": "C", "min": 60, "max": 69 },
-      { "grade": "D", "min": 50, "max": 59 },
-      { "grade": "E", "min": 40, "max": 49 },
-      { "grade": "F", "min": 0, "max": 39 }
-    ],
+    "gradingScale": "A:80-100,B:70-79,C:60-69,D:50-59,E:40-49,F:0-39",
     "reportHeader": "St. Mary's Secondary School — P.O. Box 1234, Kampala",
     "reportFooter": "Next term begins 15 May 2026",
     "currentTermId": 1,
@@ -872,7 +911,15 @@ Download the Excel template.
 
 ### PUT /admin/settings
 
-**Request:** same shape as response
+**Request:**
+```json
+{
+  "gradingScale": "A:80-100,B:70-79,C:60-69,D:50-59,E:40-49,F:0-39",
+  "reportHeader": "St. Mary's Secondary School — P.O. Box 1234, Kampala",
+  "reportFooter": "Next term begins 15 May 2026",
+  "currentTermId": 1
+}
+```
 
 **Response 200**
 
@@ -906,9 +953,7 @@ Upload logo.
 - `userId`
 - `action` — e.g. `SCORE_UPDATED`, `USER_CREATED`
 - `entityType` — e.g. `Score`, `Student`
-- `from` — ISO date
-- `to` — ISO date
-- `page`, `size`
+- `entityId`
 
 **Response 200:**
 ```json
@@ -921,7 +966,7 @@ Upload logo.
       "action": "SCORE_UPDATED",
       "entityType": "Score",
       "entityId": 789,
-      "details": { "oldScore": 75, "newScore": 78.5 },
+      "details": "{\"oldScore\":75,\"newScore\":78.5}",
       "ipAddress": "192.168.1.15",
       "createdAt": "2026-09-24T10:30:00Z"
     }
@@ -932,6 +977,8 @@ Upload logo.
 ---
 
 ## 12. Teacher Endpoints — Classes
+
+> **Not yet implemented:** `GET /api/v1/teacher/classes`, `GET /api/v1/teacher/classes/{classId}/streams/{streamId}/students` (planned for Phase 3)
 
 ### GET /teacher/classes
 
@@ -1000,9 +1047,8 @@ Get the roster for a class-stream.
 List assessments by the logged-in teacher.
 
 **Query parameters:**
-- `classId`, `streamId`, `subjectId`, `termId`
+- `classId`, `subjectId`, `termId`
 - `status` — DRAFT / PUBLISHED
-- `page`, `size`
 
 **Response 200:**
 ```json
@@ -1017,17 +1063,23 @@ List assessments by the logged-in teacher.
       "status": "DRAFT",
       "classId": 1,
       "className": "S3",
+      "streamId": 1,
       "streamName": "Blue",
       "subjectId": 1,
       "subjectName": "Mathematics",
       "termId": 1,
+      "termName": "Term 1",
+      "academicYear": 2026,
+      "teacherId": 5,
+      "teacherName": "Mr. Okello",
       "topics": [
         { "id": 1, "name": "Algebra" },
         { "id": 2, "name": "Geometry" }
       ],
       "studentCount": 42,
       "enteredCount": 38,
-      "createdAt": "2026-03-10T08:00:00Z"
+      "createdAt": "2026-03-10T08:00:00Z",
+      "publishedAt": null
     }
   ]
 }
@@ -1075,7 +1127,18 @@ Create a new assessment.
 
 Update an assessment (only if DRAFT).
 
-**Request:** same as POST
+**Request:**
+```json
+{
+  "streamId": 1,
+  "termId": 1,
+  "title": "Mid-Term Exam",
+  "type": "EXAM",
+  "assessmentDate": "2026-03-15",
+  "maxScore": 100,
+  "topicIds": [1, 2]
+}
+```
 
 **Response 200**
 
@@ -1104,9 +1167,27 @@ Publish the assessment. Makes marks visible to students.
 {
   "data": {
     "id": 123,
+    "title": "Mid-Term Exam",
+    "type": "EXAM",
+    "assessmentDate": "2026-03-15",
+    "maxScore": 100,
     "status": "PUBLISHED",
-    "publishedAt": "2026-03-16T14:22:00Z",
-    "affectedStudents": 42
+    "classId": 1,
+    "className": "S3",
+    "streamId": 1,
+    "streamName": "Blue",
+    "subjectId": 1,
+    "subjectName": "Mathematics",
+    "termId": 1,
+    "termName": "Term 1",
+    "academicYear": 2026,
+    "teacherId": 5,
+    "teacherName": "Mr. Okello",
+    "topics": [{ "id": 1, "name": "Algebra" }],
+    "studentCount": 42,
+    "enteredCount": 42,
+    "createdAt": "2026-03-10T08:00:00Z",
+    "publishedAt": "2026-03-16T14:22:00Z"
   }
 }
 ```
@@ -1227,14 +1308,11 @@ Save multiple scores at once (used for "Save Draft").
 **Response 200:**
 ```json
 {
-  "data": {
-    "saved": 3,
-    "scores": [
-      { "scoreId": 501, "studentId": 1, "grade": "B" },
-      { "scoreId": 504, "studentId": 2, "grade": "E" },
-      { "scoreId": 503, "studentId": 3, "grade": "C" }
-    ]
-  }
+  "data": [
+    { "scoreId": 501, "studentId": 1, "score": 82, "feedback": "Excellent", "grade": "B", "savedAt": "2026-03-16T10:30:00Z" },
+    { "scoreId": 504, "studentId": 2, "score": 45, "feedback": "Needs improvement", "grade": "E", "savedAt": "2026-03-16T10:30:00Z" },
+    { "scoreId": 503, "studentId": 3, "score": 67, "feedback": null, "grade": "C", "savedAt": "2026-03-16T10:30:00Z" }
+  ]
 }
 ```
 
@@ -1328,17 +1406,20 @@ Generate report cards for a class-stream-term.
 **Response 200:**
 ```json
 {
-  "data": {
-    "generated": 42,
-    "reports": [
-      {
-        "studentId": 1,
-        "studentName": "Achieng Sarah",
-        "reportId": 5001,
-        "downloadUrl": "/reports/download/5001"
-      }
-    ]
-  }
+  "data": [
+    {
+      "id": 5001,
+      "studentId": 1,
+      "studentName": "Achieng Sarah",
+      "termId": 1,
+      "termName": "Term 1",
+      "academicYear": 2026,
+      "filePath": "reports/5001.pdf",
+      "fileSizeBytes": 123456,
+      "generatedAt": "2026-04-20T15:00:00",
+      "downloadUrl": "/api/v1/reports/download/5001"
+    }
+  ]
 }
 ```
 
@@ -1347,7 +1428,7 @@ Generate report cards for a class-stream-term.
 
 ---
 
-### GET /reports/student/{studentId}?termId={id}
+### GET /reports/student/{studentId}
 
 List reports for a student.
 
@@ -1358,10 +1439,13 @@ List reports for a student.
     {
       "id": 5001,
       "studentId": 1,
+      "studentName": "Achieng Sarah",
       "termId": 1,
       "termName": "Term 1",
       "academicYear": 2026,
-      "generatedAt": "2026-04-20T15:00:00Z",
+      "filePath": "reports/5001.pdf",
+      "fileSizeBytes": 123456,
+      "generatedAt": "2026-04-20T15:00:00",
       "downloadUrl": "/reports/download/5001"
     }
   ]
@@ -1374,169 +1458,167 @@ List reports for a student.
 
 Download the PDF.
 
-**Auth:** TEACHER, ADMIN, or the STUDENT who owns it
+**Auth:** TEACHER or ADMIN
 
 **Response 200:** binary PDF with header `Content-Type: application/pdf`
 
 ---
 
-## 17. Student Endpoints (Web)
+## 17. Student Endpoints (Web pages)
 
-These are called by the student web app. Session-based (cookie).
+These routes render HTML pages for the student web interface; they are not JSON API endpoints.
 
-### GET /student/me
+### GET /student/dashboard
 
-**Auth:** STUDENT (session)
-
-**Response 200:**
-```json
-{
-  "data": {
-    "id": 1,
-    "admissionNumber": "2024/0456",
-    "fullName": "Achieng Sarah",
-    "firstName": "Sarah",
-    "class": "S3",
-    "stream": "Blue",
-    "schoolName": "St. Mary's Secondary School"
-  }
-}
-```
+**Response 200:** rendered dashboard HTML view.
 
 ---
 
 ### GET /student/marks
 
-List published marks for the logged-in student.
+**Response 200:** rendered marks HTML view.
 
-**Query parameters:**
-- `termId` (optional)
-- `subjectId` (optional)
+---
 
-**Response 200:**
-```json
-{
-  "data": [
-    {
-      "id": 501,
-      "subjectId": 1,
-      "subjectName": "Mathematics",
-      "title": "Mid-Term Exam",
-      "type": "EXAM",
-      "date": "2026-03-15",
-      "score": 82,
-      "maxScore": 100,
-      "grade": "B"
-    },
-    {
-      "id": 502,
-      "subjectId": 2,
-      "subjectName": "English",
-      "title": "Term 1 Test",
-      "type": "TEST",
-      "date": "2026-03-20",
-      "score": 65,
-      "maxScore": 100,
-      "grade": "C"
-    }
-  ]
-}
-```
+### GET /student/subjects/{subjectId}
+
+**Response 200:** rendered subject-detail HTML view.
 
 ---
 
 ### GET /student/results
 
-Per-subject summary for the current term.
-
-**Response 200:**
-```json
-{
-  "data": {
-    "term": { "id": 1, "name": "Term 1", "year": 2026 },
-    "subjects": [
-      {
-        "subjectId": 1,
-        "subjectName": "Mathematics",
-        "average": 78.5,
-        "grade": "B",
-        "assessmentCount": 3
-      },
-      {
-        "subjectId": 2,
-        "subjectName": "English",
-        "average": 65.0,
-        "grade": "C",
-        "assessmentCount": 2
-      }
-    ],
-    "overallAverage": 71.75,
-    "overallGrade": "B",
-    "position": 12,
-    "classSize": 42
-  }
-}
-```
+**Response 200:** rendered results HTML view.
 
 ---
 
 ### GET /student/reports
 
-List report cards available to the student.
-
-**Response 200:**
-```json
-{
-  "data": [
-    {
-      "id": 5001,
-      "termId": 1,
-      "termName": "Term 1",
-      "academicYear": 2026,
-      "generatedAt": "2026-04-20T15:00:00Z",
-      "downloadUrl": "/reports/download/5001"
-    }
-  ]
-}
-```
+**Response 200:** rendered reports HTML view.
 
 ---
 
 ### GET /student/profile
 
-**Response 200:**
-```json
-{
-  "data": {
-    "admissionNumber": "2024/0456",
-    "fullName": "Achieng Sarah",
-    "gender": "FEMALE",
-    "dateOfBirth": "2008-03-15",
-    "class": "S3",
-    "stream": "Blue",
-    "guardianName": "Mrs. Achieng Mary",
-    "guardianPhone": "+256700000003"
-  }
-}
-```
+**Response 200:** rendered profile HTML view.
 
 ---
 
 ### POST /student/profile/change-password
 
-**Request:**
-```json
-{
-  "currentPassword": "oldpass",
-  "newPassword": "newpass123"
-}
-```
-
-**Response 204**
+This form route returns an HTML fragment (default status 200). The fragment contains fields named `current`, `new`, and `confirm`; the controller does not bind or process request fields.
 
 ---
 
-## 18. Error Codes — Full List
+### GET /student/me
+
+**Not yet implemented:** no matching controller route. This endpoint was planned for Phase 4.
+
+---
+
+## 18. Additional Endpoints (implemented)
+
+The following endpoints are implemented but were not previously listed in the endpoint catalog.
+
+### GET /api/v1/admin/assessments
+
+**Controller:** `backend/src/main/java/com/musomi/manager/controller/api/AdminAssessmentApiController.java`
+**Response 200:** `ApiResponse<List<AssessmentResponse>>`; each item contains the fields described under `GET /api/v1/teacher/assessments`.
+
+---
+
+### GET /api/v1/admin/login-history
+
+**Controller:** `backend/src/main/java/com/musomi/manager/controller/api/AdminLoginHistoryApiController.java`
+**Response 200:** `ApiResponse<List<LoginHistoryResponse>>`; fields are `id`, `userId`, `userName`, `usernameAttempted`, `success`, `ipAddress`, `userAgent`, and `createdAt`.
+
+---
+
+### POST /api/v1/admin/report-requests?studentId={id}&termId={id}
+
+**Controller:** `backend/src/main/java/com/musomi/manager/controller/api/AdminReportRequestApiController.java`
+**Response 200:** `ApiResponse<ReportRequest>` containing the serialized report-request entity.
+
+---
+
+### POST /api/v1/admin/report-requests/{requestId}/mark-generated?reportId={id}
+
+**Controller:** `backend/src/main/java/com/musomi/manager/controller/api/AdminReportRequestApiController.java`
+**Response 204:** no body.
+
+---
+
+### GET /login
+
+**Controller:** `backend/src/main/java/com/musomi/manager/controller/web/LoginWebController.java`
+**Response 200:** rendered login HTML view.
+
+---
+
+### POST /login
+
+**Controller:** `backend/src/main/java/com/musomi/manager/controller/web/LoginWebController.java`
+**Response:** redirect to `/student/dashboard`.
+
+---
+
+### POST /logout
+
+**Controller:** `backend/src/main/java/com/musomi/manager/controller/web/LoginWebController.java`
+**Response:** redirect to `/login`.
+
+---
+
+### GET /student/dashboard
+
+**Controller:** `backend/src/main/java/com/musomi/manager/controller/web/StudentDashboardWebController.java`
+**Response 200:** rendered dashboard HTML view.
+
+---
+
+### GET /student/subjects/{subjectId}
+
+**Controller:** `backend/src/main/java/com/musomi/manager/controller/web/StudentMarksWebController.java`
+**Response 200:** rendered subject-detail HTML view.
+
+---
+
+### POST /student/profile/upload-avatar
+
+**Controller:** `backend/src/main/java/com/musomi/manager/controller/web/StudentProfileWebController.java`
+**Response 200:** avatar URL as a string. Invalid file type/size returns 400 with a string body; upload failure returns 500 with a string body.
+
+---
+
+### ANY /error
+
+**Controller:** `backend/src/main/java/com/musomi/manager/controller/web/ErrorWebController.java`
+**Response:** rendered error HTML view selected from the request status.
+
+---
+
+### GET /404
+
+**Controller:** `backend/src/main/java/com/musomi/manager/controller/web/ErrorWebController.java`
+**Response 200:** rendered 404 HTML view.
+
+---
+
+### GET /500
+
+**Controller:** `backend/src/main/java/com/musomi/manager/controller/web/ErrorWebController.java`
+**Response 200:** rendered 500 HTML view.
+
+---
+
+### GET /access-denied
+
+**Controller:** `backend/src/main/java/com/musomi/manager/controller/web/ErrorWebController.java`
+**Response 200:** rendered access-denied HTML view.
+
+---
+
+## 19. Error Codes — Full List
 
 ```
 INVALID_CREDENTIALS
@@ -1589,7 +1671,7 @@ Full descriptions in `ERROR_CODES.md`.
 
 ---
 
-## 19. Notes for Frontend Devs
+## 20. Notes for Frontend Devs
 
 **Desktop app:**
 - After login, store the JWT and `expiresAt` in `Session`
@@ -1606,7 +1688,7 @@ Full descriptions in `ERROR_CODES.md`.
 
 ---
 
-## 20. Notes for Backend Devs
+## 21. Notes for Backend Devs
 
 - Every endpoint requires `@Valid` on request bodies
 - Every service method validates permission server-side
@@ -1623,4 +1705,3 @@ Full descriptions in `ERROR_CODES.md`.
 **API_CONTRACT.md is the source of truth for every endpoint — path, method, request, response, errors. Backend implements it exactly. Frontend calls it exactly. Nothing changes without updating both.**
 
 ---
-
