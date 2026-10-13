@@ -11,6 +11,7 @@ import com.musomi.manager.mapper.StudentMapper;
 import com.musomi.manager.repository.StudentRepository;
 import com.musomi.manager.service.AssessmentService;
 import com.musomi.manager.service.TeacherAssignmentService;
+import com.musomi.manager.util.CurrentUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,9 +26,6 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('TEACHER')")
 public class TeacherClassApiController {
 
-    private static final Long SCHOOL_ID = 1L;
-    private static final Long TEACHER_ID = 1L;
-
     private final TeacherAssignmentService teacherAssignmentService;
     private final StudentRepository studentRepository;
     private final AssessmentService assessmentService;
@@ -35,7 +33,8 @@ public class TeacherClassApiController {
     /** Lists the teacher's assigned class, stream, and subject combinations. */
     @GetMapping
     public ApiResponse<List<ClassStreamResponse>> listClasses() {
-        List<ClassStreamResponse> classes = teacherAssignmentService.listAssignments(SCHOOL_ID, TEACHER_ID)
+        List<ClassStreamResponse> classes = teacherAssignmentService.listAssignments(
+                        CurrentUser.getSchoolId(), CurrentUser.getUserId())
                 .stream()
                 .map(this::toClassStreamResponse)
                 .toList();
@@ -57,7 +56,7 @@ public class TeacherClassApiController {
 
     private ClassStreamResponse toClassStreamResponse(AssignmentResponse assignment) {
         List<AssessmentResponse> assessments = assessmentService.listAssessments(
-                        TEACHER_ID, assignment.classId(), assignment.subjectId(), null, null)
+                        CurrentUser.getUserId(), assignment.classId(), assignment.subjectId(), null, null)
                 .stream()
                 .filter(assessment -> Objects.equals(assessment.streamId(), assignment.streamId()))
                 .toList();

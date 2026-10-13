@@ -7,6 +7,7 @@ import com.musomi.manager.dto.request.UpdateStudentRequest;
 import com.musomi.manager.dto.response.ApiResponse;
 import com.musomi.manager.dto.response.StudentResponse;
 import com.musomi.manager.service.StudentService;
+import com.musomi.manager.util.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -29,8 +30,6 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminStudentApiController {
 
-    private static final Long SCHOOL_ID = 1L;
-
     private final StudentService studentService;
 
     /** Lists students with optional class, stream, status, and search filters. */
@@ -40,14 +39,15 @@ public class AdminStudentApiController {
             @RequestParam(required = false) Long streamId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String search) {
-        return ApiResponse.success(studentService.listStudents(SCHOOL_ID, classId, streamId, status, search));
+        return ApiResponse.success(studentService.listStudents(
+                CurrentUser.getSchoolId(), classId, streamId, status, search));
     }
 
     /** Creates a student. */
     @PostMapping
     public ResponseEntity<ApiResponse<StudentResponse>> createStudent(
             @Valid @RequestBody CreateStudentRequest request) {
-        StudentResponse created = studentService.createStudent(SCHOOL_ID, request);
+        StudentResponse created = studentService.createStudent(CurrentUser.getSchoolId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
     }
 

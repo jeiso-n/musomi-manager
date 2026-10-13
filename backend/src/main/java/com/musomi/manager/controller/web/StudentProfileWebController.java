@@ -28,17 +28,6 @@ public class StudentProfileWebController {
     public String showProfile(Model model) {
         model.addAttribute("pageTitle", "My Profile");
         model.addAttribute("currentPage", "profile");
-        model.addAttribute("schoolName", "St. Mary's Secondary School");
-        
-        model.addAttribute("admissionNumber", "U001/0123");
-        model.addAttribute("fullName", "Achieng Sarah");
-        model.addAttribute("gender", "Female");
-        model.addAttribute("dateOfBirth", "12 May 2010");
-        model.addAttribute("className", "S3");
-        model.addAttribute("streamName", "Blue");
-        model.addAttribute("guardianName", "Odongo Peter");
-        model.addAttribute("guardianPhone", "+256 700 123 456");
-        
         return "student/profile";
     }
     

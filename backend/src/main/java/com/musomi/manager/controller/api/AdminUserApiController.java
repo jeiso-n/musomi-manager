@@ -7,17 +7,14 @@ import com.musomi.manager.dto.response.PageResult;
 import com.musomi.manager.dto.response.ResetPasswordResponse;
 import com.musomi.manager.dto.response.UserResponse;
 import com.musomi.manager.entity.enums.Role;
-import com.musomi.manager.exception.AuthenticationException;
-import com.musomi.manager.exception.ErrorCode;
 import com.musomi.manager.service.UserService;
+import com.musomi.manager.util.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -62,7 +59,7 @@ public class AdminUserApiController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivateUser(@PathVariable Long id) {
         // TODO(backend): audit_log when V023 lands
-        userService.deactivateUser(id, currentUserId());
+        userService.deactivateUser(id, CurrentUser.getUserId());
         return ResponseEntity.noContent().build();
     }
 
@@ -70,13 +67,5 @@ public class AdminUserApiController {
     public ApiResponse<ResetPasswordResponse> resetPassword(@PathVariable Long id) {
         // TODO(backend): audit_log when V023 lands
         return ApiResponse.success(userService.resetPassword(id));
-    }
-
-    private Long currentUserId() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof Long userId)) {
-            throw new AuthenticationException(ErrorCode.SESSION_EXPIRED);
-        }
-        return userId;
     }
 }
