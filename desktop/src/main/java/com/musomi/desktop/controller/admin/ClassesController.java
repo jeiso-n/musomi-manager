@@ -134,6 +134,10 @@ public class ClassesController {
                 (observable, oldValue, newValue) ->
                         filterClasses(newValue)
         );
+
+        classesTable.setColumnResizePolicy(
+                TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN
+        );
     }
 
     private void loadSampleClasses() {

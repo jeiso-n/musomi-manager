@@ -124,6 +124,9 @@ public class UsersController {
                 (observable, oldValue, newValue) ->
                         filterUsers(newValue)
         );
+        usersTable.setColumnResizePolicy(
+                TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN
+        );
     }
 
     private void loadSampleUsers() {

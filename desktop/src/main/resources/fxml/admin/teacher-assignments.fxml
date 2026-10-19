@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+        <?import javafx.geometry.Insets?>
+        <?import javafx.scene.control.Button?>
+        <?import javafx.scene.control.ComboBox?>
+        <?import javafx.scene.control.Label?>
+        <?import javafx.scene.control.TableColumn?>
+        <?import javafx.scene.control.TableView?>
+        <?import javafx.scene.layout.HBox?>
+        <?import javafx.scene.layout.Priority?>
+        <?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.musomi.desktop.controller.admin.TeacherAssignmentController"
+      spacing="20"
+      styleClass="page-container">
+
+    <padding>
+        <Insets top="24" right="24" bottom="24" left="24"/>
+    </padding>
+
+    <children>
+
+        <!-- Page heading -->
+        <VBox spacing="6">
+            <Label text="Teacher Assignments"
+                   styleClass="page-title"/>
+
+            <Label text="Assign teachers to classes and subjects"
+                   styleClass="page-subtitle"/>
+
+
+            <!-- Assignment statistics -->
+            <HBox spacing="16">
+                <VBox spacing="8"
+                      styleClass="table-card"
+                      HBox.hgrow="ALWAYS">
+                    <padding>
+                        <Insets top="18" right="20" bottom="18" left="20"/>
+                    </padding>
+
+                    <Label text="Total Assignments"
+                           styleClass="form-label"/>
+
+                    <Label fx:id="totalAssignmentsLabel"
+                           text="0"
+                           styleClass="section-title"/>
+                </VBox>
+
+                <VBox spacing="8"
+                      styleClass="table-card"
+                      HBox.hgrow="ALWAYS">
+                    <padding>
+                        <Insets top="18" right="20" bottom="18" left="20"/>
+                    </padding>
+
+                    <Label text="Assigned Teachers"
+                           styleClass="form-label"/>
+
+                    <Label fx:id="assignedTeachersLabel"
+                           text="0"
+                           styleClass="section-title"/>
+                </VBox>
+            </HBox>
+
+        </VBox>
+
+        <!-- Assignment form -->
+        <VBox spacing="16" styleClass="table-card">
+            <padding>
+                <Insets top="20" right="20" bottom="20" left="20"/>
+            </padding>
+
+            <Label text="Create Assignment"
+                   styleClass="section-title"/>
+
+            <HBox spacing="14">
+                <VBox spacing="7">
+                    <HBox spacing="4">
+                        <Label text="Teacher" styleClass="form-label"/>
+                        <Label text="*" style="-fx-text-fill: #dc2626;"/>
+                    </HBox>
+
+                    <ComboBox fx:id="teacherComboBox"
+                              promptText="Select teacher"
+                              maxWidth="Infinity"/>
+                    <HBox.margin>
+                        <Insets/>
+                    </HBox.margin>
+                </VBox>
+
+                <VBox spacing="7">
+                    <Label text="Class" styleClass="form-label"/>
+
+                    <ComboBox fx:id="classComboBox"
+                              promptText="Select class"
+                              maxWidth="Infinity"/>
+                </VBox>
+
+                <VBox spacing="7">
+                    <Label text="Subject" styleClass="form-label"/>
+
+                    <ComboBox fx:id="subjectComboBox"
+                              promptText="Select subject"
+                              maxWidth="Infinity"/>
+                </VBox>
+            </HBox>
+
+            <HBox alignment="CENTER_LEFT" spacing="12">
+                <Label fx:id="messageLabel"
+                       text="Select a teacher, class and subject."
+                       styleClass="text-muted"
+                       wrapText="true"
+                       HBox.hgrow="ALWAYS"/>
+
+                <Button text="Clear"
+                        styleClass="secondary-button"
+                        onAction="#clearForm"/>
+
+                <Button text="Assign Teacher"
+                        styleClass="primary-button"
+                        onAction="#assignTeacher"/>
+            </HBox>
+        </VBox>
+
+        <!-- Current assignments -->
+        <VBox spacing="12"
+              styleClass="table-card"
+              VBox.vgrow="ALWAYS">
+
+            <HBox alignment="CENTER_LEFT" spacing="12">
+                <Label text="Current Assignments"
+                       styleClass="section-title"/>
+
+                <VBox HBox.hgrow="ALWAYS"/>
+
+                <Button text="Refresh"
+                        styleClass="secondary-button"
+                        onAction="#refreshAssignments"/>
+
+
+                <Button text="Remove Assignment"
+                        styleClass="secondary-button"
+                        onAction="#removeAssignment"/>
+
+
+            </HBox>
+
+            <TableView fx:id="assignmentsTable"
+                       styleClass="modern-table"
+                       VBox.vgrow="ALWAYS">
+
+                <placeholder>
+                    <Label text="No assignments yet. Create an assignment above."
+                           styleClass="text-muted"/>
+                </placeholder>
+
+                <columns>
+                    <TableColumn fx:id="teacherColumn"
+                                 text="Teacher"
+                                 prefWidth="200"/>
+
+                    <TableColumn fx:id="classColumn"
+                                 text="Class"
+                                 prefWidth="160"/>
+
+                    <TableColumn fx:id="subjectColumn"
+                                 text="Subject"
+                                 prefWidth="180"/>
+                </columns>
+            </TableView>
+
+        </VBox>
+
+    </children>
+</VBox>

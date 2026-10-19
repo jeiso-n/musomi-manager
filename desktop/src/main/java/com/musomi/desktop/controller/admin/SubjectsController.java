@@ -123,6 +123,10 @@ public class SubjectsController {
 
         subjectsTable.setItems(allSubjects);
 
+        subjectsTable.setColumnResizePolicy(
+                TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN
+        );
+
         searchField.textProperty().addListener(
                 (observable, oldValue, newValue) ->
                         filterSubjects(newValue)
