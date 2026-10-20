@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/base :: layout(~{::main})}">
+<head>
+    <title>Access Denied · Musomi Manager</title>
+</head>
+<body>
+<main>
+    <div class="flex flex-col items-center justify-center py-16 text-center">
+        <div class="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 mb-4 shadow-sm">
+            <i data-lucide="lock" class="w-8 h-8"></i>
+        </div>
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-amber-600 mb-1">Error 403</span>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight mb-2">Access Restricted</h1>
+        <p class="text-sm text-slate-500 max-w-sm mb-6">Students are only permitted to view their own learning records and assessment marks.</p>
+        <a th:href="@{/student/dashboard}" 
+           class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition">
+            <i data-lucide="home" class="w-4 h-4"></i> Go to My Dashboard
+        </a>
+    </div>
+</main>
+</body>
+</html>

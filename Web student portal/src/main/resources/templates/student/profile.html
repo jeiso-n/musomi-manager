@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/base :: layout(~{::main})}">
+<head>
+    <title>My Profile</title>
+</head>
+<body>
+<main>
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Student Profile</h1>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">Review your personal registration details and manage your account security.</p>
+    </div>
+
+    <!-- Student Information Card -->
+    <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm mb-6">
+        <div class="flex items-center gap-4 mb-6 pb-6 border-b border-slate-100">
+            <div class="w-14 h-14 rounded-2xl bg-indigo-600 text-white font-bold text-xl flex items-center justify-center shadow-md">
+                <span th:text="${student != null && student.fullName != null ? #strings.substring(student.fullName, 0, 1) : 'S'}">S</span>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold text-slate-900" th:text="${student != null ? student.fullName : 'Sarah Namubiru'}">Sarah Namubiru</h2>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span class="text-xs font-mono font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100" 
+                          th:text="${student != null ? student.admissionNumber : 'SMSS/2024/0142'}">SMSS/2024/0142</span>
+                    <span class="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <div>
+                <span class="text-xs text-slate-400 font-medium block">Current Class</span>
+                <span class="font-semibold text-slate-800" th:text="${student != null && student.className != null ? student.className : 'Senior 3'}">Senior 3</span>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium block">Stream</span>
+                <span class="font-semibold text-slate-800" th:text="${student != null && student.streamName != null ? student.streamName : 'Blue'}">Blue</span>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium block">Gender</span>
+                <span class="font-semibold text-slate-800" th:text="${student != null && student.gender != null ? student.gender : 'Female'}">Female</span>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium block">Date of Birth</span>
+                <span class="font-semibold text-slate-800" th:text="${student != null && student.dob != null ? student.dob : '12 May 2010'}">12 May 2010</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Guardian Information Card -->
+    <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm mb-6">
+        <h3 class="text-base font-semibold text-slate-900 mb-3 flex items-center gap-2">
+            <i data-lucide="shield" class="w-4 h-4 text-indigo-600"></i> Primary Guardian Details
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <div>
+                <span class="text-xs text-slate-400 font-medium block">Guardian Name</span>
+                <span class="font-semibold text-slate-800" th:text="${guardian != null && guardian.name != null ? guardian.name : 'Dr. James Namubiru'}">Dr. James Namubiru</span>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium block">Relationship</span>
+                <span class="font-semibold text-slate-800" th:text="${guardian != null && guardian.relationship != null ? guardian.relationship : 'Father'}">Father</span>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium block">Emergency Phone</span>
+                <span class="font-mono text-slate-800" th:text="${guardian != null && guardian.phone != null ? guardian.phone : '+256 772 123 456'}">+256 772 123 456</span>
+            </div>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-4 italic">To update registration or guardian information, please visit the school administration office.</p>
+    </div>
+
+    <!-- Security & Password Change (HTMX Form) -->
+    <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
+        <h3 class="text-base font-semibold text-slate-900 mb-1 flex items-center gap-2">
+            <i data-lucide="key" class="w-4 h-4 text-indigo-600"></i> Change Password
+        </h3>
+        <p class="text-xs text-slate-500 mb-5">Keep your account secure by using a strong password.</p>
+
+        <form id="password-form" 
+              hx-post="/student/profile/change-password" 
+              hx-swap="outerHTML" 
+              class="space-y-4">
+            <div>
+                <label for="current" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Current Password</label>
+                <input type="password" id="current" name="current" required 
+                       class="block w-full rounded-lg border border-slate-300 shadow-2xs px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="new" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">New Password</label>
+                    <input type="password" id="new" name="new" required minlength="6"
+                           class="block w-full rounded-lg border border-slate-300 shadow-2xs px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition">
+                </div>
+                <div>
+                    <label for="confirm" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Confirm New Password</label>
+                    <input type="password" id="confirm" name="confirm" required minlength="6"
+                           class="block w-full rounded-lg border border-slate-300 shadow-2xs px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition">
+                </div>
+            </div>
+
+            <div class="pt-2">
+                <button type="submit" 
+                        class="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 transition">
+                    Update Password
+                </button>
+            </div>
+        </form>
+    </div>
+</main>
+</body>
+</html>

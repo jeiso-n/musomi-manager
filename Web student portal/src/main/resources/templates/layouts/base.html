@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle != null ? pageTitle + ' · ' + (schoolName != null ? schoolName : 'Musomi Manager') : 'Musomi Manager'}">Musomi Manager</title>
+    
+    <!-- Design System Typography: Inter (UI) & JetBrains Mono (Numbers/Tables) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Scripts: HTMX & Tailwind CSS -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace']
+                    },
+                    colors: {
+                        primary: {
+                            DEFAULT: '#4F46E5',
+                            hover: '#4338CA',
+                            light: '#EEF2FF',
+                            50: '#EEF2FF',
+                            100: '#E0E7FF',
+                            600: '#4F46E5',
+                            700: '#4338CA',
+                            800: '#3730A3',
+                            900: '#312E81'
+                        },
+                        brand: {
+                            50: '#EEF2FF',
+                            100: '#E0E7FF',
+                            600: '#4F46E5',
+                            700: '#4338CA',
+                            800: '#3730A3',
+                            900: '#312E81'
+                        },
+                        surface: '#FFFFFF',
+                        border: '#E2E8F0'
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .tabular-nums {
+                font-variant-numeric: tabular-nums;
+            }
+        }
+    </style>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@0.350.0"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased min-h-screen flex flex-col pb-20 md:pb-0">
+    <!-- Accessibility Skip Link -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-white focus:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600 rounded-br-lg shadow-md">Skip to content</a>
+    
+    <!-- Top Navigation Header -->
+    <header th:replace="~{fragments/topbar :: topbar}"></header>
+    
+    <!-- Main Content Area (Max width 3xl for optimal readability and mobile-first consistency) -->
+    <main id="main-content" class="flex-grow max-w-3xl w-full mx-auto px-4 py-6">
+        <div th:replace="${content}">
+            <!-- Dynamic page body -->
+        </div>
+    </main>
+    
+    <!-- Mobile Bottom Navigation (Persistent on screens < 768px) -->
+    <nav th:replace="~{fragments/bottom-nav :: bottom-nav}"></nav>
+    
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-[360px] w-full px-4 sm:px-0"></div>
+
+    <script th:src="@{/js/app.js}" src="/js/app.js"></script>
+    <script>
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>
