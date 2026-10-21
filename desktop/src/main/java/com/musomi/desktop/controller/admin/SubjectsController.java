@@ -71,6 +71,16 @@ public class SubjectsController {
                             );
 
                     {
+                        // Table action button styling
+                        editButton.getStyleClass().add(
+                                "table-action-button"
+                        );
+
+                        deactivateButton.getStyleClass().addAll(
+                                "table-action-button",
+                                "table-action-danger"
+                        );
+
                         editButton.setOnAction(event -> {
 
                             SubjectRow subject =
@@ -112,6 +122,10 @@ public class SubjectsController {
         loadSampleSubjects();
 
         subjectsTable.setItems(allSubjects);
+
+        subjectsTable.setColumnResizePolicy(
+                TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN
+        );
 
         searchField.textProperty().addListener(
                 (observable, oldValue, newValue) ->
@@ -210,7 +224,7 @@ public class SubjectsController {
             );
 
             dialog.setScene(
-                    new Scene(root)
+                    createStyledScene(root)
             );
 
             dialog.setResizable(false);
@@ -267,7 +281,7 @@ public class SubjectsController {
             );
 
             dialog.setScene(
-                    new Scene(root)
+                    createStyledScene(root)
             );
 
             dialog.setResizable(false);
@@ -280,6 +294,25 @@ public class SubjectsController {
 
             e.printStackTrace();
         }
+    }
+
+    private Scene createStyledScene(Parent root) {
+
+        Scene scene = new Scene(root);
+
+        scene.getStylesheets().add(
+                getClass()
+                        .getResource("/css/styles.css")
+                        .toExternalForm()
+        );
+
+        scene.getStylesheets().add(
+                getClass()
+                        .getResource("/css/components.css")
+                        .toExternalForm()
+        );
+
+        return scene;
     }
 
     private void handleDeactivateSubject(
