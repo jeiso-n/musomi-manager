@@ -71,18 +71,19 @@ public class StudentDashboardWebController {
                     Assessment a = score.getAssessment();
                     if ("PUBLISHED".equalsIgnoreCase(a.getStatus())) {
                         String grade = GradeCalculator.calculate(score.getScore(), a.getMaxScore());
-                        recentMarks.add(Map.of(
-                                "id", "s-" + score.getId(),
-                                "subjectName", a.getSubject() != null ? a.getSubject().getName() : "Subject",
-                                "title", a.getTitle(),
-                                "type", a.getType(),
-                                "date", a.getAssessmentDate() != null
-                                        ? a.getAssessmentDate().format(DateTimeFormatter.ofPattern("d MMM yyyy"))
-                                        : "Term 1",
-                                "score", score.getScore(),
-                                "maxScore", a.getMaxScore(),
-                                "grade", grade != null ? grade : "C"
-                        ));
+                        Map<String, Object> mark = new java.util.HashMap<>();
+                        mark.put("id", "s-" + score.getId());
+                        mark.put("subjectName", a.getSubject() != null ? a.getSubject().getName() : "Subject");
+                        mark.put("title", a.getTitle());
+                        mark.put("type", a.getType());
+                        mark.put("date", a.getAssessmentDate() != null
+                                ? a.getAssessmentDate().format(DateTimeFormatter.ofPattern("d MMM yyyy"))
+                                : "Term 1");
+                        mark.put("score", score.getScore());
+                        mark.put("maxScore", a.getMaxScore());
+                        mark.put("grade", grade != null ? grade : "C");
+                        mark.put("topicName", null); // Fixes the crash
+                        recentMarks.add(mark);
                         totalScore = totalScore.add(score.getScore());
                         totalMax = totalMax.add(a.getMaxScore());
                         scoredCount++;

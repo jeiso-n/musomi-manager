@@ -34,29 +34,29 @@ public class StudentMarksWebController {
 
         // Rich subject groups conforming to MASTER.md & WEB.md specifications
         List<Map<String, Object>> mathMarks = List.of(
-                Map.of("id", "m1", "title", "Mid-term Exam", "type", "TEST", "date", "15 Mar 2026", "score", 85.0, "maxScore", 100, "grade", "A", "topic", "Algebraic Expressions"),
-                Map.of("id", "m2", "title", "Weekly Quiz: Quadratic Functions", "type", "QUIZ", "date", "22 Mar 2026", "score", 18.0, "maxScore", 20, "grade", "A", "topic", "Quadratic Equations"),
-                Map.of("id", "m3", "title", "Continuous Assessment Assignment", "type", "HOMEWORK", "date", "05 Apr 2026", "score", 45.0, "maxScore", 50, "grade", "A", "topic", "Trigonometric Ratios")
+                Map.of("id", "m1", "title", "Mid-term Exam", "type", "TEST", "date", "15 Mar 2026", "score", 85.0, "maxScore", 100, "grade", "A", "topic", "Algebraic Expressions", "feedback", "Good progress"),
+                Map.of("id", "m2", "title", "Weekly Quiz: Quadratic Functions", "type", "QUIZ", "date", "22 Mar 2026", "score", 18.0, "maxScore", 20, "grade", "A", "topic", "Quadratic Equations", "feedback", "Keep it up"),
+                Map.of("id", "m3", "title", "Continuous Assessment Assignment", "type", "HOMEWORK", "date", "05 Apr 2026", "score", 45.0, "maxScore", 50, "grade", "A", "topic", "Trigonometric Ratios", "feedback", "Excellent work")
         );
 
         List<Map<String, Object>> englishMarks = List.of(
-                Map.of("id", "e1", "title", "Poetry Analysis Assignment", "type", "HOMEWORK", "date", "10 Mar 2026", "score", 78.5, "maxScore", 100, "grade", "B", "topic", "East African Poetry"),
-                Map.of("id", "e2", "title", "Mid-term Summary & Comprehension", "type", "TEST", "date", "16 Mar 2026", "score", 82.0, "maxScore", 100, "grade", "A", "topic", "Reading Comprehension")
+                Map.of("id", "e1", "title", "Poetry Analysis Assignment", "type", "HOMEWORK", "date", "10 Mar 2026", "score", 78.5, "maxScore", 100, "grade", "B", "topic", "East African Poetry", "feedback", "Good effort"),
+                Map.of("id", "e2", "title", "Mid-term Summary & Comprehension", "type", "TEST", "date", "16 Mar 2026", "score", 82.0, "maxScore", 100, "grade", "A", "topic", "Reading Comprehension", "feedback", "Strong comprehension")
         );
 
         List<Map<String, Object>> physicsMarks = List.of(
-                Map.of("id", "p1", "title", "Optics Practical Lab Work", "type", "PRACTICAL", "date", "12 Mar 2026", "score", 82.5, "maxScore", 100, "grade", "A", "topic", "Reflection & Refraction"),
-                Map.of("id", "p2", "title", "Mechanics & Linear Motion Test", "type", "TEST", "date", "28 Mar 2026", "score", 75.0, "maxScore", 100, "grade", "B", "topic", "Newton's Laws of Motion")
+                Map.of("id", "p1", "title", "Optics Practical Lab Work", "type", "PRACTICAL", "date", "12 Mar 2026", "score", 82.5, "maxScore", 100, "grade", "A", "topic", "Reflection & Refraction", "feedback", "Careful practical work"),
+                Map.of("id", "p2", "title", "Mechanics & Linear Motion Test", "type", "TEST", "date", "28 Mar 2026", "score", 75.0, "maxScore", 100, "grade", "B", "topic", "Newton's Laws of Motion", "feedback", "Keep practicing")
         );
 
         List<Map<String, Object>> biologyMarks = List.of(
-                Map.of("id", "b1", "title", "Cell Structure & Osmosis Quiz", "type", "QUIZ", "date", "02 Mar 2026", "score", 18.0, "maxScore", 20, "grade", "A", "topic", "Cell Organization"),
-                Map.of("id", "b2", "title", "Plant Nutrition Mid-Term Test", "type", "TEST", "date", "20 Mar 2026", "score", 74.0, "maxScore", 100, "grade", "B", "topic", "Photosynthesis")
+                Map.of("id", "b1", "title", "Cell Structure & Osmosis Quiz", "type", "QUIZ", "date", "02 Mar 2026", "score", 18.0, "maxScore", 20, "grade", "A", "topic", "Cell Organization", "feedback", "Excellent understanding"),
+                Map.of("id", "b2", "title", "Plant Nutrition Mid-Term Test", "type", "TEST", "date", "20 Mar 2026", "score", 74.0, "maxScore", 100, "grade", "B", "topic", "Photosynthesis", "feedback", "Good progress")
         );
 
         List<Map<String, Object>> chemistryMarks = List.of(
-                Map.of("id", "c1", "title", "Periodic Table & Bonding Test", "type", "TEST", "date", "25 Feb 2026", "score", 74.0, "maxScore", 100, "grade", "B", "topic", "Ionic & Covalent Bonding"),
-                Map.of("id", "c2", "title", "Acids, Bases & Salts Lab", "type", "PRACTICAL", "date", "18 Mar 2026", "score", 86.0, "maxScore", 100, "grade", "A", "topic", "Acid-Base Reactions")
+                Map.of("id", "c1", "title", "Periodic Table & Bonding Test", "type", "TEST", "date", "25 Feb 2026", "score", 74.0, "maxScore", 100, "grade", "B", "topic", "Ionic & Covalent Bonding", "feedback", "Review bonding concepts"),
+                Map.of("id", "c2", "title", "Acids, Bases & Salts Lab", "type", "PRACTICAL", "date", "18 Mar 2026", "score", 86.0, "maxScore", 100, "grade", "A", "topic", "Acid-Base Reactions", "feedback", "Excellent lab technique")
         );
 
         List<Map<String, Object>> subjectGroups = List.of(
