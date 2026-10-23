@@ -1,18 +1,23 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/base}">
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/base :: layout(~{::main})}">
 <head>
-    <title>Page Not Found</title>
+    <title>Page Not Found · Musomi Manager</title>
 </head>
 <body>
-    <div layout:fragment="content" class="flex flex-col items-center justify-center py-16 text-center">
-        <div class="w-16 h-16 rounded-full bg-brand-50 flex items-center justify-center mb-6">
-            <i data-lucide="map" class="w-8 h-8 text-brand-700"></i>
+<main>
+    <div class="flex flex-col items-center justify-center py-16 text-center">
+        <div class="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mb-4 shadow-sm">
+            <i data-lucide="compass" class="w-8 h-8"></i>
         </div>
-        <h1 class="text-2xl font-serif font-semibold text-slate-900 mb-2">We could not find that page.</h1>
-        <p class="text-slate-500 mb-8 max-w-sm">The page you are looking for doesn't exist or has been moved.</p>
-        <a th:href="@{/student/dashboard}" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-brand-700 rounded-lg hover:bg-brand-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-700 transition-colors">
-            Back to Dashboard
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-indigo-600 mb-1">Error 404</span>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight mb-2">Page Not Found</h1>
+        <p class="text-sm text-slate-500 max-w-sm mb-6">The page or assessment record you are looking for does not exist or has been moved.</p>
+        <a th:href="@{/student/dashboard}" 
+           class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition">
+            <i data-lucide="home" class="w-4 h-4"></i> Return to Dashboard
         </a>
     </div>
+</main>
 </body>
 </html>

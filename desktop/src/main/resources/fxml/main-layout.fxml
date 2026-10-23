@@ -3,7 +3,6 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
@@ -13,137 +12,222 @@
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.musomi.desktop.controller.MainLayoutController"
-            prefWidth="1200.0"
-            prefHeight="700.0"
-            styleClass="main-layout">
+            style="-fx-background-color: #f8fafc;">
 
-    <!-- Top bar -->
+    <!-- ===================================================== -->
+    <!-- TOP BAR                                               -->
+    <!-- ===================================================== -->
+
     <top>
-        <HBox alignment="CENTER_LEFT"
-              spacing="20.0"
-              styleClass="topbar"
-              BorderPane.alignment="CENTER">
+        <HBox prefHeight="56.0"
+              alignment="CENTER_LEFT"
+              spacing="16"
+              style="-fx-background-color: white; -fx-border-color: #e2e8f0; -fx-border-width: 0 0 1 0;">
 
             <padding>
-                <Insets top="12.0" right="20.0"
-                        bottom="12.0" left="20.0"/>
+                <Insets left="20" right="20"/>
             </padding>
 
             <Label text="MUSOMI MANAGER"
-                   styleClass="brand-title"/>
+                   style="-fx-font-size: 18px;
+                          -fx-font-weight: bold;
+                          -fx-text-fill: #2563eb;"/>
 
             <Region HBox.hgrow="ALWAYS"/>
 
-            <TextField fx:id="globalSearchField"
-                       promptText="Search..."
-                       prefWidth="260.0"
-                       styleClass="global-search"/>
+            <Label text="Teacher"
+                   style="-fx-font-size: 13px;
+                          -fx-text-fill: #64748b;"/>
 
-            <Button text="Logout"
-                    onAction="#handleLogout"
-                    styleClass="nav-button"/>
+            <Label text="John"
+                   style="-fx-font-size: 14px;
+                          -fx-font-weight: bold;
+                          -fx-text-fill: #1e293b;"/>
+
         </HBox>
     </top>
 
-    <!-- Sidebar and page content -->
-    <center>
-        <HBox spacing="0.0">
 
-            <!-- Sidebar -->
-            <VBox prefWidth="240.0"
-                  spacing="8.0"
-                  styleClass="sidebar">
+    <!-- ===================================================== -->
+    <!-- LEFT SIDEBAR                                          -->
+    <!-- ===================================================== -->
 
-                <padding>
-                    <Insets top="20.0" right="12.0"
-                            bottom="20.0" left="12.0"/>
-                </padding>
+    <left>
+        <VBox prefWidth="240.0"
+              spacing="4"
+              style="-fx-background-color: white;
+                     -fx-border-color: #e2e8f0;
+                     -fx-border-width: 0 1 0 0;">
 
-                <Label text="NAVIGATION"
-                       styleClass="sidebar-title"/>
+            <padding>
+                <Insets top="20" right="16" bottom="20" left="16"/>
+            </padding>
 
-                <Button fx:id="dashboardNavButton"
+
+            <!-- ROLE -->
+            <Label text="TEACHER"
+                   style="-fx-font-size: 11px;
+                          -fx-font-weight: bold;
+                          -fx-text-fill: #94a3b8;
+                          -fx-padding: 0 0 12 8;"/>
+
+
+            <!-- ================================================= -->
+            <!-- TEACHER NAVIGATION                                -->
+            <!-- ================================================= -->
+
+            <VBox fx:id="teacherNavSection"
+                  spacing="4">
+
+                <!-- DASHBOARD -->
+                <Button fx:id="dashboardButton"
                         text="Dashboard"
-                        maxWidth="Infinity"
-                        styleClass="nav-button"
-                        onAction="#showDashboard"/>
+                        maxWidth="1.7976931348623157E308"
+                        onAction="#showDashboard"
+                        style="-fx-background-color: #eef4ff;
+                               -fx-background-radius: 8px;
+                               -fx-text-fill: #2563eb;
+                               -fx-font-size: 14px;
+                               -fx-font-weight: bold;
+                               -fx-alignment: CENTER_LEFT;
+                               -fx-padding: 11px 14px;
+                               -fx-cursor: hand;"/>
 
-                <!-- Admin navigation -->
-                <VBox fx:id="adminNavSection" spacing="8.0">
-                    <Label text="ADMIN"
-                           styleClass="sidebar-title"/>
 
-                    <Button fx:id="usersNavButton"
-                            text="Users"
-                            maxWidth="Infinity"
-                            styleClass="nav-button"
-                            onAction="#showUsers"/>
+                <!-- MARK ENTRY -->
+                <Button fx:id="markEntryButton"
+                        text="Mark Entry"
+                        maxWidth="1.7976931348623157E308"
+                        onAction="#showMarkEntry"
+                        style="-fx-background-color: transparent;
+                               -fx-text-fill: #475569;
+                               -fx-font-size: 14px;
+                               -fx-alignment: CENTER_LEFT;
+                               -fx-padding: 11px 14px;
+                               -fx-cursor: hand;"/>
 
-                    <Button fx:id="classesNavButton"
-                            text="Classes"
-                            maxWidth="Infinity"
-                            styleClass="nav-button"
-                            onAction="#showClasses"/>
 
-                    <Button fx:id="subjectsNavButton"
-                            text="Subjects"
-                            maxWidth="Infinity"
-                            styleClass="nav-button"
-                            onAction="#showSubjects"/>
+                <!-- MY CLASSES -->
+                <Button fx:id="myClassesButton"
+                        text="My Classes"
+                        maxWidth="1.7976931348623157E308"
+                        onAction="#showMyClasses"
+                        style="-fx-background-color: transparent;
+                               -fx-text-fill: #475569;
+                               -fx-font-size: 14px;
+                               -fx-alignment: CENTER_LEFT;
+                               -fx-padding: 11px 14px;
+                               -fx-cursor: hand;"/>
 
-                    <Button text="Teacher Assignments"
-                            maxWidth="Infinity"
-                            onAction="#showTeacherAssignments"/>
 
-                    <Button fx:id="topicsNavButton"
-                            text="Topics"
-                            maxWidth="Infinity"
-                            styleClass="nav-button"
-                            onAction="#showTopics"/>
+                <!-- ASSESSMENTS -->
+                <Button fx:id="assessmentsButton"
+                        text="Assessments"
+                        maxWidth="1.7976931348623157E308"
+                        onAction="#showAssessments"
+                        style="-fx-background-color: transparent;
+                               -fx-text-fill: #475569;
+                               -fx-font-size: 14px;
+                               -fx-alignment: CENTER_LEFT;
+                               -fx-padding: 11px 14px;
+                               -fx-cursor: hand;"/>
 
-                    <Button fx:id="studentsNavButton"
-                            text="Students"
-                            maxWidth="Infinity"
-                            styleClass="nav-button"
-                            onAction="#showStudents"/>
 
-                    <Region prefHeight="15.0"/>
+                <!-- REPORTS -->
+                <Button fx:id="reportsButton"
+                        text="Reports"
+                        maxWidth="1.7976931348623157E308"
+                        onAction="#onReportsClicked"
+                        style="-fx-background-color: transparent;
+                               -fx-text-fill: #475569;
+                               -fx-font-size: 14px;
+                               -fx-alignment: CENTER_LEFT;
+                               -fx-padding: 11px 14px;
+                               -fx-cursor: hand;"/>
 
-                    <Label text="SYSTEM"
-                           styleClass="sidebar-title"/>
 
-                    <Button fx:id="settingsNavButton"
-                            text="Settings"
-                            maxWidth="Infinity"
-                            styleClass="nav-button"
-                            onAction="#showSettings"/>
-
-                    <Button fx:id="auditLogNavButton"
-                            text="Audit Log"
-                            maxWidth="Infinity"
-                            styleClass="nav-button"
-                            onAction="#showAuditLog"/>
-                </VBox>
-
-                <!-- Teacher navigation -->
-                <VBox fx:id="teacherNavSection" spacing="8.0">
-                    <Label text="TEACHER"
-                           styleClass="sidebar-title"/>
-
-                    <Button fx:id="myClassesNavButton"
-                            text="My Classes"
-                            maxWidth="Infinity"
-                            styleClass="nav-button"
-                            onAction="#showMyClasses"/>
-                </VBox>
+                <!-- SETTINGS -->
+                <Button text="Settings"
+                        disable="true"
+                        maxWidth="1.7976931348623157E308"
+                        style="-fx-background-color: transparent;
+                               -fx-text-fill: #475569;
+                               -fx-font-size: 14px;
+                               -fx-alignment: CENTER_LEFT;
+                               -fx-padding: 11px 14px;
+                               -fx-cursor: hand;"/>
 
             </VBox>
 
-            <!-- Main page content -->
-            <StackPane fx:id="contentArea"
-                       HBox.hgrow="ALWAYS"
-                       styleClass="content-area"/>
-        </HBox>
+
+            <Region VBox.vgrow="ALWAYS"/>
+
+
+            <!-- ================================================= -->
+            <!-- ADMIN NAVIGATION                                  -->
+            <!-- Hidden while developing Teacher UI               -->
+            <!-- ================================================= -->
+
+            <VBox fx:id="adminNavSection"
+                  visible="false"
+                  managed="false"
+                  spacing="4">
+
+                <Label text="ADMIN"
+                       style="-fx-font-size: 11px;
+                              -fx-font-weight: bold;
+                              -fx-text-fill: #94a3b8;
+                              -fx-padding: 0 0 8 8;"/>
+
+                <Button text="Users"
+                        maxWidth="1.7976931348623157E308"
+                        onAction="#showUsers"/>
+
+                <Button text="Classes"
+                        maxWidth="1.7976931348623157E308"
+                        onAction="#showClasses"/>
+
+                <Button text="Subjects"
+                        maxWidth="1.7976931348623157E308"
+                        onAction="#showSubjects"/>
+
+                <Button text="Topics"
+                        maxWidth="1.7976931348623157E308"
+                        onAction="#showTopics"/>
+
+                <Button text="Students"
+                        maxWidth="1.7976931348623157E308"
+                        onAction="#showStudents"/>
+
+                <Button text="Settings"
+                        maxWidth="1.7976931348623157E308"
+                        onAction="#showSettings"/>
+
+                <Button text="Audit Log"
+                        maxWidth="1.7976931348623157E308"
+                        onAction="#showAuditLog"/>
+
+            </VBox>
+
+        </VBox>
+    </left>
+
+
+    <!-- ===================================================== -->
+    <!-- MAIN CONTENT AREA                                     -->
+    <!-- ===================================================== -->
+
+    <center>
+        <StackPane fx:id="contentArea"
+                   minWidth="0"
+                   minHeight="0"
+                   style="-fx-background-color: #f8fafc;">
+
+            <padding>
+                <Insets top="24" right="24" bottom="24" left="24"/>
+            </padding>
+
+        </StackPane>
     </center>
 
 </BorderPane>

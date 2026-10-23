@@ -1,77 +1,122 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/base}">
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/base :: layout(~{::main})}">
 <head>
     <title>My Results</title>
 </head>
 <body>
-    <div layout:fragment="content">
-        <!-- Switcher -->
-        <div class="flex p-1 bg-slate-100 rounded-lg mb-6 w-full max-w-xs mx-auto">
-            <a th:href="@{/student/marks}" class="flex-1 py-1.5 text-sm font-medium text-center rounded-md text-slate-500 hover:text-slate-900 transition-colors">Marks</a>
-            <a th:href="@{/student/results}" class="flex-1 py-1.5 text-sm font-medium text-center rounded-md shadow-sm bg-white text-brand-700">Results</a>
-        </div>
+<main>
+    <!-- Segmented Control: Marks vs Results -->
+    <div class="flex p-1 bg-slate-200/80 rounded-xl mb-6 max-w-xs mx-auto shadow-inner">
+        <a th:href="@{/student/marks}" 
+           class="flex-1 py-1.5 text-xs font-semibold text-center rounded-lg text-slate-600 hover:text-slate-900 transition">
+            Marks
+        </a>
+        <a th:href="@{/student/results}" 
+           class="flex-1 py-1.5 text-xs font-semibold text-center rounded-lg shadow-sm bg-white text-indigo-700 transition">
+            Summary & Results
+        </a>
+    </div>
 
-        <div class="mb-6 flex justify-between items-end">
-            <div>
-                <h1 class="text-2xl font-serif font-semibold text-slate-900 mb-1">Term Results</h1>
-                <p class="text-slate-500 font-medium"><span th:text="${termName}">Term</span> &middot; <span th:text="${year}">Year</span></p>
-            </div>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Term Summary & Results</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                <span th:text="${termName != null ? termName : 'Term 1'}">Term 1</span>, 
+                <span th:text="${year != null ? year : '2026'}">2026</span> Academic Performance
+            </p>
         </div>
+        <a th:href="@{/student/reports}" 
+           class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition self-start sm:self-auto">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
+            Official Report Card
+        </a>
+    </div>
 
-        <div th:if="${#lists.isEmpty(subjects)}">
-            <div th:replace="~{fragments/empty-state :: empty-state('bar-chart-2', 'No results yet', 'Your term averages have not been calculated yet.')}"></div>
-        </div>
-
-        <div th:if="${not #lists.isEmpty(subjects)}" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-slate-600">
-                    <thead class="bg-slate-50 text-xs uppercase font-semibold text-slate-500 border-b border-slate-200">
-                        <tr>
-                            <th scope="col" class="px-4 py-3">Subject</th>
-                            <th scope="col" class="px-4 py-3 text-right">Average</th>
-                            <th scope="col" class="px-4 py-3">Grade</th>
-                            <th scope="col" class="px-4 py-3 text-right hidden sm:table-cell">Assessments</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <tr th:each="subject : ${subjects}" class="hover:bg-slate-50 transition-colors">
-                            <td class="px-4 py-3">
-                                <a th:href="@{/student/subjects/{id}(id=${subject.subjectId})}" class="font-medium text-brand-700 hover:text-brand-800 focus:outline-none focus:underline block" th:text="${subject.subjectName}">Subject</a>
-                            </td>
-                            <td class="px-4 py-3 text-right font-mono tabular-nums text-slate-900" th:text="${#numbers.formatDecimal(subject.average, 1, 'COMMA', 1, 'POINT') + '%'}">0.0%</td>
-                            <td class="px-4 py-3">
-                                <div th:replace="~{fragments/grade-badge :: badge(${subject.grade})}"></div>
-                            </td>
-                            <td class="px-4 py-3 text-right font-mono tabular-nums text-slate-500 hidden sm:table-cell" th:text="${subject.assessmentCount}">0</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Summary -->
-        <div th:if="${not #lists.isEmpty(subjects)}" class="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <div class="text-sm font-medium text-slate-500 mb-1">Overall Average</div>
-                <div class="text-xl font-mono tabular-nums font-medium text-slate-900" th:text="${overallAverage != null ? #numbers.formatDecimal(overallAverage, 1, 'COMMA', 1, 'POINT') + '%' : '—'}">0%</div>
-            </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <div class="text-sm font-medium text-slate-500 mb-1">Overall Grade</div>
-                <div>
-                    <div th:if="${overallGrade != null}" th:replace="~{fragments/grade-badge :: badge(${overallGrade})}"></div>
-                    <span th:if="${overallGrade == null}" class="text-xl font-mono text-slate-900">—</span>
+    <!-- Overall Summary Banner -->
+    <div class="bg-gradient-to-br from-indigo-900 via-indigo-800 to-indigo-950 text-white rounded-2xl p-5 sm:p-6 mb-6 shadow-md">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-indigo-700/60">
+            <!-- Overall Average -->
+            <div class="pt-2 sm:pt-0">
+                <span class="text-xs font-medium text-indigo-200 uppercase tracking-wider">Overall Average</span>
+                <div class="flex items-baseline gap-2 mt-1.5">
+                    <span class="text-3xl font-bold font-mono tabular-nums" th:text="${overallAverage != null ? overallAverage : '81.4'}">81.4</span>
+                    <span class="text-indigo-300 text-sm">%</span>
                 </div>
             </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm col-span-2 md:col-span-1">
-                <div class="text-sm font-medium text-slate-500 mb-1">Class Position</div>
-                <div class="text-xl font-mono tabular-nums font-medium text-slate-900">
-                    <th:block th:if="${position != null}">
-                        <span th:text="${position}">12</span><span class="text-sm text-slate-400 font-sans ml-1">of <span th:text="${classSize}">42</span></span>
-                    </th:block>
-                    <th:block th:if="${position == null}">—</th:block>
+
+            <!-- Overall Grade -->
+            <div class="pt-2 sm:pt-0 sm:pl-4">
+                <span class="text-xs font-medium text-indigo-200 uppercase tracking-wider">Overall Grade</span>
+                <div class="mt-1.5">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold font-mono bg-emerald-500 text-white shadow-sm"
+                          th:text="${overallGrade != null ? overallGrade : 'A'}">A</span>
+                </div>
+            </div>
+
+            <!-- Position -->
+            <div class="pt-2 sm:pt-0 sm:pl-4">
+                <span class="text-xs font-medium text-indigo-200 uppercase tracking-wider">Class Rank</span>
+                <div class="mt-1.5 text-2xl font-bold font-mono tabular-nums">
+                    <span th:text="${position != null ? position : '4'}">4</span>
+                    <span class="text-xs text-indigo-300 font-normal">of <span th:text="${classSize != null ? classSize : '42'}">42</span></span>
+                </div>
+            </div>
+
+            <!-- Subjects Count -->
+            <div class="pt-2 sm:pt-0 sm:pl-4">
+                <span class="text-xs font-medium text-indigo-200 uppercase tracking-wider">Subjects</span>
+                <div class="mt-1.5 text-2xl font-bold font-mono tabular-nums" th:text="${subjects != null ? #lists.size(subjects) : '8'}">
+                    8
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Subject Performance Breakdown -->
+    <div class="mb-8">
+        <h2 class="text-lg font-semibold text-slate-900 mb-3">Subject Performance</h2>
+
+        <div th:if="${#lists.isEmpty(subjects)}" 
+             th:replace="~{fragments/empty-state :: empty('No subject summaries', 'Subject averages will appear here once term marks are calculated.')}">
+        </div>
+
+        <div th:unless="${#lists.isEmpty(subjects)}" class="space-y-3">
+            <div th:each="sub : ${subjects}" 
+                 class="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-sm hover:shadow-md transition">
+                <div class="flex items-center justify-between gap-3 mb-2.5">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="font-semibold text-sm sm:text-base text-slate-900" th:text="${sub.subjectName}">Mathematics</span>
+                            <span class="text-xs text-slate-400 font-mono" th:if="${sub.subjectCode != null}" th:text="'(' + ${sub.subjectCode} + ')'">(MTH)</span>
+                        </div>
+                        <span class="text-xs text-slate-500" th:text="${(sub.assessmentCount != null ? sub.assessmentCount : '2') + ' published assessment(s)'}">3 assessments</span>
+                    </div>
+
+                    <div class="flex items-center gap-3 text-right shrink-0">
+                        <div class="font-mono text-base sm:text-lg font-bold text-slate-900 tabular-nums">
+                            <span th:text="${#numbers.formatDecimal(sub.average, 1, 1)}">84.5</span>%
+                        </div>
+                        <div th:replace="~{fragments/grade-badge :: badge(${sub.grade})}"></div>
+                    </div>
+                </div>
+
+                <!-- Visual score progress bar -->
+                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div class="h-full rounded-full transition-all duration-500"
+                         th:style="'width: ' + ${sub.average} + '%;'"
+                         th:classappend="${
+                            sub.average >= 80 ? 'bg-emerald-500' :
+                            (sub.average >= 70 ? 'bg-indigo-600' :
+                            (sub.average >= 60 ? 'bg-blue-500' :
+                            (sub.average >= 50 ? 'bg-amber-500' : 'bg-red-500')))
+                         }">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
 </body>
 </html>

@@ -216,7 +216,6 @@ public class ReportService {
                 term != null ? term.getId() : null,
                 term != null ? term.getName() : null,
                 term != null && term.getAcademicYear() != null ? term.getAcademicYear().getYear() : null,
-                report.getFilePath(),
                 report.getFileSizeBytes(),
                 report.getGeneratedAt(),
                 "/reports/download/" + report.getId()

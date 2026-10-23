@@ -6,6 +6,7 @@ import com.musomi.manager.dto.request.CreateClassRequest;
 import com.musomi.manager.dto.response.ApiResponse;
 import com.musomi.manager.dto.response.ClassResponse;
 import com.musomi.manager.service.ClassService;
+import com.musomi.manager.util.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,22 +26,20 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminClassApiController {
 
-    private static final Long SCHOOL_ID = 1L;
-
     private final ClassService classService;
 
     /** Lists classes, optionally filtered by academic year. */
     @GetMapping
     public ApiResponse<List<ClassResponse>> listClasses(
             @RequestParam(required = false) Long yearId) {
-        return ApiResponse.success(classService.listClasses(SCHOOL_ID, yearId));
+        return ApiResponse.success(classService.listClasses(CurrentUser.getSchoolId(), yearId));
     }
 
     /** Creates a class. */
     @PostMapping
     public ResponseEntity<ApiResponse<ClassResponse>> createClass(
             @Valid @RequestBody CreateClassRequest request) {
-        ClassResponse created = classService.createClass(SCHOOL_ID, request);
+        ClassResponse created = classService.createClass(CurrentUser.getSchoolId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
     }
 }

@@ -149,17 +149,13 @@ The school itself. One row per school. In v1, only one row.
 
 **Constraints:**
 - PK: `id`
-- FK: `fk_users_school` → schools(id)
-- Unique: `uq_users_school_username` (school_id, username)
-- Check: `chk_users_role` (role IN ('ADMIN', 'TEACHER', 'STUDENT'))
+- FK: `fk_academic_years_school_id` → schools(id)
+- Unique: `uk_academic_years_school_year` (school_id, year)
 
 **Indexes:**
-- `idx_users_school_id`
-- `idx_users_username`
-- `idx_users_role`
-- `idx_users_school_active` on (school_id) WHERE is_active = TRUE
+- `idx_academic_years_school_id`
+- `idx_academic_years_current` on (school_id) WHERE is_current = TRUE
 ---
-> **Note:** V002 predates the naming standard in `DATABASE.md` §4. V003+ will follow the standard.
 
 ### 3. terms
 
@@ -1017,4 +1013,3 @@ Why not 45 like the full version?
 **SCHEMA.md defines all 25 tables for v1 — every column, every constraint, every index, every relationship. Every table has `school_id` (multi-tenancy from day one). Students and scores are never hard-deleted. The database engineer writes Flyway migrations from this. The backend lead writes JPA entities matching this.**
 
 ---
-

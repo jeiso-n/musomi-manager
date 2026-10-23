@@ -1,18 +1,23 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/auth}">
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/base :: layout(~{::main})}">
 <head>
-    <title>Access Denied</title>
+    <title>Access Denied · Musomi Manager</title>
 </head>
 <body>
-    <div layout:fragment="content" class="bg-white p-8 rounded-xl shadow-sm border border-slate-200 text-center">
-        <div class="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-6">
-            <i data-lucide="shield-alert" class="w-8 h-8 text-red-600"></i>
+<main>
+    <div class="flex flex-col items-center justify-center py-16 text-center">
+        <div class="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 mb-4 shadow-sm">
+            <i data-lucide="lock" class="w-8 h-8"></i>
         </div>
-        <h1 class="text-2xl font-serif font-semibold text-slate-900 mb-2">Access Denied</h1>
-        <p class="text-slate-500 mb-8 max-w-xs mx-auto">You do not have permission to view this page. Please sign in with an authorized account.</p>
-        <a th:href="@{/login}" class="inline-flex w-full items-center justify-center px-4 py-2.5 text-sm font-medium text-white bg-brand-700 rounded-lg hover:bg-brand-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-700 transition-colors">
-            Sign in
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-amber-600 mb-1">Error 403</span>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight mb-2">Access Restricted</h1>
+        <p class="text-sm text-slate-500 max-w-sm mb-6">Students are only permitted to view their own learning records and assessment marks.</p>
+        <a th:href="@{/student/dashboard}" 
+           class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition">
+            <i data-lucide="home" class="w-4 h-4"></i> Go to My Dashboard
         </a>
     </div>
+</main>
 </body>
 </html>

@@ -4,6 +4,7 @@ import com.musomi.manager.dto.response.ApiResponse;
 import com.musomi.manager.dto.response.ImportConfirmResponse;
 import com.musomi.manager.dto.response.ImportPreviewResponse;
 import com.musomi.manager.service.StudentImportService;
+import com.musomi.manager.util.CurrentUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -25,8 +26,6 @@ import org.springframework.web.multipart.MultipartFile;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminStudentImportApiController {
 
-    private static final Long SCHOOL_ID = 1L;
-    private static final Long USER_ID = 1L;
     private static final String XLSX_CONTENT_TYPE =
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
@@ -35,13 +34,14 @@ public class AdminStudentImportApiController {
     /** Uploads a student spreadsheet and returns a validation preview. */
     @PostMapping
     public ApiResponse<ImportPreviewResponse> previewImport(@RequestParam("file") MultipartFile file) {
-        return ApiResponse.success(studentImportService.previewImport(SCHOOL_ID, USER_ID, file));
+        return ApiResponse.success(studentImportService.previewImport(
+                CurrentUser.getSchoolId(), CurrentUser.getUserId(), file));
     }
 
     /** Confirms a validated student import. */
     @PostMapping("/{importId}/confirm")
     public ApiResponse<ImportConfirmResponse> confirmImport(@PathVariable String importId) {
-        return ApiResponse.success(studentImportService.confirmImport(SCHOOL_ID, importId));
+        return ApiResponse.success(studentImportService.confirmImport(CurrentUser.getSchoolId(), importId));
     }
 
     /** Downloads the student import spreadsheet template. */

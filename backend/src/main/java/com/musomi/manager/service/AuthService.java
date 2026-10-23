@@ -1,5 +1,6 @@
 package com.musomi.manager.service;
 
+import com.musomi.manager.dto.request.ChangePasswordRequest;
 import com.musomi.manager.dto.request.LoginRequest;
 import com.musomi.manager.dto.response.LoginResponse;
 import com.musomi.manager.dto.response.UserSummary;
@@ -7,6 +8,8 @@ import com.musomi.manager.entity.User;
 import com.musomi.manager.entity.UserSession;
 import com.musomi.manager.exception.AuthenticationException;
 import com.musomi.manager.exception.ErrorCode;
+import com.musomi.manager.exception.ResourceNotFoundException;
+import com.musomi.manager.exception.ValidationException;
 import com.musomi.manager.repository.UserRepository;
 import com.musomi.manager.repository.UserSessionRepository;
 import com.musomi.manager.security.JwtTokenProvider;
@@ -129,5 +132,21 @@ public class AuthService {
                 user.getSchool().getId(),
                 user.getSchool().getName()
         );
+    }
+
+    /** Changes the authenticated user's password after verifying the current password. */
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND));
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new AuthenticationException(ErrorCode.INVALID_CREDENTIALS);
+        }
+        if (request.newPassword().length() < 8) {
+            throw new ValidationException(ErrorCode.WEAK_PASSWORD);
+        }
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
+        log.info("Password changed for userId={}", userId);
     }
 }

@@ -9,6 +9,7 @@ import com.musomi.manager.dto.response.SubjectResponse;
 import com.musomi.manager.dto.response.TopicResponse;
 import com.musomi.manager.service.SubjectService;
 import com.musomi.manager.service.TopicService;
+import com.musomi.manager.util.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -28,22 +29,20 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminSubjectApiController {
 
-    private static final Long SCHOOL_ID = 1L;
-
     private final SubjectService subjectService;
     private final TopicService topicService;
 
     /** Lists active subjects for the school. */
     @GetMapping
     public ApiResponse<List<SubjectResponse>> listSubjects() {
-        return ApiResponse.success(subjectService.listSubjects(SCHOOL_ID));
+        return ApiResponse.success(subjectService.listSubjects(CurrentUser.getSchoolId()));
     }
 
     /** Creates a subject. */
     @PostMapping
     public ResponseEntity<ApiResponse<SubjectResponse>> createSubject(
             @Valid @RequestBody CreateSubjectRequest request) {
-        SubjectResponse created = subjectService.createSubject(SCHOOL_ID, request);
+        SubjectResponse created = subjectService.createSubject(CurrentUser.getSchoolId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
     }
 
@@ -60,7 +59,7 @@ public class AdminSubjectApiController {
             @Valid @RequestBody CreateTopicRequest request) {
         CreateTopicRequest topicRequest = new CreateTopicRequest(
                 id, request.name(), request.description(), request.sortOrder());
-        TopicResponse created = topicService.createTopic(SCHOOL_ID, topicRequest);
+        TopicResponse created = topicService.createTopic(CurrentUser.getSchoolId(), topicRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
     }
 }

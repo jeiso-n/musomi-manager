@@ -53,3 +53,6 @@ backend/classpath.txt
 
 # Generated report PDFs
 backend/data/
+
+# IDE config
+.idea/compiler.xml

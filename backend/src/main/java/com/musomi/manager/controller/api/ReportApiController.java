@@ -13,6 +13,7 @@ import com.musomi.manager.entity.GeneratedReport;
 import com.musomi.manager.exception.ErrorCode;
 import com.musomi.manager.exception.ResourceNotFoundException;
 import com.musomi.manager.service.ReportService;
+import com.musomi.manager.util.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
@@ -42,7 +43,8 @@ public class ReportApiController {
     public ApiResponse<List<ReportResponse>> generateReports(
             @Valid @RequestBody GenerateReportRequest request) {
         return ApiResponse.success(reportService.generateForClassStreamTerm(
-                1L, request.classId(), request.streamId(), request.termId(), 1L));
+                CurrentUser.getSchoolId(), request.classId(), request.streamId(), request.termId(),
+                CurrentUser.getUserId()));
     }
 
     /** Lists generated reports for a student. */

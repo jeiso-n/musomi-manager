@@ -1,101 +1,163 @@
 package com.musomi.manager.controller.web;
 
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import com.musomi.manager.entity.Guardian;
+import com.musomi.manager.entity.Student;
+import com.musomi.manager.entity.User;
+import com.musomi.manager.repository.GuardianRepository;
+import com.musomi.manager.repository.StudentRepository;
+import com.musomi.manager.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+/**
+ * Controller for student personal profile, guardian contact, and password management.
+ */
 @Controller
+@RequiredArgsConstructor
 public class StudentProfileWebController {
+
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("d MMM yyyy");
+
+    private final StudentRepository studentRepository;
+    private final GuardianRepository guardianRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/student/profile")
     public String showProfile(Model model) {
+        Optional<User> userOpt = findCurrentUser();
+        if (userOpt.isEmpty()) {
+            return "redirect:/login";
+        }
+        Optional<Student> studentOpt = findStudent(userOpt.get());
+        if (studentOpt.isEmpty()) {
+            return "redirect:/login";
+        }
+        Student studentEntity = studentOpt.get();
+        List<Guardian> guardians = guardianRepository.findByStudentId(studentEntity.getId());
+        Guardian guardianEntity = guardians.stream()
+                .filter(guardian -> Boolean.TRUE.equals(guardian.getIsPrimary()))
+                .findFirst()
+                .orElseGet(() -> guardians.stream().findFirst().orElse(null));
+        String fullName = valueOrEmpty(studentEntity.getFullName());
+        String firstName = fullName.isBlank() ? "" : fullName.trim().split("\\s+")[0];
+        String className = studentEntity.getCurrentClass() != null
+                ? valueOrEmpty(studentEntity.getCurrentClass().getName()) : "";
+        String streamName = studentEntity.getCurrentStream() != null
+                ? valueOrEmpty(studentEntity.getCurrentStream().getName()) : "";
+        String gender = valueOrEmpty(studentEntity.getGender());
+        String dateOfBirth = studentEntity.getDateOfBirth() != null
+                ? studentEntity.getDateOfBirth().format(DATE_FORMAT) : "";
+        String guardianName = guardianEntity != null ? valueOrEmpty(guardianEntity.getName()) : "";
+        String guardianRelationship = guardianEntity != null ? valueOrEmpty(guardianEntity.getRelationship()) : "";
+        String guardianPhone = guardianEntity != null ? valueOrEmpty(guardianEntity.getPhone()) : "";
+
+        Map<String, Object> student = new HashMap<>();
+        student.put("fullName", fullName);
+        student.put("admissionNumber", valueOrEmpty(studentEntity.getAdmissionNumber()));
+        student.put("className", className);
+        student.put("streamName", streamName);
+        student.put("gender", gender);
+        student.put("dob", dateOfBirth);
+        Map<String, Object> guardian = new HashMap<>();
+        guardian.put("name", guardianName);
+        guardian.put("relationship", guardianRelationship);
+        guardian.put("phone", guardianPhone);
+
         model.addAttribute("pageTitle", "My Profile");
         model.addAttribute("currentPage", "profile");
-        model.addAttribute("schoolName", "St. Mary's Secondary School");
-        
-        model.addAttribute("admissionNumber", "U001/0123");
-        model.addAttribute("fullName", "Achieng Sarah");
-        model.addAttribute("gender", "Female");
-        model.addAttribute("dateOfBirth", "12 May 2010");
-        model.addAttribute("className", "S3");
-        model.addAttribute("streamName", "Blue");
-        model.addAttribute("guardianName", "Odongo Peter");
-        model.addAttribute("guardianPhone", "+256 700 123 456");
-        
+        model.addAttribute("schoolName", studentEntity.getSchool() != null
+                ? valueOrEmpty(studentEntity.getSchool().getName()) : "");
+        model.addAttribute("studentEntity", studentEntity);
+        model.addAttribute("student", student);
+        model.addAttribute("firstName", firstName);
+        model.addAttribute("fullName", fullName);
+        model.addAttribute("admissionNumber", valueOrEmpty(studentEntity.getAdmissionNumber()));
+        model.addAttribute("className", className);
+        model.addAttribute("streamName", streamName);
+        model.addAttribute("gender", gender);
+        model.addAttribute("dateOfBirth", dateOfBirth);
+        model.addAttribute("guardianEntity", guardianEntity);
+        model.addAttribute("guardian", guardian);
+        model.addAttribute("guardianName", guardianName);
+        model.addAttribute("guardianPhone", guardianPhone);
         return "student/profile";
     }
-    
+
     @PostMapping("/student/profile/change-password")
     @ResponseBody
-    public String changePassword() {
-        // HTMX will process this response to show a toast and reset the form
-        return "<form hx-post=\"/student/profile/change-password\" hx-swap=\"outerHTML\" class=\"space-y-4\" id=\"password-form\">" +
-               "<div class=\"p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium flex items-start gap-3 mb-4\">" +
-               "<i data-lucide=\"check-circle\" class=\"w-5 h-5 shrink-0 text-emerald-600 mt-0.5\"></i>" +
-               "<span>Password successfully changed.</span></div>" +
-               "<div><label class=\"block text-sm font-medium text-slate-700 mb-1\">Current Password</label>" +
-               "<input type=\"password\" name=\"current\" required class=\"block w-full rounded-lg border-slate-300 shadow-sm focus:border-brand-700 focus:ring-brand-700 sm:text-sm px-3 py-2 border text-slate-900\"></div>" +
-               "<div><label class=\"block text-sm font-medium text-slate-700 mb-1\">New Password</label>" +
-               "<input type=\"password\" name=\"new\" required class=\"block w-full rounded-lg border-slate-300 shadow-sm focus:border-brand-700 focus:ring-brand-700 sm:text-sm px-3 py-2 border text-slate-900\"></div>" +
-               "<div><label class=\"block text-sm font-medium text-slate-700 mb-1\">Confirm New Password</label>" +
-               "<input type=\"password\" name=\"confirm\" required class=\"block w-full rounded-lg border-slate-300 shadow-sm focus:border-brand-700 focus:ring-brand-700 sm:text-sm px-3 py-2 border text-slate-900\"></div>" +
-               "<div class=\"pt-2\"><button type=\"submit\" class=\"w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-brand-700 hover:bg-brand-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-700\">Change Password</button></div>" +
-                "<script>lucide.createIcons();</script>" +
-                "</form>";
+    public String changePassword(
+            @RequestParam(name = "current", required = false) String currentPassword,
+            @RequestParam(name = "new", required = false) String newPassword,
+            @RequestParam(name = "confirm", required = false) String confirmPassword) {
+        Optional<User> userOpt = findCurrentUser();
+        if (userOpt.isEmpty() || findStudent(userOpt.get()).isEmpty()) {
+            return passwordResponse("Please sign in again before changing your password.", false);
+        }
+        User user = userOpt.get();
+        if (currentPassword == null || currentPassword.isBlank()
+                || newPassword == null || newPassword.length() < 6
+                || !newPassword.equals(confirmPassword)) {
+            return passwordResponse("Enter a valid new password and confirm it correctly.", false);
+        }
+        if (user.getPasswordHash() == null
+                || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            return passwordResponse("The current password is incorrect.", false);
+        }
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        return passwordResponse("Your password has been changed successfully.", true);
     }
 
-    @PostMapping("/student/profile/upload-avatar")
-    @ResponseBody
-    public ResponseEntity<String> uploadAvatar(@RequestParam("photo") MultipartFile file) {
-        // Validate content type
-        Set<String> allowed = Set.of("image/jpeg", "image/png", "image/webp");
-        String contentType = file.getContentType();
-        if (contentType == null || !allowed.contains(contentType)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Invalid file type. Only JPG, PNG, and WebP are allowed.");
+    private Optional<User> findCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
+            return Optional.empty();
         }
-        // Validate size (5 MB)
-        if (file.getSize() > 5L * 1024 * 1024) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("File too large. Maximum allowed size is 5 MB.");
-        }
+        return userRepository.findBySchoolIdAndUsername(1L, auth.getName());
+    }
 
-        try {
-            // Resolve static/img directory — try classpath resource first, fall back to source tree (dev mode)
-            ClassPathResource imgDir = new ClassPathResource("static/img/");
-            Path targetDir;
-            if (imgDir.exists()) {
-                targetDir = Paths.get(imgDir.getURI());
-            } else {
-                targetDir = Paths.get("backend/src/main/resources/static/img");
-            }
-            Files.createDirectories(targetDir);
+    private Optional<Student> findStudent(User user) {
+        return studentRepository.findAll().stream()
+                .filter(student -> student.getUser() != null
+                        && user.getId().equals(student.getUser().getId()))
+                .findFirst();
+    }
 
-            Path target = targetDir.resolve("student-avatar.jpg");
-            try (InputStream in = file.getInputStream()) {
-                Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
-            }
-            return ResponseEntity.ok("/img/student-avatar.jpg");
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Upload failed: " + e.getMessage());
-        }
+    private String passwordResponse(String message, boolean success) {
+        String color = success ? "emerald" : "red";
+        String icon = success ? "check-circle" : "alert-circle";
+        return "<form id=\"password-form\" hx-post=\"/student/profile/change-password\" hx-swap=\"outerHTML\" class=\"space-y-4\">"
+                + "<div class=\"p-3.5 rounded-xl bg-" + color + "-50 border border-" + color + "-200 text-"
+                + color + "-800 text-xs font-medium flex items-start gap-2.5 mb-3\">"
+                + "<i data-lucide=\"" + icon + "\" class=\"w-4 h-4 text-" + color
+                + "-600 shrink-0 mt-0.5\"></i><span>" + message + "</span></div>"
+                + "<div><label class=\"block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1\">Current Password</label>"
+                + "<input type=\"password\" name=\"current\" required class=\"block w-full rounded-lg border border-slate-300 shadow-2xs px-3.5 py-2 text-sm text-slate-900\"></div>"
+                + "<div class=\"grid grid-cols-1 sm:grid-cols-2 gap-4\">"
+                + "<div><label class=\"block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1\">New Password</label>"
+                + "<input type=\"password\" name=\"new\" required minlength=\"6\" class=\"block w-full rounded-lg border border-slate-300 shadow-2xs px-3.5 py-2 text-sm text-slate-900\"></div>"
+                + "<div><label class=\"block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1\">Confirm New Password</label>"
+                + "<input type=\"password\" name=\"confirm\" required minlength=\"6\" class=\"block w-full rounded-lg border border-slate-300 shadow-2xs px-3.5 py-2 text-sm text-slate-900\"></div>"
+                + "</div><div class=\"pt-2\"><button type=\"submit\" class=\"w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700\">Update Password</button></div>"
+                + "<script>lucide.createIcons();</script></form>";
+    }
+
+    private String valueOrEmpty(String value) {
+        return value == null ? "" : value;
     }
 }

@@ -6,6 +6,7 @@ import com.musomi.manager.dto.request.CreateClassLevelRequest;
 import com.musomi.manager.dto.response.ApiResponse;
 import com.musomi.manager.dto.response.ClassLevelResponse;
 import com.musomi.manager.service.ClassLevelService;
+import com.musomi.manager.util.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,21 +25,19 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminClassLevelApiController {
 
-    private static final Long SCHOOL_ID = 1L;
-
     private final ClassLevelService classLevelService;
 
     /** Lists active class levels for the school. */
     @GetMapping
     public ApiResponse<List<ClassLevelResponse>> listLevels() {
-        return ApiResponse.success(classLevelService.listLevels(SCHOOL_ID));
+        return ApiResponse.success(classLevelService.listLevels(CurrentUser.getSchoolId()));
     }
 
     /** Creates a class level. */
     @PostMapping
     public ResponseEntity<ApiResponse<ClassLevelResponse>> createLevel(
             @Valid @RequestBody CreateClassLevelRequest request) {
-        ClassLevelResponse created = classLevelService.createLevel(SCHOOL_ID, request);
+        ClassLevelResponse created = classLevelService.createLevel(CurrentUser.getSchoolId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
     }
 }

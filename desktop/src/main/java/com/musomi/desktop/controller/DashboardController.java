@@ -1,97 +1,70 @@
 package com.musomi.desktop.controller;
 
+import java.util.List;
+import java.util.function.Consumer;
+
+import com.musomi.desktop.controller.teacher.AssessmentStore;
+import com.musomi.desktop.controller.teacher.AssessmentStore.Assessment;
+import com.musomi.desktop.config.Session;
+import com.musomi.desktop.model.dto.UserResponse;
+
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 
 public class DashboardController {
 
-    @FXML
-    private void handleAddStudent() {
+    @FXML private Label myClassesCount;
+    @FXML private Label totalStudentsCount;
+    @FXML private Label pendingMarksCount;
+    @FXML private Label publishedAssessmentsCount;
+    @FXML private Label pendingReminderText;
+    @FXML private Label greetingLabel;
+    @FXML private Button markEntryButton;
 
-        openDialog(
-                "/fxml/admin/add-student.fxml",
-                "Add Student"
-        );
+    private Consumer<Assessment> onOpenMarkEntry;
+
+    @FXML
+    private void initialize() {
+        refreshPendingReminder();
+        refreshSummaryCards();
+    }
+
+    public void setOnOpenMarkEntry(Consumer<Assessment> onOpenMarkEntry) {
+        this.onOpenMarkEntry = onOpenMarkEntry;
     }
 
     @FXML
-    private void handleAddClass() {
-
-        openDialog(
-                "/fxml/admin/add-class.fxml",
-                "Add Class"
-        );
-    }
-
-    @FXML
-    private void handleAddSubject() {
-
-        openDialog(
-                "/fxml/admin/add-subject.fxml",
-                "Add Subject"
-        );
-    }
-
-    private void openDialog(
-            String fxmlPath,
-            String title
-    ) {
-
-        try {
-
-            FXMLLoader loader =
-                    new FXMLLoader(
-                            getClass().getResource(fxmlPath)
-                    );
-
-            Parent root = loader.load();
-
-            Stage dialog = new Stage();
-
-            dialog.setTitle(title);
-
-            dialog.initModality(
-                    Modality.APPLICATION_MODAL
-            );
-
-            Scene scene = createStyledScene(root);
-
-            dialog.setScene(scene);
-
-            dialog.setResizable(false);
-
-            dialog.showAndWait();
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
+    private void goToMarkEntry() {
+        List<Assessment> pending = AssessmentStore.getPendingAssessments();
+        if (!pending.isEmpty() && onOpenMarkEntry != null) {
+            onOpenMarkEntry.accept(pending.get(0));
         }
     }
 
-    /**
-     * Applies the same CSS used by the
-     * main Musomi Manager application.
-     */
-    private Scene createStyledScene(Parent root) {
+    private void refreshPendingReminder() {
+        int count = AssessmentStore.getPendingAssessments().size();
+        pendingMarksCount.setText(String.valueOf(count));
+        pendingReminderText.setText(count == 0
+                ? "All assessments are fully marked and published."
+                : count + (count == 1
+                        ? " assessment is incomplete or not yet published."
+                        : " assessments are incomplete or not yet published."));
+        markEntryButton.setVisible(count > 0);
+        markEntryButton.setManaged(count > 0);
+    }
 
-        Scene scene = new Scene(root);
+    private void refreshSummaryCards() {
+        UserResponse user = Session.getInstance().getUser();
+        if (user == null || user.getFullName() == null || user.getFullName().isBlank()) {
+            greetingLabel.setText("Welcome back");
+        } else {
+            String firstName = user.getFullName().trim().split("\\s+")[0];
+            greetingLabel.setText("Good morning, " + firstName);
+        }
 
-        scene.getStylesheets().add(
-                getClass()
-                        .getResource("/css/styles.css")
-                        .toExternalForm()
-        );
-
-        scene.getStylesheets().add(
-                getClass()
-                        .getResource("/css/components.css")
-                        .toExternalForm()
-        );
-
-        return scene;
+        myClassesCount.setText(String.valueOf(AssessmentStore.countDistinctClasses()));
+        totalStudentsCount.setText(String.valueOf(AssessmentStore.mockRosterSize()));
+        publishedAssessmentsCount.setText(String.valueOf(AssessmentStore.countPublished()));
     }
 }
