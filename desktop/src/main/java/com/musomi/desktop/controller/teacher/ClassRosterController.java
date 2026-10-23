@@ -1,6 +1,16 @@
 package com.musomi.desktop.controller.teacher;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.musomi.desktop.api.ApiClient;
+import com.musomi.desktop.model.dto.TeacherClassResponse;
+import com.musomi.desktop.util.TaskRunner;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -17,10 +27,10 @@ import javafx.scene.layout.VBox;
  * Controller for the Class Roster screen (/fxml/teacher/class-roster.fxml).
  *
  * Displays a searchable list of students for a specific class.
- * Uses local mock student data — backend integration can replace
- * the MOCK_STUDENTS list once the endpoint is ready.
  */
 public class ClassRosterController {
+
+    private static final Logger log = LoggerFactory.getLogger(ClassRosterController.class);
 
     // -------------------------------------------------------------------------
     // Inner model
@@ -48,25 +58,6 @@ public class ClassRosterController {
         public String getGender() { return gender; }
         public String getStatus() { return status; }
     }
-
-    // -------------------------------------------------------------------------
-    // Mock students — replace with real API data later
-    // -------------------------------------------------------------------------
-
-    private static final List<StudentRow> MOCK_STUDENTS = List.of(
-        new StudentRow("1",  "ADM-2024-001", "John Mugisha",      "Male",   "Active"),
-        new StudentRow("2",  "ADM-2024-002", "Sarah Namukasa",    "Female", "Active"),
-        new StudentRow("3",  "ADM-2024-003", "Brian Okello",      "Male",   "Active"),
-        new StudentRow("4",  "ADM-2024-004", "Mary Achieng",      "Female", "Active"),
-        new StudentRow("5",  "ADM-2024-005", "David Kato",        "Male",   "Active"),
-        new StudentRow("6",  "ADM-2024-006", "Grace Nakato",      "Female", "Active"),
-        new StudentRow("7",  "ADM-2024-007", "Daniel Ouma",       "Male",   "Active"),
-        new StudentRow("8",  "ADM-2024-008", "Rebecca Atim",      "Female", "Active"),
-        new StudentRow("9",  "ADM-2024-009", "Peter Ssekandi",    "Male",   "Active"),
-        new StudentRow("10", "ADM-2024-010", "Esther Nankya",     "Female", "Active"),
-        new StudentRow("11", "ADM-2024-011", "Samuel Tumusiime",  "Male",   "Inactive"),
-        new StudentRow("12", "ADM-2024-012", "Angela Nabirye",    "Female", "Active")
-    );
 
     // -------------------------------------------------------------------------
     // FXML bindings
@@ -127,18 +118,151 @@ public class ClassRosterController {
     public void setClassData(String className, int studentCount,
                              Runnable backCallback) {
         this.backCallback = backCallback;
+        updateClassLabels(className, studentCount);
+        setStatus("Loading roster...", "Please wait while the students are loaded.");
 
+        // The current My Classes caller supplies the display name and count only.
+        // Resolve the endpoint IDs from the authenticated teacher's class list.
+        TaskRunner.run(
+            () -> resolveClassIds(className),
+            ids -> loadStudents(ids.classId(), ids.streamId()),
+            error -> showError(error)
+        );
+    }
+
+    /**
+     * Loads a roster when the caller already has the backend class and stream IDs.
+     */
+    public void setClassData(Long classId, Long streamId, String className,
+                             int studentCount, Runnable backCallback) {
+        this.backCallback = backCallback;
+        updateClassLabels(className, studentCount);
+        loadStudents(classId, streamId);
+    }
+
+    private void updateClassLabels(String className, int studentCount) {
         if (classNameLabel != null) {
             classNameLabel.setText(className);
         }
         if (studentCountLabel != null) {
             studentCountLabel.setText(studentCount + " students");
         }
-
-        // Load mock students (same list for every class for now)
-        allStudents.setAll(MOCK_STUDENTS);
-        updateEmptyState();
     }
+
+    private ClassIds resolveClassIds(String displayName) {
+        TeacherClassResponse[] classes = ApiClient.getInstance().get(
+                "/teacher/classes", TeacherClassResponse[].class);
+        if (classes == null) {
+            throw new IllegalStateException("The server returned no class list.");
+        }
+
+        List<ClassIds> matches = new ArrayList<>();
+        for (TeacherClassResponse teacherClass : classes) {
+            if (teacherClass == null
+                    || teacherClass.getClassId() == null
+                    || teacherClass.getStreamId() == null) {
+                continue;
+            }
+            String resolvedName = joinClassAndStream(
+                    teacherClass.getClassName(), teacherClass.getStreamName());
+            if (resolvedName.equalsIgnoreCase(displayName == null ? "" : displayName.trim())) {
+                ClassIds ids = new ClassIds(teacherClass.getClassId(), teacherClass.getStreamId());
+                if (!matches.contains(ids)) {
+                    matches.add(ids);
+                }
+            }
+        }
+
+        if (matches.isEmpty()) {
+            throw new IllegalStateException(
+                    "Could not find backend IDs for class \"" + displayName + "\".");
+        }
+        if (matches.size() > 1) {
+            throw new IllegalStateException(
+                    "More than one class assignment matches \"" + displayName + "\".");
+        }
+        return matches.get(0);
+    }
+
+    private String joinClassAndStream(String className, String streamName) {
+        String name = className == null ? "" : className.trim();
+        String stream = streamName == null ? "" : streamName.trim();
+        return stream.isEmpty() ? name : name + " " + stream;
+    }
+
+    private void loadStudents(Long classId, Long streamId) {
+        allStudents.clear();
+        if (classId == null || streamId == null) {
+            showError(new IllegalArgumentException("Class and stream IDs are required."));
+            return;
+        }
+        setStatus("Loading roster...", "Please wait while the students are loaded.");
+
+        String path = "/teacher/classes/" + classId + "/streams/" + streamId + "/students";
+        TaskRunner.run(
+            () -> ApiClient.getInstance().get(path, StudentResponse[].class),
+            this::showStudents,
+            this::showError
+        );
+    }
+
+    private void showStudents(StudentResponse[] response) {
+        List<StudentRow> rows = new ArrayList<>();
+        if (response != null) {
+            for (StudentResponse student : response) {
+                if (student == null) {
+                    continue;
+                }
+                rows.add(new StudentRow(
+                        Integer.toString(rows.size() + 1),
+                        student.admissionNumber() == null ? "" : student.admissionNumber(),
+                        student.fullName() == null ? "" : student.fullName(),
+                        student.gender() == null ? "" : student.gender(),
+                        "—"));
+            }
+        }
+
+        allStudents.setAll(rows);
+        if (rows.isEmpty()) {
+            setStatus("No students enrolled", "This class currently has no students.");
+        } else {
+            updateEmptyState();
+            if (studentCountLabel != null) {
+                studentCountLabel.setText(rows.size() + " students");
+            }
+        }
+    }
+
+    private void showError(Exception error) {
+        log.error("Unable to load class roster", error);
+        String message = error.getMessage();
+        setStatus("Unable to load roster",
+                message == null || message.isBlank()
+                        ? "Please check your connection and try again."
+                        : message);
+    }
+
+    private void setStatus(String title, String message) {
+        if (emptyState.getChildren().size() >= 2
+                && emptyState.getChildren().get(0) instanceof Label titleLabel
+                && emptyState.getChildren().get(1) instanceof Label messageLabel) {
+            titleLabel.setText(title);
+            messageLabel.setText(message);
+        }
+        emptyState.setVisible(true);
+        emptyState.setManaged(true);
+        rosterTable.setVisible(false);
+        rosterTable.setManaged(false);
+    }
+
+    private record ClassIds(Long classId, Long streamId) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record StudentResponse(
+            @JsonProperty("id") Long id,
+            @JsonProperty("admissionNumber") String admissionNumber,
+            @JsonProperty("fullName") String fullName,
+            @JsonProperty("gender") String gender) {}
 
     // -------------------------------------------------------------------------
     // Event handlers

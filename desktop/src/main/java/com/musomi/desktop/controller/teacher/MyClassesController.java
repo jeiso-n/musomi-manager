@@ -1,6 +1,14 @@
 package com.musomi.desktop.controller.teacher;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.musomi.desktop.api.ApiClient;
+import com.musomi.desktop.model.dto.TeacherClassResponse;
+import com.musomi.desktop.util.TaskRunner;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -17,15 +25,13 @@ import javafx.scene.layout.VBox;
 
 /**
  * Controller for the My Classes screen (/fxml/teacher/my-classes.fxml).
- *
- * Uses local mock data — does NOT call the backend.
- * Mock data can be swapped for TeacherClassService.getMyClasses() once the
- * backend endpoint /teacher/classes is ready.
  */
 public class MyClassesController {
 
+    private static final Logger log = LoggerFactory.getLogger(MyClassesController.class);
+
     // -------------------------------------------------------------------------
-    // Inner model — mirrors TeacherClassResponse but is fully local
+    // Inner model
     // -------------------------------------------------------------------------
 
     public static class ClassCard {
@@ -33,35 +39,23 @@ public class MyClassesController {
         private final String  subject;
         private final int     students;
         private final int     assessments;
-        private final int     pendingMarks;
+        private final int     draftAssessments;
 
         public ClassCard(String className, String subject,
-                         int students, int assessments, int pendingMarks) {
+                         int students, int assessments, int draftAssessments) {
             this.className    = className;
             this.subject      = subject;
             this.students     = students;
             this.assessments  = assessments;
-            this.pendingMarks = pendingMarks;
+            this.draftAssessments = draftAssessments;
         }
 
         public String getClassName()   { return className;    }
         public String getSubject()     { return subject;      }
         public int    getStudents()    { return students;     }
         public int    getAssessments() { return assessments;  }
-        public int    getPendingMarks(){ return pendingMarks; }
+        public int    getDraftAssessments() { return draftAssessments; }
     }
-
-    // -------------------------------------------------------------------------
-    // Mock data — isolated for easy backend swap-out later
-    // -------------------------------------------------------------------------
-
-    private static final List<ClassCard> MOCK_CLASSES = List.of(
-        new ClassCard("S3 Blue", "Mathematics", 42, 8, 2),
-        new ClassCard("S3 Red",  "Mathematics", 39, 7, 1),
-        new ClassCard("S4 Blue", "Mathematics", 41, 9, 3),
-        new ClassCard("S4 Red",  "Mathematics", 38, 6, 0),
-        new ClassCard("S5",      "Mathematics", 20, 5, 1)
-    );
 
     // -------------------------------------------------------------------------
     // FXML bindings
@@ -76,7 +70,58 @@ public class MyClassesController {
 
     @FXML
     private void initialize() {
-        buildCards(MOCK_CLASSES);
+        showStatus("Loading classes...", false);
+        TaskRunner.run(
+            () -> ApiClient.getInstance().get(
+                    "/teacher/classes", TeacherClassResponse[].class),
+            this::showClasses,
+            error -> {
+                log.error("Unable to load teacher classes", error);
+                String message = error.getMessage();
+                showStatus("Unable to load classes."
+                        + (message == null || message.isBlank() ? "" : " " + message), true);
+            }
+        );
+    }
+
+    private void showClasses(TeacherClassResponse[] response) {
+        List<ClassCard> classes = new ArrayList<>();
+        if (response != null) {
+            for (TeacherClassResponse teacherClass : response) {
+                if (teacherClass == null) {
+                    continue;
+                }
+                String className = teacherClass.getClassName() == null
+                        ? "" : teacherClass.getClassName();
+                String streamName = teacherClass.getStreamName();
+                if (streamName != null && !streamName.isBlank()) {
+                    className = className.isBlank()
+                            ? streamName : className + " " + streamName;
+                }
+                classes.add(new ClassCard(
+                        className,
+                        teacherClass.getSubjectName() == null ? "" : teacherClass.getSubjectName(),
+                        teacherClass.getStudentCount(),
+                        teacherClass.getAssessmentCount(),
+                        teacherClass.getDraftCount()));
+            }
+        }
+
+        if (classes.isEmpty()) {
+            showStatus("No classes are assigned to your account.", false);
+            return;
+        }
+        buildCards(classes);
+    }
+
+    private void showStatus(String message, boolean error) {
+        Label status = new Label(message);
+        status.setWrapText(true);
+        status.setMaxWidth(600);
+        status.setStyle(error
+                ? "-fx-text-fill: #B91C1C; -fx-font-size: 14px;"
+                : "-fx-text-fill: #64748B; -fx-font-size: 14px;");
+        cardsPane.getChildren().setAll(status);
     }
 
     // -------------------------------------------------------------------------
@@ -140,11 +185,11 @@ public class MyClassesController {
         HBox pendingRow = new HBox(8);
         pendingRow.setAlignment(Pos.CENTER_LEFT);
 
-        int pending = cls.getPendingMarks();
+        int drafts = cls.getDraftAssessments();
         Label pendingLabel;
 
-        if (pending > 0) {
-            pendingLabel = new Label(pending + " Pending Mark" + (pending == 1 ? "" : "s"));
+        if (drafts > 0) {
+            pendingLabel = new Label(drafts + " Draft Assessment" + (drafts == 1 ? "" : "s"));
             pendingLabel.setStyle(
                 "-fx-background-color: #FFFBEB;" +
                 "-fx-text-fill: #B45309;" +
@@ -154,7 +199,7 @@ public class MyClassesController {
                 "-fx-font-weight: 600;"
             );
         } else {
-            pendingLabel = new Label("All Marks Up-to-Date");
+            pendingLabel = new Label("No Draft Assessments");
             pendingLabel.setStyle(
                 "-fx-background-color: #ECFDF5;" +
                 "-fx-text-fill: #047857;" +
