@@ -1,5 +1,14 @@
 package com.musomi.desktop.controller.admin;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.musomi.desktop.api.ApiClient;
+import com.musomi.desktop.api.ApiException;
+import com.musomi.desktop.model.dto.UserResponse;
+import com.musomi.desktop.util.TaskRunner;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -8,17 +17,18 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.util.StringConverter;
 
 public class TeacherAssignmentController {
 
     @FXML
-    private ComboBox<String> teacherComboBox;
+    private ComboBox<UserResponse> teacherComboBox;
 
     @FXML
-    private ComboBox<String> classComboBox;
+    private ComboBox<ClassResponse> classComboBox;
 
     @FXML
-    private ComboBox<String> subjectComboBox;
+    private ComboBox<SubjectResponse> subjectComboBox;
 
     @FXML
     private Label messageLabel;
@@ -43,38 +53,46 @@ public class TeacherAssignmentController {
 
     private final ObservableList<Assignment> assignments =
             FXCollections.observableArrayList();
+    private final ApiClient apiClient = ApiClient.getInstance();
 
     @FXML
     private void initialize() {
-        teacherComboBox.setItems(
-                FXCollections.observableArrayList(
-                        "John Doe",
-                        "Mary Smith",
-                        "Peter Brown"
-                )
-        );
+        teacherComboBox.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(UserResponse teacher) {
+                return teacher == null ? "" : teacher.fullName();
+            }
 
-        classComboBox.setItems(
-                FXCollections.observableArrayList(
-                        "Senior One",
-                        "Senior Two",
-                        "Senior Three",
-                        "Senior Four"
-                )
-        );
+            @Override
+            public UserResponse fromString(String value) {
+                return null;
+            }
+        });
+        classComboBox.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(ClassResponse classResponse) {
+                return classResponse == null ? "" : classResponse.name();
+            }
 
-        subjectComboBox.setItems(
-                FXCollections.observableArrayList(
-                        "Mathematics",
-                        "English",
-                        "Biology",
-                        "Chemistry",
-                        "Physics"
-                )
-        );
+            @Override
+            public ClassResponse fromString(String value) {
+                return null;
+            }
+        });
+        subjectComboBox.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(SubjectResponse subject) {
+                return subject == null ? "" : subject.name();
+            }
+
+            @Override
+            public SubjectResponse fromString(String value) {
+                return null;
+            }
+        });
 
         teacherColumn.setCellValueFactory(
-                new PropertyValueFactory<>("teacher")
+                new PropertyValueFactory<>("teacherName")
         );
 
         classColumn.setCellValueFactory(
@@ -82,7 +100,7 @@ public class TeacherAssignmentController {
         );
 
         subjectColumn.setCellValueFactory(
-                new PropertyValueFactory<>("subject")
+                new PropertyValueFactory<>("subjectName")
         );
 
         assignmentsTable.setItems(assignments);
@@ -91,54 +109,58 @@ public class TeacherAssignmentController {
                 TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN
         );
 
-
         updateAssignmentStatistics();
-
 
         messageLabel.setText(
                 "Select a teacher, class and subject."
         );
+
+        loadDropdownData();
+        loadAssignments();
     }
 
     @FXML
     private void assignTeacher() {
-        String teacher = teacherComboBox.getValue();
-        String className = classComboBox.getValue();
-        String subject = subjectComboBox.getValue();
+        UserResponse teacher = teacherComboBox.getValue();
+        ClassResponse classResponse = classComboBox.getValue();
+        SubjectResponse subject = subjectComboBox.getValue();
 
-        if (teacher == null || className == null || subject == null) {
+        if (teacher == null || classResponse == null || subject == null) {
             messageLabel.setText(
                     "Please select a teacher, class and subject."
             );
             return;
         }
 
-        boolean duplicate = assignments.stream().anyMatch(assignment ->
-                assignment.getTeacher().equals(teacher)
-                        && assignment.getClassName().equals(className)
-                        && assignment.getSubject().equals(subject)
-        );
-
-        if (duplicate) {
+        if (classResponse.academicYearId() == null) {
             messageLabel.setText(
-                    "This assignment already exists."
+                    "The selected class has no academic year."
             );
             return;
         }
 
-        assignments.add(
-                new Assignment(teacher, className, subject)
+        CreateAssignmentRequest request = new CreateAssignmentRequest(
+                teacher.id(),
+                subject.id(),
+                classResponse.id(),
+                null,
+                classResponse.academicYearId()
         );
 
-        updateAssignmentStatistics();
-
-        messageLabel.setText(
-                "Assignment added. It is temporary and not saved to the backend."
+        TaskRunner.run(
+                () -> apiClient.post(
+                        "/api/v1/admin/assignments",
+                        request,
+                        AssignmentResponse.class
+                ),
+                result -> {
+                    messageLabel.setText("Teacher assigned successfully.");
+                    clearSelections();
+                    loadAssignments();
+                },
+                this::showApiError
         );
-
-        clearSelections();
     }
-
 
     private void updateAssignmentStatistics() {
         totalAssignmentsLabel.setText(
@@ -146,7 +168,7 @@ public class TeacherAssignmentController {
         );
 
         long distinctTeachers = assignments.stream()
-                .map(Assignment::getTeacher)
+                .map(Assignment::getTeacherName)
                 .distinct()
                 .count();
 
@@ -173,14 +195,96 @@ public class TeacherAssignmentController {
 
     @FXML
     private void refreshAssignments() {
-        assignmentsTable.refresh();
+        loadAssignments();
+    }
 
-        messageLabel.setText(
-                "Assignments list refreshed."
+    private void loadDropdownData() {
+        TaskRunner.run(
+                () -> {
+                    List<UserResponse> teachers = fetchTeachers();
+                    ClassResponse[] classes = apiClient.get(
+                            "/api/v1/admin/classes",
+                            ClassResponse[].class
+                    );
+                    SubjectResponse[] subjects = apiClient.get(
+                            "/api/v1/admin/subjects",
+                            SubjectResponse[].class
+                    );
+                    return new DropdownData(
+                            teachers,
+                            classes == null ? List.of() : List.of(classes),
+                            subjects == null ? List.of() : List.of(subjects)
+                    );
+                },
+                data -> {
+                    teacherComboBox.setItems(FXCollections.observableArrayList(data.teachers()));
+                    classComboBox.setItems(FXCollections.observableArrayList(data.classes()));
+                    subjectComboBox.setItems(FXCollections.observableArrayList(data.subjects()));
+                },
+                this::showApiError
         );
     }
 
+    private List<UserResponse> fetchTeachers() {
+        List<UserResponse> teachers = new ArrayList<>();
+        UserPageResponse firstPage = apiClient.get(
+                "/api/v1/admin/users?role=TEACHER",
+                UserPageResponse.class
+        );
+        if (firstPage == null) {
+            return teachers;
+        }
 
+        if (firstPage.data() != null) {
+            teachers.addAll(firstPage.data());
+        }
+
+        for (int page = firstPage.page() + 1; page < firstPage.totalPages(); page++) {
+            UserPageResponse nextPage = apiClient.get(
+                    "/api/v1/admin/users?role=TEACHER&page=" + page,
+                    UserPageResponse.class
+            );
+            if (nextPage != null && nextPage.data() != null) {
+                teachers.addAll(nextPage.data());
+            }
+        }
+        return teachers;
+    }
+
+    private void loadAssignments() {
+        TaskRunner.run(
+                () -> {
+                    AssignmentResponse[] result = apiClient.get(
+                            "/api/v1/admin/assignments",
+                            AssignmentResponse[].class
+                    );
+                    if (result == null) {
+                        return List.<Assignment>of();
+                    }
+                    return List.of(result).stream()
+                            .map(Assignment::new)
+                            .toList();
+                },
+                result -> {
+                    assignments.setAll(result);
+                    assignmentsTable.refresh();
+                    updateAssignmentStatistics();
+                },
+                this::showApiError
+        );
+    }
+
+    private void showApiError(Exception error) {
+        if (error instanceof ApiException apiException
+                && "NETWORK_ERROR".equals(apiException.getCode())) {
+            messageLabel.setText("Failed to connect to server.");
+            return;
+        }
+        String message = error.getMessage();
+        messageLabel.setText(message == null || message.isBlank()
+                ? "The request failed. Please try again."
+                : message);
+    }
 
     @FXML
     private void removeAssignment() {
@@ -194,45 +298,112 @@ public class TeacherAssignmentController {
             return;
         }
 
-        boolean removed = assignments.remove(selected);
-
-        if (removed) {
-            assignmentsTable.refresh();
-            messageLabel.setText("Assignment removed successfully.");
-        } else {
-            messageLabel.setText("Could not remove the selected assignment.");
+        if (selected.getId() == null) {
+            messageLabel.setText("The selected assignment has no identifier.");
+            return;
         }
-        updateAssignmentStatistics();
+
+        TaskRunner.run(
+                () -> {
+                    apiClient.delete("/api/v1/admin/assignments/" + selected.getId());
+                    return null;
+                },
+                result -> {
+                    assignments.remove(selected);
+                    assignmentsTable.refresh();
+                    updateAssignmentStatistics();
+                    messageLabel.setText("Assignment removed successfully.");
+                    loadAssignments();
+                },
+                this::showApiError
+        );
     }
-
-
 
     public static class Assignment {
 
-        private final String teacher;
+        private final Long id;
+        private final String teacherName;
         private final String className;
-        private final String subject;
+        private final String subjectName;
+        private final Integer academicYear;
 
-        public Assignment(
-                String teacher,
-                String className,
-                String subject
-        ) {
-            this.teacher = teacher;
-            this.className = className;
-            this.subject = subject;
+        public Assignment(AssignmentResponse response) {
+            this.id = response.id();
+            this.teacherName = response.teacherName();
+            this.className = response.className();
+            this.subjectName = response.subjectName();
+            this.academicYear = response.academicYear();
         }
 
-        public String getTeacher() {
-            return teacher;
+        public Long getId() {
+            return id;
+        }
+
+        public String getTeacherName() {
+            return teacherName;
         }
 
         public String getClassName() {
             return className;
         }
 
-        public String getSubject() {
-            return subject;
+        public String getSubjectName() {
+            return subjectName;
         }
+
+        public Integer getAcademicYear() {
+            return academicYear;
+        }
+    }
+
+    private record DropdownData(
+            List<UserResponse> teachers,
+            List<ClassResponse> classes,
+            List<SubjectResponse> subjects
+    ) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record UserPageResponse(
+            List<UserResponse> data,
+            int page,
+            int size,
+            long total,
+            int totalPages
+    ) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record ClassResponse(
+            Long id,
+            String name,
+            Long academicYearId
+    ) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record SubjectResponse(
+            Long id,
+            String name
+    ) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record AssignmentResponse(
+            Long id,
+            String teacherName,
+            String className,
+            String subjectName,
+            Integer academicYear
+    ) {
+    }
+
+    private record CreateAssignmentRequest(
+            Long teacherId,
+            Long subjectId,
+            Long classId,
+            Long streamId,
+            Long academicYearId
+    ) {
     }
 }
