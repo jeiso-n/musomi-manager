@@ -1,10 +1,111 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
+<?import javafx.geometry.Pos?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
 
-<StackPane xmlns="http://javafx.com/javafx"
-           xmlns:fx="http://javafx.com/fxml"
-           prefWidth="800" prefHeight="600">
-    <Label text="Reports" styleClass="h2"/>
-</StackPane>
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.musomi.desktop.controller.report.ReportPreviewController"
+            prefWidth="1000.0"
+            prefHeight="630.0">
+
+    <center>
+        <VBox spacing="20.0">
+            <padding>
+                <Insets top="24.0" right="30.0" bottom="24.0" left="30.0"/>
+            </padding>
+
+            <VBox spacing="5.0">
+                <Label text="Reports" styleClass="h1"/>
+                <Label text="See how your class is performing" styleClass="body-small"/>
+            </VBox>
+
+            <HBox spacing="8.0" alignment="CENTER_LEFT">
+                <Label text="LOCAL DATA" styleClass="badge-inactive"/>
+                <Label text="(not a school report)"
+                       styleClass="body-small"
+                       style="-fx-text-fill: #64748B;"/>
+            </HBox>
+
+            <HBox spacing="12.0" alignment="CENTER_LEFT">
+                <Label text="Class:" styleClass="form-label"/>
+                <ComboBox fx:id="classComboBox" prefWidth="240.0"/>
+            </HBox>
+
+            <HBox spacing="16.0">
+                <VBox spacing="12.0"
+                      HBox.hgrow="ALWAYS"
+                      maxWidth="1.7976931348623157E308"
+                      style="-fx-background-color: #EEF2FF;
+                             -fx-background-radius: 12px;
+                             -fx-padding: 18px;">
+                    <Label text="CLASS SUMMARY"
+                           style="-fx-font-size: 11px;
+                                  -fx-font-weight: bold;
+                                  -fx-text-fill: #64748B;"/>
+                    <HBox spacing="40.0">
+                        <VBox spacing="4.0">
+                            <Label fx:id="studentCountLabel"
+                                   style="-fx-font-size: 28px;
+                                          -fx-font-weight: bold;
+                                          -fx-text-fill: #0F172A;"/>
+                            <Label text="Students in report"
+                                   style="-fx-font-size: 12px;
+                                          -fx-text-fill: #64748B;"/>
+                        </VBox>
+                        <VBox spacing="4.0">
+                            <Label fx:id="classAverageLabel"
+                                   style="-fx-font-size: 28px;
+                                          -fx-font-weight: bold;
+                                          -fx-text-fill: #0F172A;"/>
+                            <Label text="Class average"
+                                   style="-fx-font-size: 12px;
+                                          -fx-text-fill: #64748B;"/>
+                        </VBox>
+                    </HBox>
+                </VBox>
+            </HBox>
+
+            <VBox spacing="12.0" VBox.vgrow="ALWAYS">
+                <TableView fx:id="reportTable"
+                           styleClass="assessment-table"
+                           VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="studentNameCol"
+                                     text="Student Name"
+                                     prefWidth="400.0"/>
+                        <TableColumn fx:id="countCol"
+                                     text="Assessments Counted"
+                                     prefWidth="200.0"/>
+                        <TableColumn fx:id="averageCol"
+                                     text="Average %"
+                                     prefWidth="200.0"/>
+                        <TableColumn fx:id="gradeCol"
+                                     text="Grade"
+                                     prefWidth="200.0"/>
+                    </columns>
+                </TableView>
+
+                <VBox fx:id="emptyState"
+                      alignment="CENTER"
+                      spacing="8.0"
+                      visible="false"
+                      managed="false"
+                      VBox.vgrow="ALWAYS">
+                    <Label text="○"
+                           styleClass="text-muted"
+                           style="-fx-font-size: 32px;"/>
+                    <Label fx:id="emptyStateTitle" styleClass="h3"/>
+                    <Label fx:id="emptyStateMessage" styleClass="body-small"/>
+                </VBox>
+            </VBox>
+        </VBox>
+    </center>
+</BorderPane>

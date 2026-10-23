@@ -1,14 +1,21 @@
 package com.musomi.manager.controller.web;
 
-import java.math.BigDecimal;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-import com.musomi.manager.entity.School;
-import com.musomi.manager.entity.SchoolSettings;
+import com.musomi.manager.entity.GeneratedReport;
 import com.musomi.manager.entity.Student;
-import com.musomi.manager.entity.Term;
-import com.musomi.manager.service.PdfService;
+import com.musomi.manager.entity.User;
+import com.musomi.manager.repository.GeneratedReportRepository;
+import com.musomi.manager.repository.StudentRepository;
+import com.musomi.manager.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -27,83 +34,96 @@ import org.springframework.web.bind.annotation.PathVariable;
 @Slf4j
 public class StudentReportsWebController {
 
-    private final PdfService pdfService;
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("d MMM yyyy");
+
+    private final GeneratedReportRepository generatedReportRepository;
+    private final StudentRepository studentRepository;
+    private final UserRepository userRepository;
 
     @GetMapping("/student/reports")
     public String showReports(Model model) {
+        Optional<Student> studentOpt = findCurrentStudent();
+        if (studentOpt.isEmpty()) {
+            return "redirect:/login";
+        }
+        Student student = studentOpt.get();
+        List<Map<String, Object>> reports = new ArrayList<>();
+        for (GeneratedReport report : generatedReportRepository
+                .findByStudentIdOrderByGeneratedAtDesc(student.getId())) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("id", report.getId());
+            item.put("termName", report.getTerm() != null ? valueOrEmpty(report.getTerm().getName()) : "");
+            item.put("academicYear", report.getTerm() != null
+                    && report.getTerm().getAcademicYear() != null
+                    && report.getTerm().getAcademicYear().getYear() != null
+                    ? report.getTerm().getAcademicYear().getYear().toString() : "");
+            item.put("generatedAt", report.getGeneratedAt() != null
+                    ? report.getGeneratedAt().format(DATE_FORMAT) : "");
+            item.put("fileSize", formatFileSize(report.getFileSizeBytes()));
+            item.put("downloadUrl", "/student/reports/download/" + report.getId());
+            reports.add(item);
+        }
         model.addAttribute("pageTitle", "Report Cards");
         model.addAttribute("currentPage", "reports");
-        model.addAttribute("schoolName", "St. Mary's Secondary School");
-
-        List<Map<String, Object>> reports = List.of(
-                Map.of("id", "r1", "termName", "Term 1", "academicYear", "2026", "generatedAt", "18 Apr 2026", "fileSize", "148 KB", "downloadUrl", "/student/reports/download/r1"),
-                Map.of("id", "r2", "termName", "Term 3", "academicYear", "2025", "generatedAt", "05 Dec 2025", "fileSize", "142 KB", "downloadUrl", "/student/reports/download/r2"),
-                Map.of("id", "r3", "termName", "Term 2", "academicYear", "2025", "generatedAt", "12 Aug 2025", "fileSize", "139 KB", "downloadUrl", "/student/reports/download/r3")
-        );
+        model.addAttribute("schoolName", student.getSchool() != null
+                ? valueOrEmpty(student.getSchool().getName()) : "");
         model.addAttribute("reports", reports);
-
         return "student/reports";
     }
 
     @GetMapping("/student/reports/download/{id}")
-    public ResponseEntity<byte[]> downloadReportCard(@PathVariable String id) {
+    public ResponseEntity<byte[]> downloadReportCard(@PathVariable Long id) {
+        Optional<Student> studentOpt = findCurrentStudent();
+        if (studentOpt.isEmpty()) {
+            return ResponseEntity.status(302).header(HttpHeaders.LOCATION, "/login").build();
+        }
+        Optional<GeneratedReport> reportOpt = generatedReportRepository
+                .findByStudentIdOrderByGeneratedAtDesc(studentOpt.get().getId()).stream()
+                .filter(report -> id.equals(report.getId()))
+                .findFirst();
+        if (reportOpt.isEmpty() || reportOpt.get().getFilePath() == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Path reportPath = Path.of(reportOpt.get().getFilePath()).normalize();
+        if (!Files.isRegularFile(reportPath)) {
+            return ResponseEntity.notFound().build();
+        }
         try {
-            // Build report card PDF dynamically via OpenPDF PdfService
-            School school = School.builder()
-                    .name("St. Mary's Secondary School")
-                    .address("Kisubi, Entebbe Road, Uganda")
-                    .email("admin@stmarys.sc.ug")
-                    .phone("+256 414 123456")
-                    .build();
-
-            Student student = Student.builder()
-                    .admissionNumber("SMSS/2024/0142")
-                    .fullName("Sarah Namubiru")
-                    .school(school)
-                    .build();
-
-            Term term = Term.builder()
-                    .name("Term 1")
-                    .school(school)
-                    .build();
-
-            SchoolSettings settings = SchoolSettings.builder()
-                    .school(school)
-                    .reportHeader("St. Mary's Secondary School - Official Report Card")
-                    .reportFooter("Promoted on Merit. School reopens next term on 25 May 2026.")
-                    .gradingScale("{\"A\":80,\"B\":70,\"C\":60,\"D\":50,\"E\":40,\"F\":0}")
-                    .build();
-
-            List<PdfService.SubjectAverage> subjects = List.of(
-                    new PdfService.SubjectAverage("Mathematics", BigDecimal.valueOf(84.5), "A", 3),
-                    new PdfService.SubjectAverage("English Language", BigDecimal.valueOf(80.2), "A", 2),
-                    new PdfService.SubjectAverage("Physics", BigDecimal.valueOf(78.8), "B", 2),
-                    new PdfService.SubjectAverage("Biology", BigDecimal.valueOf(82.0), "A", 2),
-                    new PdfService.SubjectAverage("Chemistry", BigDecimal.valueOf(80.0), "A", 2),
-                    new PdfService.SubjectAverage("History & Political Ed.", BigDecimal.valueOf(88.5), "A", 2),
-                    new PdfService.SubjectAverage("Geography", BigDecimal.valueOf(76.0), "B", 2)
-            );
-
-            byte[] pdfBytes = pdfService.generateReportCard(
-                    student,
-                    term,
-                    settings,
-                    subjects,
-                    BigDecimal.valueOf(81.4),
-                    "A",
-                    4,
-                    42,
-                    List.of()
-            );
-
+            byte[] pdfBytes = Files.readAllBytes(reportPath);
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Report-Card-Sarah-Namubiru-" + id + ".pdf\"")
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"Report-Card-" + id + ".pdf\"")
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdfBytes);
-
-        } catch (Exception e) {
-            log.error("Failed to generate PDF report card: {}", e.getMessage(), e);
+        } catch (IOException exception) {
+            log.error("Failed to read generated report {} for student {}", id, studentOpt.get().getId(), exception);
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    private Optional<Student> findCurrentStudent() {
+        org.springframework.security.core.Authentication auth =
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
+            return Optional.empty();
+        }
+        Optional<User> user = userRepository.findBySchoolIdAndUsername(1L, auth.getName());
+        if (user.isEmpty()) {
+            return Optional.empty();
+        }
+        Long userId = user.get().getId();
+        return studentRepository.findAll().stream()
+                .filter(student -> student.getUser() != null
+                        && userId.equals(student.getUser().getId()))
+                .findFirst();
+    }
+
+    private String formatFileSize(Long fileSizeBytes) {
+        return fileSizeBytes == null ? "" : String.format("%.0f KB", fileSizeBytes / 1024.0);
+    }
+
+    private String valueOrEmpty(String value) {
+        return value == null ? "" : value;
     }
 }

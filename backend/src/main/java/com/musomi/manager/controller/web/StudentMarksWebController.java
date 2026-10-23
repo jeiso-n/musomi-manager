@@ -1,13 +1,30 @@
 package com.musomi.manager.controller.web;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-import com.musomi.manager.repository.AssessmentRepository;
+import com.musomi.manager.entity.Assessment;
+import com.musomi.manager.entity.Score;
+import com.musomi.manager.entity.Student;
+import com.musomi.manager.entity.Subject;
+import com.musomi.manager.entity.Term;
+import com.musomi.manager.entity.User;
 import com.musomi.manager.repository.ScoreRepository;
-import com.musomi.manager.repository.SubjectRepository;
+import com.musomi.manager.repository.StudentRepository;
+import com.musomi.manager.repository.TermRepository;
+import com.musomi.manager.repository.UserRepository;
+import com.musomi.manager.util.GradeCalculator;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,110 +35,171 @@ import org.springframework.web.bind.annotation.PathVariable;
  */
 @Controller
 @RequiredArgsConstructor
-@Slf4j
 public class StudentMarksWebController {
 
-    private final SubjectRepository subjectRepository;
-    private final AssessmentRepository assessmentRepository;
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("d MMM yyyy");
+
+    private final StudentRepository studentRepository;
+    private final UserRepository userRepository;
     private final ScoreRepository scoreRepository;
+    private final TermRepository termRepository;
 
     @GetMapping("/student/marks")
     public String showMarks(Model model) {
+        Optional<Student> studentOpt = findCurrentStudent();
+        if (studentOpt.isEmpty()) {
+            return "redirect:/login";
+        }
+        Student student = studentOpt.get();
+        List<Score> scores = publishedScores(student);
+        Map<Long, SubjectMarkGroup> groups = new LinkedHashMap<>();
+
+        for (Score score : scores) {
+            Assessment assessment = score.getAssessment();
+            Subject subject = assessment.getSubject();
+            if (subject == null || subject.getId() == null) {
+                continue;
+            }
+            SubjectMarkGroup group = groups.computeIfAbsent(subject.getId(),
+                    id -> new SubjectMarkGroup(id, valueOrEmpty(subject.getName())));
+            group.marks.add(toMark(score));
+        }
+        List<Map<String, Object>> subjectGroups = groups.values().stream()
+                .map(SubjectMarkGroup::toModel)
+                .toList();
+
         model.addAttribute("pageTitle", "My Marks");
         model.addAttribute("currentPage", "marks");
-        model.addAttribute("schoolName", "St. Mary's Secondary School");
-        model.addAttribute("termName", "Term 1, 2026");
-
-        // Rich subject groups conforming to MASTER.md & WEB.md specifications
-        List<Map<String, Object>> mathMarks = List.of(
-                Map.of("id", "m1", "title", "Mid-term Exam", "type", "TEST", "date", "15 Mar 2026", "score", 85.0, "maxScore", 100, "grade", "A", "topic", "Algebraic Expressions", "feedback", "Good progress"),
-                Map.of("id", "m2", "title", "Weekly Quiz: Quadratic Functions", "type", "QUIZ", "date", "22 Mar 2026", "score", 18.0, "maxScore", 20, "grade", "A", "topic", "Quadratic Equations", "feedback", "Keep it up"),
-                Map.of("id", "m3", "title", "Continuous Assessment Assignment", "type", "HOMEWORK", "date", "05 Apr 2026", "score", 45.0, "maxScore", 50, "grade", "A", "topic", "Trigonometric Ratios", "feedback", "Excellent work")
-        );
-
-        List<Map<String, Object>> englishMarks = List.of(
-                Map.of("id", "e1", "title", "Poetry Analysis Assignment", "type", "HOMEWORK", "date", "10 Mar 2026", "score", 78.5, "maxScore", 100, "grade", "B", "topic", "East African Poetry", "feedback", "Good effort"),
-                Map.of("id", "e2", "title", "Mid-term Summary & Comprehension", "type", "TEST", "date", "16 Mar 2026", "score", 82.0, "maxScore", 100, "grade", "A", "topic", "Reading Comprehension", "feedback", "Strong comprehension")
-        );
-
-        List<Map<String, Object>> physicsMarks = List.of(
-                Map.of("id", "p1", "title", "Optics Practical Lab Work", "type", "PRACTICAL", "date", "12 Mar 2026", "score", 82.5, "maxScore", 100, "grade", "A", "topic", "Reflection & Refraction", "feedback", "Careful practical work"),
-                Map.of("id", "p2", "title", "Mechanics & Linear Motion Test", "type", "TEST", "date", "28 Mar 2026", "score", 75.0, "maxScore", 100, "grade", "B", "topic", "Newton's Laws of Motion", "feedback", "Keep practicing")
-        );
-
-        List<Map<String, Object>> biologyMarks = List.of(
-                Map.of("id", "b1", "title", "Cell Structure & Osmosis Quiz", "type", "QUIZ", "date", "02 Mar 2026", "score", 18.0, "maxScore", 20, "grade", "A", "topic", "Cell Organization", "feedback", "Excellent understanding"),
-                Map.of("id", "b2", "title", "Plant Nutrition Mid-Term Test", "type", "TEST", "date", "20 Mar 2026", "score", 74.0, "maxScore", 100, "grade", "B", "topic", "Photosynthesis", "feedback", "Good progress")
-        );
-
-        List<Map<String, Object>> chemistryMarks = List.of(
-                Map.of("id", "c1", "title", "Periodic Table & Bonding Test", "type", "TEST", "date", "25 Feb 2026", "score", 74.0, "maxScore", 100, "grade", "B", "topic", "Ionic & Covalent Bonding", "feedback", "Review bonding concepts"),
-                Map.of("id", "c2", "title", "Acids, Bases & Salts Lab", "type", "PRACTICAL", "date", "18 Mar 2026", "score", 86.0, "maxScore", 100, "grade", "A", "topic", "Acid-Base Reactions", "feedback", "Excellent lab technique")
-        );
-
-        List<Map<String, Object>> subjectGroups = List.of(
-                Map.of("subjectId", "sub-math", "subjectName", "Mathematics", "marks", mathMarks),
-                Map.of("subjectId", "sub-eng", "subjectName", "English Language", "marks", englishMarks),
-                Map.of("subjectId", "sub-phy", "subjectName", "Physics", "marks", physicsMarks),
-                Map.of("subjectId", "sub-bio", "subjectName", "Biology", "marks", biologyMarks),
-                Map.of("subjectId", "sub-chem", "subjectName", "Chemistry", "marks", chemistryMarks)
-        );
-
+        model.addAttribute("schoolName", student.getSchool() != null ? valueOrEmpty(student.getSchool().getName()) : "");
+        model.addAttribute("termName", currentTermName(student));
         model.addAttribute("subjectGroups", subjectGroups);
         return "student/marks";
     }
 
     @GetMapping("/student/subjects/{subjectId}")
-    public String showSubjectDetail(@PathVariable String subjectId, Model model) {
-        model.addAttribute("pageTitle", "Subject Detail");
-        model.addAttribute("currentPage", "marks");
-        model.addAttribute("schoolName", "St. Mary's Secondary School");
-
-        String subjectName = "Mathematics";
-        String subjectCode = "MTH";
-        String teacherName = "Mr. David Okello";
-        String average = "84.5";
-        String grade = "A";
-
-        if (subjectId.contains("eng")) {
-            subjectName = "English Language";
-            subjectCode = "ENG";
-            teacherName = "Ms. Grace Kyomugisha";
-            average = "80.2";
-            grade = "A";
-        } else if (subjectId.contains("phy")) {
-            subjectName = "Physics";
-            subjectCode = "PHY";
-            teacherName = "Mr. Ronald Kato";
-            average = "78.8";
-            grade = "B";
-        } else if (subjectId.contains("bio")) {
-            subjectName = "Biology";
-            subjectCode = "BIO";
-            teacherName = "Dr. Susan Nabirye";
-            average = "82.0";
-            grade = "A";
-        } else if (subjectId.contains("chem")) {
-            subjectName = "Chemistry";
-            subjectCode = "CHM";
-            teacherName = "Mr. Peter Mukasa";
-            average = "80.0";
-            grade = "A";
+    public String showSubjectDetail(@PathVariable Long subjectId, Model model) {
+        Optional<Student> studentOpt = findCurrentStudent();
+        if (studentOpt.isEmpty()) {
+            return "redirect:/login";
+        }
+        Student student = studentOpt.get();
+        List<Score> scores = publishedScores(student).stream()
+                .filter(score -> score.getAssessment().getSubject() != null
+                        && subjectId.equals(score.getAssessment().getSubject().getId()))
+                .toList();
+        if (scores.isEmpty()) {
+            return "redirect:/student/marks";
         }
 
-        model.addAttribute("subjectName", subjectName);
-        model.addAttribute("subjectCode", subjectCode);
+        Subject subject = scores.get(0).getAssessment().getSubject();
+        BigDecimal totalScore = BigDecimal.ZERO;
+        BigDecimal totalMax = BigDecimal.ZERO;
+        List<Map<String, Object>> marks = new ArrayList<>();
+        String teacherName = "";
+        for (Score score : scores) {
+            marks.add(toMark(score));
+            BigDecimal maxScore = score.getAssessment().getMaxScore();
+            if (maxScore != null && maxScore.compareTo(BigDecimal.ZERO) > 0) {
+                totalScore = totalScore.add(score.getScore());
+                totalMax = totalMax.add(maxScore);
+            }
+            if (teacherName.isBlank() && score.getAssessment().getTeacher() != null) {
+                teacherName = valueOrEmpty(score.getAssessment().getTeacher().getFullName());
+            }
+        }
+        BigDecimal average = percentage(totalScore, totalMax);
+
+        model.addAttribute("pageTitle", "Subject Detail");
+        model.addAttribute("currentPage", "marks");
+        model.addAttribute("schoolName", student.getSchool() != null ? valueOrEmpty(student.getSchool().getName()) : "");
+        model.addAttribute("subjectName", valueOrEmpty(subject.getName()));
+        model.addAttribute("subjectCode", valueOrEmpty(subject.getCode()));
         model.addAttribute("teacherName", teacherName);
         model.addAttribute("average", average);
-        model.addAttribute("grade", grade);
-
-        List<Map<String, Object>> marks = List.of(
-                Map.of("id", "m1", "title", "Mid-term Examination", "type", "TEST", "date", "15 Mar 2026", "score", 85.0, "maxScore", 100, "grade", "A", "topic", "Core Theory", "feedback", "Great accuracy in solving step-by-step problems."),
-                Map.of("id", "m2", "title", "Weekly Quiz: Topic Test", "type", "QUIZ", "date", "22 Mar 2026", "score", 18.0, "maxScore", 20, "grade", "A", "topic", "Unit Concepts", "feedback", "Very good recall of definitions."),
-                Map.of("id", "m3", "title", "Continuous Assessment Assignment", "type", "HOMEWORK", "date", "05 Apr 2026", "score", 45.0, "maxScore", 50, "grade", "A", "topic", "Applied Practical Analysis", "feedback", "Neat work submitted on time.")
-        );
+        model.addAttribute("grade", GradeCalculator.calculate(totalScore, totalMax));
         model.addAttribute("marks", marks);
-
         return "student/subject-detail";
+    }
+
+    private List<Score> publishedScores(Student student) {
+        return scoreRepository.findByStudentId(student.getId()).stream()
+                .filter(score -> score.getScore() != null && score.getAssessment() != null
+                        && "PUBLISHED".equalsIgnoreCase(score.getAssessment().getStatus()))
+                .sorted(Comparator.comparing(
+                        (Score score) -> score.getAssessment().getAssessmentDate(),
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+    }
+
+    private Map<String, Object> toMark(Score score) {
+        Assessment assessment = score.getAssessment();
+        Map<String, Object> mark = new HashMap<>();
+        mark.put("id", score.getId());
+        mark.put("title", valueOrEmpty(assessment.getTitle()));
+        mark.put("type", valueOrEmpty(assessment.getType()));
+        mark.put("date", assessment.getAssessmentDate() != null
+                ? assessment.getAssessmentDate().format(DATE_FORMAT) : "");
+        mark.put("score", score.getScore());
+        mark.put("maxScore", assessment.getMaxScore() != null ? assessment.getMaxScore() : BigDecimal.ZERO);
+        mark.put("grade", GradeCalculator.calculate(score.getScore(), assessment.getMaxScore()));
+        mark.put("topic", null);
+        mark.put("feedback", score.getFeedback());
+        return mark;
+    }
+
+    private String currentTermName(Student student) {
+        if (student.getSchool() == null) {
+            return "";
+        }
+        return termRepository.findBySchoolIdAndIsCurrentTrue(student.getSchool().getId())
+                .map(Term::getName)
+                .orElse("");
+    }
+
+    private Optional<Student> findCurrentStudent() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
+            return Optional.empty();
+        }
+        Optional<User> user = userRepository.findBySchoolIdAndUsername(1L, auth.getName());
+        if (user.isEmpty()) {
+            return Optional.empty();
+        }
+        Long userId = user.get().getId();
+        return studentRepository.findAll().stream()
+                .filter(student -> student.getUser() != null
+                        && userId.equals(student.getUser().getId()))
+                .findFirst();
+    }
+
+    private BigDecimal percentage(BigDecimal score, BigDecimal maxScore) {
+        if (maxScore.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO.setScale(1, RoundingMode.HALF_UP);
+        }
+        return score.multiply(BigDecimal.valueOf(100))
+                .divide(maxScore, 1, RoundingMode.HALF_UP);
+    }
+
+    private String valueOrEmpty(String value) {
+        return value == null ? "" : value;
+    }
+
+    private static final class SubjectMarkGroup {
+        private final Long subjectId;
+        private final String subjectName;
+        private final List<Map<String, Object>> marks = new ArrayList<>();
+
+        private SubjectMarkGroup(Long subjectId, String subjectName) {
+            this.subjectId = subjectId;
+            this.subjectName = subjectName;
+        }
+
+        private Map<String, Object> toModel() {
+            Map<String, Object> model = new HashMap<>();
+            model.put("subjectId", subjectId);
+            model.put("subjectName", subjectName);
+            model.put("marks", marks);
+            return model;
+        }
     }
 }

@@ -18,6 +18,7 @@ import javafx.scene.layout.VBox;
 import com.musomi.desktop.api.ApiException;
 import com.musomi.desktop.config.AppConfig;
 import com.musomi.desktop.config.SceneManager;
+import com.musomi.desktop.config.Session;
 import com.musomi.desktop.service.AuthService;
 import com.musomi.desktop.util.TaskRunner;
 
@@ -53,6 +54,8 @@ public class LoginController implements Initializable {
     @FXML private Label versionLabel;
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
+    @FXML private TextField visiblePasswordField;
+    @FXML private Button togglePasswordButton;
     @FXML private Label errorLabel;
     @FXML private Button loginButton;
     @FXML private ProgressIndicator spinner;
@@ -82,6 +85,11 @@ public class LoginController implements Initializable {
         // Collapse nodes from layout flow when they are not visible
         errorLabel.managedProperty().bind(errorLabel.visibleProperty());
         spinner.managedProperty().bind(spinner.visibleProperty());
+
+        visiblePasswordField.textProperty().addListener(
+            (obs, oldVal, newVal) -> passwordField.setText(newVal));
+        passwordField.textProperty().addListener(
+            (obs, oldVal, newVal) -> visiblePasswordField.setText(newVal));
     }
 
     // -------------------------------------------------------------------------
@@ -110,7 +118,7 @@ public class LoginController implements Initializable {
             return;
         }
 
-        log.debug("Login attempt — user: {}", username);
+        log.debug("Login attempt");
 
         clearError();
         setLoading(true);
@@ -118,15 +126,43 @@ public class LoginController implements Initializable {
         TaskRunner.run(
             () -> authService.login(username, password),
             response -> {
-                log.debug("Login successful — user: {}", username);
-                SceneManager.getInstance().switchTo(MAIN_LAYOUT_FXML);
+                if (Session.getInstance().isAuthenticated()) {
+                    log.debug("Login successful");
+                    SceneManager.getInstance().switchTo(MAIN_LAYOUT_FXML);
+                } else {
+                    setLoading(false);
+                    showError("The server returned an invalid login response. Please try again.");
+                }
             },
             error -> {
-                log.debug("Login failed — user: {} — reason: {}", username, error.getMessage());
+                log.debug("Login failed");
                 setLoading(false);
                 showError(resolveErrorMessage(error));
             }
         );
+    }
+
+    @FXML
+    private void togglePasswordVisibility() {
+        boolean currentlyHidden = !visiblePasswordField.isVisible();
+
+        if (currentlyHidden) {
+            visiblePasswordField.setText(passwordField.getText());
+            visiblePasswordField.setVisible(true);
+            visiblePasswordField.setManaged(true);
+            passwordField.setVisible(false);
+            passwordField.setManaged(false);
+            visiblePasswordField.requestFocus();
+            visiblePasswordField.positionCaret(visiblePasswordField.getText().length());
+        } else {
+            passwordField.setText(visiblePasswordField.getText());
+            visiblePasswordField.setVisible(false);
+            visiblePasswordField.setManaged(false);
+            passwordField.setVisible(true);
+            passwordField.setManaged(true);
+            passwordField.requestFocus();
+            passwordField.positionCaret(passwordField.getText().length());
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -174,6 +210,7 @@ public class LoginController implements Initializable {
             return switch (apiEx.getCode()) {
                 // 401 — wrong username or password; never reveal which one failed
                 case "INVALID_CREDENTIALS" -> "Invalid username or password.";
+                case "INVALID_AUTH_RESPONSE" -> "The server returned an invalid login response. Please try again.";
 
                 // 403 — server message already contains the lock duration (e.g. "15 minutes")
                 case "ACCOUNT_LOCKED"      -> apiEx.getMessage();

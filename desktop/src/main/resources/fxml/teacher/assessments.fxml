@@ -1,10 +1,529 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
 
-<StackPane xmlns="http://javafx.com/javafx"
-           xmlns:fx="http://javafx.com/fxml"
-           prefWidth="800" prefHeight="600">
-    <Label text="Assessments" styleClass="h2"/>
-</StackPane>
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.musomi.desktop.controller.teacher.AssessmentsController"
+            style="-fx-background-color: #f7f8fc;">
+
+    <!-- ===================================================== -->
+    <!-- PAGE HEADER                                           -->
+    <!-- ===================================================== -->
+
+    <top>
+        <VBox spacing="5.0" styleClass="assessment-page-header">
+            <padding>
+                <Insets top="12.0" right="16.0" bottom="16.0" left="16.0"/>
+            </padding>
+
+            <HBox alignment="CENTER_LEFT">
+
+                <VBox spacing="5.0" HBox.hgrow="ALWAYS">
+                    <Label text="Assessments"
+                           style="-fx-font-size: 26px;
+                                  -fx-font-weight: bold;
+                                  -fx-text-fill: #1e293b;"/>
+                    <Label text="Create and manage assessments for your classes."
+                           style="-fx-font-size: 14px;
+                                  -fx-text-fill: #64748b;"/>
+                </VBox>
+
+                <Button fx:id="createBtn"
+                        text="+ Create Assessment"
+                        onAction="#handleCreateAssessment"
+                        style="-fx-background-color: #4F46E5;
+                               -fx-text-fill: white;
+                               -fx-font-size: 14px;
+                               -fx-font-weight: 600;
+                               -fx-background-radius: 8px;
+                               -fx-padding: 10 20;
+                               -fx-cursor: hand;"/>
+            </HBox>
+        </VBox>
+    </top>
+
+
+    <!-- ===================================================== -->
+    <!-- MAIN CONTENT — StackPane holding all panels           -->
+    <!-- ===================================================== -->
+
+    <center>
+        <StackPane alignment="TOP_LEFT" minWidth="0" minHeight="0">
+
+            <!-- ──────────────────────────────────────────────────── -->
+            <!-- PANEL 1: Assessment list                             -->
+            <!-- ──────────────────────────────────────────────────── -->
+
+            <VBox fx:id="listPane" spacing="12.0" minWidth="0" minHeight="0">
+                <padding>
+                    <Insets top="0" right="16.0" bottom="16.0" left="16.0"/>
+                </padding>
+
+                <!-- Success toast (publish confirmation) -->
+                <Label fx:id="listSuccessLabel"
+                       visible="false"
+                       managed="false"
+                       wrapText="true"
+                       style="-fx-background-color: #ECFDF5;
+                              -fx-text-fill: #065F46;
+                              -fx-font-size: 13px;
+                              -fx-background-radius: 8px;
+                              -fx-padding: 12 14;
+                              -fx-font-weight: 600;">
+                    <VBox.margin>
+                        <Insets bottom="12"/>
+                    </VBox.margin>
+                </Label>
+
+                <TableView fx:id="assessmentTable"
+                           minWidth="0"
+                           minHeight="180"
+                           VBox.vgrow="ALWAYS"
+                           styleClass="assessment-table">
+                    <placeholder>
+                        <VBox alignment="CENTER" spacing="8">
+                            <Label text="📋" style="-fx-font-size: 40px;"/>
+                            <Label text="No assessments yet"
+                                   style="-fx-font-size: 16px;-fx-font-weight: 600;-fx-text-fill: #0F172A;"/>
+                            <Label text="Click '+ Create Assessment' to get started."
+                                   style="-fx-font-size: 13px;-fx-text-fill: #64748B;"/>
+                        </VBox>
+                    </placeholder>
+                    <columns>
+                        <TableColumn fx:id="nameColumn" text="Assessment" prefWidth="190"/>
+                        <TableColumn fx:id="classColumn" text="Class" prefWidth="82"/>
+                        <TableColumn fx:id="subjectColumn" text="Subject" prefWidth="120"/>
+                        <TableColumn fx:id="topicColumn" text="Topic" prefWidth="105"/>
+                        <TableColumn fx:id="dateColumn" text="Date" prefWidth="100"/>
+                        <TableColumn fx:id="maxMarksColumn" text="Max" prefWidth="65"/>
+                        <TableColumn fx:id="statusColumn" text="Status" prefWidth="88"/>
+                        <TableColumn fx:id="actionsColumn" text="Actions" prefWidth="150"/>
+                    </columns>
+                </TableView>
+            </VBox>
+
+
+            <!-- ──────────────────────────────────────────────────── -->
+            <!-- PANEL 2: Create / Edit form overlay                  -->
+            <!-- ──────────────────────────────────────────────────── -->
+
+            <VBox fx:id="formPane"
+                  visible="false"
+                  managed="false"
+                  styleClass="assessment-modal-overlay"
+                  alignment="CENTER"
+                  StackPane.alignment="CENTER"
+                  maxWidth="Infinity" maxHeight="Infinity">
+
+                <ScrollPane fitToWidth="true"
+                            hbarPolicy="NEVER"
+                            vbarPolicy="AS_NEEDED"
+                            maxWidth="700"
+                            maxHeight="620"
+                            styleClass="assessment-form-scroll">
+                    <VBox.margin>
+                        <Insets top="0" bottom="0"/>
+                    </VBox.margin>
+                    <content>
+                        <VBox spacing="14"
+                              maxWidth="700"
+                              styleClass="assessment-form-card">
+
+                            <HBox alignment="CENTER_LEFT" styleClass="assessment-form-heading">
+                                <Label fx:id="formTitle"
+                                       text="Create Assessment"
+                                       styleClass="assessment-form-title"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Button text="✕"
+                                        onAction="#handleCancelForm"
+                                        styleClass="assessment-close-button"/>
+                            </HBox>
+                            <Separator styleClass="assessment-form-separator"/>
+
+                            <Label fx:id="errorLabel"
+                                   visible="false" managed="false"
+                                   wrapText="true"
+                                   styleClass="assessment-form-error"/>
+                            <Label fx:id="successLabel"
+                                   visible="false" managed="false"
+                                   wrapText="true"
+                                   styleClass="assessment-form-success"/>
+
+                            <VBox spacing="6" styleClass="assessment-form-field">
+                                <Label text="Assessment name *" styleClass="assessment-field-label"/>
+                                <TextField fx:id="nameField"
+                                           promptText="e.g. Mathematics Test 1"
+                                           maxWidth="Infinity"
+                                           styleClass="assessment-form-input"/>
+                            </VBox>
+
+                            <FlowPane hgap="16" vgap="14" prefWrapLength="580">
+                                <VBox spacing="6" prefWidth="280" styleClass="assessment-form-field">
+                                    <Label text="Class *" styleClass="assessment-field-label"/>
+                                    <ComboBox fx:id="classCombo"
+                                              promptText="Select class"
+                                              maxWidth="Infinity"
+                                              styleClass="assessment-form-input"/>
+                                </VBox>
+                                <VBox spacing="6" prefWidth="280" styleClass="assessment-form-field">
+                                    <Label text="Subject *" styleClass="assessment-field-label"/>
+                                    <ComboBox fx:id="subjectCombo"
+                                              promptText="Select subject"
+                                              maxWidth="Infinity"
+                                              styleClass="assessment-form-input"/>
+                                </VBox>
+                        </FlowPane>
+
+                            <VBox spacing="6" styleClass="assessment-form-field">
+                                <Label text="Topic *" styleClass="assessment-field-label"/>
+                                <ComboBox fx:id="topicCombo"
+                                          promptText="Select topic"
+                                          maxWidth="Infinity"
+                                          styleClass="assessment-form-input"/>
+                            </VBox>
+
+                            <FlowPane hgap="16" vgap="14" prefWrapLength="580">
+                                <VBox spacing="6" prefWidth="280" styleClass="assessment-form-field">
+                                    <Label text="Assessment date *" styleClass="assessment-field-label"/>
+                                    <DatePicker fx:id="datePicker"
+                                                promptText="Select date"
+                                                maxWidth="Infinity"
+                                                styleClass="assessment-form-input"/>
+                                </VBox>
+                                <VBox spacing="6" prefWidth="280" styleClass="assessment-form-field">
+                                    <Label text="Maximum marks *" styleClass="assessment-field-label"/>
+                                    <TextField fx:id="marksField"
+                                               promptText="e.g. 40"
+                                               maxWidth="Infinity"
+                                               styleClass="assessment-form-input"/>
+                                </VBox>
+                            </FlowPane>
+
+                            <Separator styleClass="assessment-form-separator"/>
+
+                            <HBox spacing="12" alignment="CENTER_RIGHT">
+                                <Button text="Cancel"
+                                        onAction="#handleCancelForm"
+                                        styleClass="btn-secondary"/>
+                                <Button fx:id="saveDraftBtn"
+                                        text="Save Draft"
+                                        onAction="#handleSaveDraft"
+                                        styleClass="btn-primary"/>
+                            </HBox>
+                        </VBox>
+                    </content>
+                </ScrollPane>
+            </VBox>
+
+
+            <!-- ──────────────────────────────────────────────────── -->
+            <!-- PANEL 3: Review &amp; Publish                        -->
+            <!-- ──────────────────────────────────────────────────── -->
+
+            <ScrollPane fx:id="reviewPane"
+                        visible="false"
+                        managed="false"
+                        fitToWidth="true"
+                        hbarPolicy="NEVER"
+                        vbarPolicy="AS_NEEDED"
+                        style="-fx-background-color: #f7f8fc;
+                               -fx-background: #f7f8fc;
+                               -fx-border-color: transparent;"
+                        StackPane.alignment="TOP_LEFT"
+                        maxWidth="Infinity" maxHeight="Infinity">
+
+                <content>
+                    <VBox spacing="20">
+                        <padding>
+                            <Insets top="4" right="30" bottom="30" left="30"/>
+                        </padding>
+
+                        <!-- Back row -->
+                        <HBox alignment="CENTER_LEFT" spacing="12">
+                            <Button text="← Back to Assessments"
+                                    onAction="#handleCancelReview"
+                                    style="-fx-background-color: transparent;
+                                           -fx-text-fill: #4F46E5;
+                                           -fx-font-size: 13px;
+                                           -fx-font-weight: 600;
+                                           -fx-cursor: hand;
+                                           -fx-padding: 0;"/>
+                        </HBox>
+
+                        <!-- Review header card -->
+                        <VBox spacing="16"
+                              style="-fx-background-color: white;
+                                     -fx-background-radius: 12px;
+                                     -fx-border-color: #E2E8F0;
+                                     -fx-border-width: 1;
+                                     -fx-padding: 24 28;">
+
+                            <HBox alignment="CENTER_LEFT">
+                                <Label text="Review Assessment"
+                                       style="-fx-font-size: 20px;
+                                              -fx-font-weight: 800;
+                                              -fx-text-fill: #0F172A;"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label text="DRAFT"
+                                       style="-fx-background-color: #FFF7ED;
+                                              -fx-text-fill: #B45309;
+                                              -fx-font-size: 12px;
+                                              -fx-font-weight: 700;
+                                              -fx-padding: 4 12;
+                                              -fx-background-radius: 999px;"/>
+                            </HBox>
+
+                            <Separator/>
+
+                            <!-- Details grid -->
+                            <FlowPane hgap="28" vgap="16">
+                                <VBox spacing="4">
+                                    <Label text="Assessment"
+                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                    <Label fx:id="reviewNameLabel"
+                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                </VBox>
+                                <VBox spacing="4">
+                                    <Label text="CLASS"
+                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                    <Label fx:id="reviewClassLabel"
+                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                </VBox>
+                                <VBox spacing="4">
+                                    <Label text="SUBJECT"
+                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                    <Label fx:id="reviewSubjectLabel"
+                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                </VBox>
+                                <VBox spacing="4">
+                                    <Label text="TOPIC"
+                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                    <Label fx:id="reviewTopicLabel"
+                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                </VBox>
+                                <VBox spacing="4">
+                                    <Label text="DATE"
+                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                    <Label fx:id="reviewDateLabel"
+                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                </VBox>
+                                <VBox spacing="4">
+                                    <Label text="MAX MARKS"
+                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                    <Label fx:id="reviewMaxMarksLabel"
+                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                </VBox>
+                            </FlowPane>
+
+                            <Separator/>
+
+                            <!-- Completeness + warning -->
+                            <Label fx:id="reviewCompletenessLabel"
+                                   style="-fx-font-size: 13px;-fx-text-fill: #475569;"/>
+
+                            <Label fx:id="reviewWarningLabel"
+                                   visible="false" managed="false"
+                                   wrapText="true"
+                                   style="-fx-background-color: #FEF9C3;
+                                          -fx-text-fill: #854D0E;
+                                          -fx-font-size: 13px;
+                                          -fx-font-weight: 600;
+                                          -fx-background-radius: 8px;
+                                          -fx-padding: 12 14;"/>
+
+                            <!-- Action buttons -->
+                            <HBox spacing="12" alignment="CENTER_RIGHT">
+                                <Button text="Back to Assessments"
+                                        onAction="#handleCancelReview"
+                                        style="-fx-background-color: #F1F5F9;
+                                               -fx-text-fill: #475569;
+                                               -fx-font-size: 14px;
+                                               -fx-font-weight: 600;
+                                               -fx-background-radius: 8px;
+                                               -fx-padding: 10 22;
+                                               -fx-cursor: hand;"/>
+                                <Button fx:id="publishBtn"
+                                        text="Publish Assessment"
+                                        onAction="#handlePublish"
+                                        style="-fx-background-color: #059669;
+                                               -fx-text-fill: white;
+                                               -fx-font-size: 14px;
+                                               -fx-font-weight: 700;
+                                               -fx-background-radius: 8px;
+                                               -fx-padding: 10 26;
+                                               -fx-cursor: hand;"/>
+                            </HBox>
+                        </VBox>
+
+                        <!-- Student marks table -->
+                        <VBox spacing="0">
+                            <Label text="Student Marks"
+                                   style="-fx-font-size: 16px;
+                                          -fx-font-weight: 700;
+                                          -fx-text-fill: #0F172A;">
+                                <VBox.margin>
+                                    <Insets bottom="10"/>
+                                </VBox.margin>
+                            </Label>
+
+                            <VBox fx:id="reviewMarksContainer" spacing="0"/>
+                        </VBox>
+                    </VBox>
+                </content>
+            </ScrollPane>
+
+
+            <!-- ──────────────────────────────────────────────────── -->
+            <!-- PANEL 4: View (read-only) for Published assessments  -->
+            <!-- ──────────────────────────────────────────────────── -->
+
+            <ScrollPane fx:id="viewPane"
+                        visible="false"
+                        managed="false"
+                        fitToWidth="true"
+                        hbarPolicy="NEVER"
+                        vbarPolicy="AS_NEEDED"
+                        style="-fx-background-color: #f7f8fc;
+                               -fx-background: #f7f8fc;
+                               -fx-border-color: transparent;"
+                        StackPane.alignment="TOP_LEFT"
+                        maxWidth="Infinity" maxHeight="Infinity">
+
+                <content>
+                    <VBox spacing="20">
+                        <padding>
+                            <Insets top="4" right="30" bottom="30" left="30"/>
+                        </padding>
+
+                        <!-- Back row -->
+                        <HBox alignment="CENTER_LEFT" spacing="12">
+                            <Button text="← Back to Assessments"
+                                    onAction="#handleCloseView"
+                                    style="-fx-background-color: transparent;
+                                           -fx-text-fill: #4F46E5;
+                                           -fx-font-size: 13px;
+                                           -fx-font-weight: 600;
+                                           -fx-cursor: hand;
+                                           -fx-padding: 0;"/>
+                        </HBox>
+
+                        <!-- View header card -->
+                        <VBox spacing="16"
+                              style="-fx-background-color: white;
+                                     -fx-background-radius: 12px;
+                                     -fx-border-color: #E2E8F0;
+                                     -fx-border-width: 1;
+                                     -fx-padding: 24 28;">
+
+                            <HBox alignment="CENTER_LEFT">
+                                <Label text="Assessment Details (Read-Only)"
+                                       style="-fx-font-size: 20px;
+                                              -fx-font-weight: 800;
+                                              -fx-text-fill: #0F172A;"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label text="PUBLISHED"
+                                       style="-fx-background-color: #ECFDF5;
+                                              -fx-text-fill: #047857;
+                                              -fx-font-size: 12px;
+                                              -fx-font-weight: 700;
+                                              -fx-padding: 4 12;
+                                              -fx-background-radius: 999px;"/>
+                            </HBox>
+                            <Separator/>
+
+                            <FlowPane hgap="28" vgap="16">
+                                <VBox spacing="4">
+                                    <Label text="ASSESSMENT"
+                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                    <Label fx:id="viewNameLabel"
+                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                </VBox>
+                                <VBox spacing="4">
+                                    <Label text="CLASS"
+                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                    <Label fx:id="viewClassLabel"
+                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                </VBox>
+                                <VBox spacing="4">
+                                    <Label text="SUBJECT"
+                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                    <Label fx:id="viewSubjectLabel"
+                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                </VBox>
+                                <VBox spacing="4">
+                                    <Label text="TOPIC"
+                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                    <Label fx:id="viewTopicLabel"
+                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                </VBox>
+                                <VBox spacing="4">
+                                    <Label text="DATE"
+                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                    <Label fx:id="viewDateLabel"
+                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                </VBox>
+                                <VBox spacing="4">
+                                    <Label text="MAX MARKS"
+                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                    <Label fx:id="viewMaxMarksLabel"
+                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                </VBox>
+                            </FlowPane>
+
+                            <Separator/>
+
+                            <Label text="This assessment has been published and is now read-only."
+                                   style="-fx-font-size: 13px;
+                                          -fx-text-fill: #047857;
+                                          -fx-font-weight: 600;"/>
+
+                            <HBox alignment="CENTER_RIGHT">
+                                <Button text="Close"
+                                        onAction="#handleCloseView"
+                                        style="-fx-background-color: #F1F5F9;
+                                               -fx-text-fill: #475569;
+                                               -fx-font-size: 14px;
+                                               -fx-font-weight: 600;
+                                               -fx-background-radius: 8px;
+                                               -fx-padding: 10 22;
+                                               -fx-cursor: hand;"/>
+                            </HBox>
+                        </VBox>
+
+                        <!-- Student marks table (read-only) -->
+                        <VBox spacing="0">
+                            <Label text="Published Marks (Read-Only)"
+                                   style="-fx-font-size: 16px;
+                                          -fx-font-weight: 700;
+                                          -fx-text-fill: #0F172A;">
+                                <VBox.margin>
+                                    <Insets bottom="10"/>
+                                </VBox.margin>
+                            </Label>
+                            <VBox fx:id="viewMarksContainer" spacing="0"/>
+                        </VBox>
+
+                    </VBox>
+                </content>
+            </ScrollPane>
+
+        </StackPane>
+    </center>
+
+</BorderPane>
