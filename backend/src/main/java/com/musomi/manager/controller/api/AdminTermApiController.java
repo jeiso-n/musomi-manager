@@ -6,6 +6,7 @@ import com.musomi.manager.dto.request.CreateTermRequest;
 import com.musomi.manager.dto.response.ApiResponse;
 import com.musomi.manager.dto.response.TermResponse;
 import com.musomi.manager.service.TermService;
+import com.musomi.manager.util.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -27,28 +28,26 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminTermApiController {
 
-    private static final Long SCHOOL_ID = 1L;
-
     private final TermService termService;
 
     /** Lists school terms, optionally filtered by academic year. */
     @GetMapping
     public ApiResponse<List<TermResponse>> listTerms(
             @RequestParam(required = false) Long yearId) {
-        return ApiResponse.success(termService.listTerms(SCHOOL_ID, yearId));
+        return ApiResponse.success(termService.listTerms(CurrentUser.getSchoolId(), yearId));
     }
 
     /** Creates a school term. */
     @PostMapping
     public ResponseEntity<ApiResponse<TermResponse>> createTerm(
             @Valid @RequestBody CreateTermRequest request) {
-        TermResponse created = termService.createTerm(SCHOOL_ID, request);
+        TermResponse created = termService.createTerm(CurrentUser.getSchoolId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
     }
 
     /** Sets the specified term as current. */
     @PutMapping("/{id}/current")
     public ApiResponse<TermResponse> setCurrent(@PathVariable Long id) {
-        return ApiResponse.success(termService.setCurrent(id, SCHOOL_ID));
+        return ApiResponse.success(termService.setCurrent(id, CurrentUser.getSchoolId()));
     }
 }

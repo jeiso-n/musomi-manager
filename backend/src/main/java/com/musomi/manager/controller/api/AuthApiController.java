@@ -1,5 +1,6 @@
 package com.musomi.manager.controller.api;
 
+import com.musomi.manager.dto.request.ChangePasswordRequest;
 import com.musomi.manager.dto.request.LoginRequest;
 import com.musomi.manager.dto.response.ApiResponse;
 import com.musomi.manager.dto.response.LoginResponse;
@@ -7,6 +8,7 @@ import com.musomi.manager.dto.response.UserSummary;
 import com.musomi.manager.exception.AuthenticationException;
 import com.musomi.manager.exception.ErrorCode;
 import com.musomi.manager.service.AuthService;
+import com.musomi.manager.util.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -36,6 +38,12 @@ public class AuthApiController {
             throw new AuthenticationException(ErrorCode.SESSION_EXPIRED);
         }
         return ApiResponse.success(authService.getUserSummary(userId));
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(CurrentUser.getUserId(), request);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/logout")

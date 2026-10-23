@@ -6,6 +6,7 @@ import com.musomi.manager.dto.request.SaveCommentRequest;
 import com.musomi.manager.dto.response.ApiResponse;
 import com.musomi.manager.dto.response.CommentResponse;
 import com.musomi.manager.service.CommentService;
+import com.musomi.manager.util.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,9 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('TEACHER')")
 public class TeacherCommentApiController {
 
-    private static final Long SCHOOL_ID = 1L;
-    private static final Long TEACHER_ID = 1L;
-
     private final CommentService commentService;
 
     /** Lists comments for a student, optionally filtered by term. */
@@ -42,7 +40,8 @@ public class TeacherCommentApiController {
     /** Creates or updates a teacher comment. */
     @PostMapping("/comments")
     public ApiResponse<CommentResponse> saveComment(@Valid @RequestBody SaveCommentRequest request) {
-        return ApiResponse.success(commentService.saveComment(SCHOOL_ID, TEACHER_ID, request));
+        return ApiResponse.success(commentService.saveComment(
+                CurrentUser.getSchoolId(), CurrentUser.getUserId(), request));
     }
 
     /** Deletes a teacher comment. */

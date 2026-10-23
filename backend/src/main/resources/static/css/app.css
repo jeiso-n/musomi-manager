@@ -1,13 +1,11 @@
-/* Custom styles for Musomi Manager Student Portal */
-/* Tailwind handles most styling, but any unavoidable custom CSS goes here */
-
-/* Base transition overrides */
+/* Musomi Manager Student Portal Custom Styles */
 :root {
   --transition-duration: 200ms;
 }
 
 body {
   -webkit-tap-highlight-color: transparent;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 /* HTMX Transition Support */
@@ -15,14 +13,29 @@ body {
   opacity: 0;
   transition: opacity var(--transition-duration) ease-in;
 }
-.htmx-request .htmx-indicator {
-  opacity: 1;
-}
+
+.htmx-request .htmx-indicator,
 .htmx-request.htmx-indicator {
   opacity: 1;
 }
 
-/* Safe area padding for mobile bottom nav on iOS */
+/* iOS Safe Area Padding for mobile bottom nav */
 .pb-safe {
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom, 0.75rem);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }

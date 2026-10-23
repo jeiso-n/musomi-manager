@@ -1,27 +1,22 @@
 package com.musomi.manager.controller.web;
 
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import java.util.Map;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+/**
+ * Controller for student personal profile, guardian contact, and password management.
+ */
 @Controller
+@RequiredArgsConstructor
+@Slf4j
 public class StudentProfileWebController {
 
     @GetMapping("/student/profile")
@@ -29,73 +24,68 @@ public class StudentProfileWebController {
         model.addAttribute("pageTitle", "My Profile");
         model.addAttribute("currentPage", "profile");
         model.addAttribute("schoolName", "St. Mary's Secondary School");
-        
-        model.addAttribute("admissionNumber", "U001/0123");
-        model.addAttribute("fullName", "Achieng Sarah");
-        model.addAttribute("gender", "Female");
-        model.addAttribute("dateOfBirth", "12 May 2010");
-        model.addAttribute("className", "S3");
-        model.addAttribute("streamName", "Blue");
-        model.addAttribute("guardianName", "Odongo Peter");
-        model.addAttribute("guardianPhone", "+256 700 123 456");
-        
+
+        Map<String, Object> student = Map.of(
+                "fullName", "Sarah Namubiru",
+                "admissionNumber", "SMSS/2024/0142",
+                "className", "Senior 3",
+                "streamName", "Blue",
+                "gender", "Female",
+                "dob", "12 May 2010"
+        );
+        model.addAttribute("student", student);
+
+        Map<String, Object> guardian = Map.of(
+                "name", "Dr. James Namubiru",
+                "relationship", "Father",
+                "phone", "+256 772 123 456"
+        );
+        model.addAttribute("guardian", guardian);
+
         return "student/profile";
     }
-    
+
     @PostMapping("/student/profile/change-password")
     @ResponseBody
-    public String changePassword() {
-        // HTMX will process this response to show a toast and reset the form
-        return "<form hx-post=\"/student/profile/change-password\" hx-swap=\"outerHTML\" class=\"space-y-4\" id=\"password-form\">" +
-               "<div class=\"p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium flex items-start gap-3 mb-4\">" +
-               "<i data-lucide=\"check-circle\" class=\"w-5 h-5 shrink-0 text-emerald-600 mt-0.5\"></i>" +
-               "<span>Password successfully changed.</span></div>" +
-               "<div><label class=\"block text-sm font-medium text-slate-700 mb-1\">Current Password</label>" +
-               "<input type=\"password\" name=\"current\" required class=\"block w-full rounded-lg border-slate-300 shadow-sm focus:border-brand-700 focus:ring-brand-700 sm:text-sm px-3 py-2 border text-slate-900\"></div>" +
-               "<div><label class=\"block text-sm font-medium text-slate-700 mb-1\">New Password</label>" +
-               "<input type=\"password\" name=\"new\" required class=\"block w-full rounded-lg border-slate-300 shadow-sm focus:border-brand-700 focus:ring-brand-700 sm:text-sm px-3 py-2 border text-slate-900\"></div>" +
-               "<div><label class=\"block text-sm font-medium text-slate-700 mb-1\">Confirm New Password</label>" +
-               "<input type=\"password\" name=\"confirm\" required class=\"block w-full rounded-lg border-slate-300 shadow-sm focus:border-brand-700 focus:ring-brand-700 sm:text-sm px-3 py-2 border text-slate-900\"></div>" +
-               "<div class=\"pt-2\"><button type=\"submit\" class=\"w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-brand-700 hover:bg-brand-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-700\">Change Password</button></div>" +
-                "<script>lucide.createIcons();</script>" +
-                "</form>";
-    }
+    public String changePassword(
+            @RequestParam(name = "current", required = false) String current,
+            @RequestParam(name = "new", required = false) String newPass,
+            @RequestParam(name = "confirm", required = false) String confirm) {
 
-    @PostMapping("/student/profile/upload-avatar")
-    @ResponseBody
-    public ResponseEntity<String> uploadAvatar(@RequestParam("photo") MultipartFile file) {
-        // Validate content type
-        Set<String> allowed = Set.of("image/jpeg", "image/png", "image/webp");
-        String contentType = file.getContentType();
-        if (contentType == null || !allowed.contains(contentType)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Invalid file type. Only JPG, PNG, and WebP are allowed.");
-        }
-        // Validate size (5 MB)
-        if (file.getSize() > 5L * 1024 * 1024) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("File too large. Maximum allowed size is 5 MB.");
+        if (newPass == null || confirm == null || !newPass.equals(confirm)) {
+            return "<form id=\"password-form\" hx-post=\"/student/profile/change-password\" hx-swap=\"outerHTML\" class=\"space-y-4\">"
+                    + "<div class=\"p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-medium flex items-start gap-2.5 mb-3\">"
+                    + "<i data-lucide=\"alert-circle\" class=\"w-4 h-4 text-red-600 shrink-0 mt-0.5\"></i>"
+                    + "<span>New password and confirmation password do not match. Please try again.</span>"
+                    + "</div>"
+                    + "<div><label class=\"block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1\">Current Password</label>"
+                    + "<input type=\"password\" name=\"current\" required class=\"block w-full rounded-lg border border-slate-300 shadow-2xs px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition\"></div>"
+                    + "<div class=\"grid grid-cols-1 sm:grid-cols-2 gap-4\">"
+                    + "<div><label class=\"block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1\">New Password</label>"
+                    + "<input type=\"password\" name=\"new\" required minlength=\"6\" class=\"block w-full rounded-lg border border-slate-300 shadow-2xs px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition\"></div>"
+                    + "<div><label class=\"block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1\">Confirm New Password</label>"
+                    + "<input type=\"password\" name=\"confirm\" required minlength=\"6\" class=\"block w-full rounded-lg border border-slate-300 shadow-2xs px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition\"></div>"
+                    + "</div>"
+                    + "<div class=\"pt-2\"><button type=\"submit\" class=\"w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm focus:outline-none transition\">Update Password</button></div>"
+                    + "<script>lucide.createIcons();</script>"
+                    + "</form>";
         }
 
-        try {
-            // Resolve static/img directory — try classpath resource first, fall back to source tree (dev mode)
-            ClassPathResource imgDir = new ClassPathResource("static/img/");
-            Path targetDir;
-            if (imgDir.exists()) {
-                targetDir = Paths.get(imgDir.getURI());
-            } else {
-                targetDir = Paths.get("backend/src/main/resources/static/img");
-            }
-            Files.createDirectories(targetDir);
-
-            Path target = targetDir.resolve("student-avatar.jpg");
-            try (InputStream in = file.getInputStream()) {
-                Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
-            }
-            return ResponseEntity.ok("/img/student-avatar.jpg");
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Upload failed: " + e.getMessage());
-        }
+        return "<form id=\"password-form\" hx-post=\"/student/profile/change-password\" hx-swap=\"outerHTML\" class=\"space-y-4\">"
+                + "<div class=\"p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-start gap-2.5 mb-3\">"
+                + "<i data-lucide=\"check-circle\" class=\"w-4 h-4 text-emerald-600 shrink-0 mt-0.5\"></i>"
+                + "<span>Your password has been changed successfully.</span>"
+                + "</div>"
+                + "<div><label class=\"block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1\">Current Password</label>"
+                + "<input type=\"password\" name=\"current\" required class=\"block w-full rounded-lg border border-slate-300 shadow-2xs px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition\"></div>"
+                + "<div class=\"grid grid-cols-1 sm:grid-cols-2 gap-4\">"
+                + "<div><label class=\"block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1\">New Password</label>"
+                + "<input type=\"password\" name=\"new\" required minlength=\"6\" class=\"block w-full rounded-lg border border-slate-300 shadow-2xs px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition\"></div>"
+                + "<div><label class=\"block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1\">Confirm New Password</label>"
+                + "<input type=\"password\" name=\"confirm\" required minlength=\"6\" class=\"block w-full rounded-lg border border-slate-300 shadow-2xs px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 transition\"></div>"
+                + "</div>"
+                + "<div class=\"pt-2\"><button type=\"submit\" class=\"w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm focus:outline-none transition\">Update Password</button></div>"
+                + "<script>lucide.createIcons();</script>"
+                + "</form>";
     }
 }

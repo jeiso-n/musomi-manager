@@ -8,6 +8,7 @@ import com.musomi.manager.dto.response.ApiResponse;
 import com.musomi.manager.dto.response.MarkGridResponse;
 import com.musomi.manager.dto.response.ScoreResponse;
 import com.musomi.manager.service.ScoreService;
+import com.musomi.manager.util.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,8 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('TEACHER')")
 public class TeacherMarkApiController {
 
-    private static final Long TEACHER_ID = 1L;
-
     private final ScoreService scoreService;
 
     /** Loads the mark grid for an assessment. */
@@ -41,7 +40,7 @@ public class TeacherMarkApiController {
     public ApiResponse<ScoreResponse> updateScore(
             @PathVariable Long scoreId,
             @Valid @RequestBody SaveMarksRequest request) {
-        return ApiResponse.success(scoreService.updateScore(scoreId, request, TEACHER_ID));
+        return ApiResponse.success(scoreService.updateScore(scoreId, request, CurrentUser.getUserId()));
     }
 
     /** Saves a batch of scores for an assessment. */
@@ -49,6 +48,6 @@ public class TeacherMarkApiController {
     public ApiResponse<List<ScoreResponse>> saveBatch(
             @PathVariable Long id,
             @Valid @RequestBody SaveMarksBatchRequest request) {
-        return ApiResponse.success(scoreService.saveBatch(id, request, TEACHER_ID));
+        return ApiResponse.success(scoreService.saveBatch(id, request, CurrentUser.getUserId()));
     }
 }

@@ -1,8 +1,13 @@
 package com.musomi.manager.controller.api;
 
-import com.musomi.manager.entity.ReportRequest;
 import com.musomi.manager.dto.response.ApiResponse;
+import com.musomi.manager.dto.response.ReportRequestResponse;
+import com.musomi.manager.entity.ReportRequest;
+import com.musomi.manager.exception.ErrorCode;
+import com.musomi.manager.exception.ResourceNotFoundException;
+import com.musomi.manager.repository.UserRepository;
 import com.musomi.manager.service.ReportService;
+import com.musomi.manager.util.CurrentUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,18 +24,17 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminReportRequestApiController {
 
-    private static final Long SCHOOL_ID = 1L;
-    private static final Long ADMIN_ID = 1L;
-
     private final ReportService reportService;
+    private final UserRepository userRepository;
 
     /** Creates a pending report request for a student and term. */
     @PostMapping
-    public ApiResponse<ReportRequest> createReportRequest(
+    public ApiResponse<ReportRequestResponse> createReportRequest(
             @RequestParam Long studentId,
             @RequestParam Long termId) {
-        return ApiResponse.success(
-                reportService.createReportRequest(SCHOOL_ID, studentId, termId, ADMIN_ID));
+        ReportRequest request = reportService.createReportRequest(
+                CurrentUser.getSchoolId(), studentId, termId, CurrentUser.getUserId());
+        return ApiResponse.success(toReportRequestResponse(request));
     }
 
     /** Marks a report request as generated. */
@@ -40,5 +44,22 @@ public class AdminReportRequestApiController {
             @RequestParam Long reportId) {
         reportService.markGenerated(requestId, reportId);
         return ResponseEntity.noContent().build();
+    }
+
+    private ReportRequestResponse toReportRequestResponse(ReportRequest request) {
+        String requestedByName = userRepository.findById(request.getRequestedBy().getId())
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND))
+                .getFullName();
+        return new ReportRequestResponse(
+                request.getId(),
+                request.getStudent().getId(),
+                request.getStudent().getFullName(),
+                request.getTerm().getId(),
+                request.getTerm().getName(),
+                request.getStatus(),
+                request.getRequestedBy().getId(),
+                requestedByName,
+                request.getRequestedAt(),
+                request.getProcessedAt());
     }
 }

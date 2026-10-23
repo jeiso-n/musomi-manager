@@ -1,9 +1,9 @@
-<div th:fragment="loading-skeleton" class="animate-pulse space-y-4">
-    <div class="h-16 bg-slate-100 rounded-xl"></div>
-    <div class="h-16 bg-slate-100 rounded-xl"></div>
-    <div class="h-16 bg-slate-100 rounded-xl"></div>
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="loading" class="flex flex-col items-center justify-center py-12 text-slate-500">
+    <div class="w-8 h-8 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-3"></div>
+    <span class="text-sm font-medium">Loading details...</span>
 </div>
-
-<div th:fragment="loading-spinner" class="flex justify-center p-8">
-    <i data-lucide="loader-2" class="w-8 h-8 text-brand-700 animate-spin"></i>
-</div>
+</body>
+</html>
