@@ -6,6 +6,9 @@ import javafx.application.Application;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.musomi.desktop.controller.teacher.AssessmentRepository;
+import com.musomi.desktop.controller.teacher.AssessmentStore;
+
 
 /**
  * Entry point for the Musomi Manager desktop application.
@@ -33,9 +36,8 @@ public class DesktopApplication extends Application {
 
         SceneManager.getInstance().setPrimaryStage(primaryStage);
         SceneManager.getInstance().switchTo(LOGIN_FXML);
-        SceneManager.getInstance().switchTo("/fxml/main-layout.fxml");
+
         AssessmentStore.initialize(new AssessmentRepository());
-        SceneManager.getInstance().switchTo(LOGIN_FXML);
 
         primaryStage.show();
         log.info("Application started");

@@ -46,22 +46,28 @@ public class MainLayoutController {
 
     @FXML
     private void initialize() {
+        boolean isTeacher = "TEACHER".equalsIgnoreCase(Session.getInstance().getRole());
+        setSectionVisible(teacherNavSection, isTeacher);
+        setSectionVisible(adminNavSection, !isTeacher);
 
-        // We are currently developing the Teacher UI.
-        // Show only Teacher navigation for now.
-
-        if (adminNavSection != null) {
-            adminNavSection.setVisible(false);
-            adminNavSection.setManaged(false);
-        }
-
-        if (teacherNavSection != null) {
-            teacherNavSection.setVisible(true);
-            teacherNavSection.setManaged(true);
+        if (isTeacher && teacherNavSection != null) {
+            for (Node child : teacherNavSection.getChildren()) {
+                if (child instanceof Button button && "Settings".equals(button.getText())) {
+                    button.setVisible(false);
+                    button.setManaged(false);
+                }
+            }
         }
 
         // Open Dashboard when the application starts.
         showDashboard();
+    }
+
+    private void setSectionVisible(VBox section, boolean visible) {
+        if (section != null) {
+            section.setVisible(visible);
+            section.setManaged(visible);
+        }
     }
 
 
@@ -228,10 +234,16 @@ public class MainLayoutController {
                             getClass().getResource(fxmlPath)
                     );
 
+            if ("/fxml/dashboard.fxml".equals(fxmlPath)) {
+                loader.setController(new DashboardController());
+            }
+
             Node view = loader.load();
 
             if (loader.getController() instanceof DashboardController dashboardController) {
                 dashboardController.setOnOpenMarkEntry(this::openMarkEntry);
+                dashboardController.setOnOpenAdminView(this::loadView);
+                dashboardController.configureDashboard(view);
             } else if (loader.getController() instanceof MarkEntryController markEntryController
                     && assessment != null) {
                 markEntryController.setData(assessment);
