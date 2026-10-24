@@ -1,5 +1,5 @@
 name: CI
-
+# Re-run CI after removing artifact upload
 on:
   push:
     branches: [main]
