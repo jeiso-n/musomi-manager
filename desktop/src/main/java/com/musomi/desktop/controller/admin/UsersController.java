@@ -63,7 +63,8 @@ public class UsersController {
 
         actionsColumn.setCellFactory(column -> new TableCell<>() {
 
-            private final Button editButton = new Button("Edit");
+            private final Button editButton =
+                    new Button("Edit");
 
             private final Button deactivateButton =
                     new Button("Deactivate");
@@ -72,6 +73,14 @@ public class UsersController {
                     new HBox(8, editButton, deactivateButton);
 
             {
+                // Standard table action styling
+                editButton.getStyleClass().add("table-action-button");
+
+                deactivateButton.getStyleClass().addAll(
+                        "table-action-button",
+                        "table-action-danger"
+                );
+
                 editButton.setOnAction(event -> {
 
                     UserRow user = getTableView()
@@ -115,6 +124,9 @@ public class UsersController {
                 (observable, oldValue, newValue) ->
                         filterUsers(newValue)
         );
+        usersTable.setColumnResizePolicy(
+                TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN
+        );
     }
 
     private void loadSampleUsers() {
@@ -149,9 +161,7 @@ public class UsersController {
         String search = searchText.toLowerCase().trim();
 
         if (search.isEmpty()) {
-
             usersTable.setItems(allUsers);
-
             return;
         }
 
@@ -202,7 +212,7 @@ public class UsersController {
                     Modality.APPLICATION_MODAL
             );
 
-            Scene scene = new Scene(root);
+            Scene scene = createStyledScene(root);
 
             dialog.setScene(scene);
 
@@ -255,7 +265,7 @@ public class UsersController {
                     Modality.APPLICATION_MODAL
             );
 
-            Scene scene = new Scene(root);
+            Scene scene = createStyledScene(root);
 
             dialog.setScene(scene);
 
@@ -269,6 +279,29 @@ public class UsersController {
 
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Creates a Scene for Admin dialogs and applies
+     * the same CSS used by the main application.
+     */
+    private Scene createStyledScene(Parent root) {
+
+        Scene scene = new Scene(root);
+
+        scene.getStylesheets().add(
+                getClass()
+                        .getResource("/css/styles.css")
+                        .toExternalForm()
+        );
+
+        scene.getStylesheets().add(
+                getClass()
+                        .getResource("/css/components.css")
+                        .toExternalForm()
+        );
+
+        return scene;
     }
 
     private void handleDeactivateUser(UserRow user) {
@@ -355,6 +388,5 @@ public class UsersController {
         public void setStatus(String status) {
             this.status.set(status);
         }
-
     }
 }

@@ -5,59 +5,81 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
 <VBox xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.musomi.desktop.controller.admin.SettingsController"
       spacing="20.0"
-      styleClass="content-area">
+      styleClass="page-container">
 
+    <!-- Page Header -->
     <VBox spacing="5.0">
 
         <Label text="Settings"
                styleClass="page-title"/>
 
-        <Label text="Manage system settings"
+        <Label text="Manage school and academic settings"
                styleClass="page-subtitle"/>
 
     </VBox>
 
-    <VBox spacing="20.0"
-          styleClass="dashboard-card">
+    <!-- Settings Card -->
+    <VBox spacing="22.0"
+          styleClass="table-card">
 
-        <Label text="School Information"
-               styleClass="section-title"/>
+        <VBox spacing="5.0">
 
-        <VBox spacing="6.0">
+            <Label text="School Information"
+                   styleClass="section-title"/>
 
-            <Label text="School Name"/>
+            <Label text="Update your school's basic information and current academic period."
+                   styleClass="dialog-subtitle"/>
+
+        </VBox>
+
+        <!-- School Name -->
+        <VBox spacing="7.0">
+
+            <Label text="School Name"
+                   styleClass="form-label"/>
 
             <TextField fx:id="schoolNameField"
-                       promptText="Enter school name"/>
+                       promptText="Enter school name"
+                       maxWidth="520.0"
+                       styleClass="form-input"/>
 
         </VBox>
 
-        <VBox spacing="6.0">
+        <!-- Academic Year -->
+        <VBox spacing="7.0">
 
-            <Label text="Academic Year"/>
+            <Label text="Academic Year"
+                   styleClass="form-label"/>
 
             <TextField fx:id="academicYearField"
-                       promptText="e.g. 2026"/>
+                       promptText="e.g. 2026"
+                       maxWidth="520.0"
+                       styleClass="form-input"/>
 
         </VBox>
 
-        <VBox spacing="6.0">
+        <!-- Current Term -->
+        <VBox spacing="7.0">
 
-            <Label text="Current Term"/>
+            <Label text="Current Term"
+                   styleClass="form-label"/>
 
             <ComboBox fx:id="termComboBox"
-                      maxWidth="Infinity"
-                      promptText="Select current term"/>
+                      maxWidth="520.0"
+                      promptText="Select current term"
+                      styleClass="form-input"/>
 
         </VBox>
 
-        <HBox spacing="10.0">
+        <!-- Save Button -->
+        <HBox alignment="CENTER_RIGHT">
 
             <Button text="Save Settings"
                     onAction="#handleSave"
