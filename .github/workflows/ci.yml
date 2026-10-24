@@ -44,8 +44,4 @@ jobs:
       - name: Build desktop
         run: cd desktop && mvn clean verify -B
 
-      - name: Upload JAR
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-jar
-          path: backend/target/*.jar
+
