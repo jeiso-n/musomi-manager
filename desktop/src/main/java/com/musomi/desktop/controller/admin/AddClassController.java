@@ -5,6 +5,13 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.musomi.desktop.api.AdminClassApi;
+import com.musomi.desktop.api.ApiClient;
+import com.musomi.desktop.util.TaskRunner;
+
+import java.util.List;
+
 public class AddClassController {
 
     @FXML
@@ -13,15 +20,25 @@ public class AddClassController {
     @FXML
     private ComboBox<String> levelComboBox;
 
-    private String createdName;
-    private String createdLevel;
+    private final AdminClassApi adminClassApi = new AdminClassApi();
+    private final ApiClient apiClient = ApiClient.getInstance();
+    private List<ClassLevel> levels = List.of();
+    private List<AcademicYear> academicYears = List.of();
 
     @FXML
     private void initialize() {
 
-        levelComboBox.getItems().addAll(
-                "O-Level",
-                "A-Level"
+        TaskRunner.run(
+                () -> new ReferenceData(
+                        apiClient.get("/admin/class-levels", ClassLevel[].class),
+                        apiClient.get("/admin/academic-years", AcademicYear[].class)),
+                data -> {
+                    levels = data.levels() == null ? List.of() : List.of(data.levels());
+                    academicYears = data.years() == null ? List.of() : List.of(data.years());
+                    levelComboBox.getItems().setAll(
+                            levels.stream().map(ClassLevel::name).toList());
+                },
+                error -> showAlert("Unable to load class data", errorMessage(error))
         );
     }
 
@@ -50,12 +67,25 @@ public class AddClassController {
             return;
         }
 
-        createdName = name;
-        createdLevel = level;
+        ClassLevel levelData = levels.stream()
+                .filter(levelItem -> levelItem.name().equals(level))
+                .findFirst()
+                .orElse(null);
+        AcademicYear currentYear = academicYears.stream()
+                .filter(AcademicYear::isCurrent)
+                .findFirst()
+                .orElse(null);
+        if (levelData == null || currentYear == null) {
+            showAlert("Missing setup", "A class level and current academic year are required.");
+            return;
+        }
 
-        levelComboBox.getScene()
-                .getWindow()
-                .hide();
+        TaskRunner.run(
+                () -> adminClassApi.createClass(
+                        name, levelData.id(), currentYear.id(), null),
+                ignored -> levelComboBox.getScene().getWindow().hide(),
+                error -> showAlert("Unable to create class", errorMessage(error))
+        );
     }
 
     private void showAlert(
@@ -73,11 +103,17 @@ public class AddClassController {
         alert.showAndWait();
     }
 
-    public String getCreatedName() {
-        return createdName;
+    private static String errorMessage(Exception error) {
+        return error.getMessage() == null || error.getMessage().isBlank()
+                ? "The request failed. Please try again."
+                : error.getMessage();
     }
 
-    public String getCreatedLevel() {
-        return createdLevel;
-    }
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record ClassLevel(Long id, String name) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record AcademicYear(Long id, Integer year, boolean isCurrent) {}
+
+    private record ReferenceData(ClassLevel[] levels, AcademicYear[] years) {}
 }

@@ -66,7 +66,7 @@ class AuthServiceTest {
         when(userSessionRepository.save(any(UserSession.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
 
-        LoginResponse response = authService.login(new LoginRequest("jane", "correct-password"));
+        LoginResponse response = authService.login(new LoginRequest(1L, "jane", "correct-password"));
 
         assertThat(response.token()).isEqualTo("jwt-token");
         assertThat(response.expiresAt()).isEqualTo(expiresAt);
@@ -85,7 +85,7 @@ class AuthServiceTest {
     void shouldThrowWhenUsernameNotFound() {
         when(userRepository.findBySchoolIdAndUsername(1L, "missing")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authService.login(new LoginRequest("missing", "password")))
+        assertThatThrownBy(() -> authService.login(new LoginRequest(1L, "missing", "password")))
                 .isInstanceOf(AuthenticationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_CREDENTIALS);
 
@@ -99,7 +99,7 @@ class AuthServiceTest {
         when(userRepository.findBySchoolIdAndUsername(1L, "jane")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("wrong-password", "hashed-password")).thenReturn(false);
 
-        assertThatThrownBy(() -> authService.login(new LoginRequest("jane", "wrong-password")))
+        assertThatThrownBy(() -> authService.login(new LoginRequest(1L, "jane", "wrong-password")))
                 .isInstanceOf(AuthenticationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_CREDENTIALS);
 
@@ -115,7 +115,7 @@ class AuthServiceTest {
         when(userRepository.findBySchoolIdAndUsername(1L, "jane")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("wrong-password", "hashed-password")).thenReturn(false);
 
-        assertThatThrownBy(() -> authService.login(new LoginRequest("jane", "wrong-password")))
+        assertThatThrownBy(() -> authService.login(new LoginRequest(1L, "jane", "wrong-password")))
                 .isInstanceOf(AuthenticationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_CREDENTIALS);
 
@@ -133,7 +133,7 @@ class AuthServiceTest {
         user.setLockedUntil(LocalDateTime.now().plusMinutes(5));
         when(userRepository.findBySchoolIdAndUsername(1L, "jane")).thenReturn(Optional.of(user));
 
-        assertThatThrownBy(() -> authService.login(new LoginRequest("jane", "correct-password")))
+        assertThatThrownBy(() -> authService.login(new LoginRequest(1L, "jane", "correct-password")))
                 .isInstanceOf(AuthenticationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_LOCKED);
 
@@ -147,7 +147,7 @@ class AuthServiceTest {
         user.setIsActive(false);
         when(userRepository.findBySchoolIdAndUsername(1L, "jane")).thenReturn(Optional.of(user));
 
-        assertThatThrownBy(() -> authService.login(new LoginRequest("jane", "correct-password")))
+        assertThatThrownBy(() -> authService.login(new LoginRequest(1L, "jane", "correct-password")))
                 .isInstanceOf(AuthenticationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ACCOUNT_INACTIVE);
 
@@ -168,7 +168,7 @@ class AuthServiceTest {
                 .thenAnswer(inv -> inv.getArgument(0));
 
         LocalDateTime beforeLogin = LocalDateTime.now();
-        authService.login(new LoginRequest("jane", "correct-password"));
+        authService.login(new LoginRequest(1L, "jane", "correct-password"));
 
         assertThat(user.getFailedLoginAttempts()).isZero();
         assertThat(user.getLockedUntil()).isNull();

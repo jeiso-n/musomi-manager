@@ -4,6 +4,14 @@ import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 
+import java.util.List;
+
+import com.musomi.desktop.api.AdminTopicApi;
+import com.musomi.desktop.model.SubjectResponse;
+import com.musomi.desktop.api.AdminSubjectApi;
+import com.musomi.desktop.util.TaskRunner;
+import com.musomi.desktop.util.Toast;
+
 public class EditTopicController {
 
     @FXML
@@ -16,15 +24,26 @@ public class EditTopicController {
     private ComboBox<String> statusComboBox;
 
     private TopicsController.TopicRow topicRow;
+    private boolean saved;
+    private final AdminSubjectApi adminSubjectApi = new AdminSubjectApi();
+    private final AdminTopicApi adminTopicApi = new AdminTopicApi();
+    private List<SubjectResponse> subjects = List.of();
 
     @FXML
     private void initialize() {
 
-        subjectComboBox.getItems().addAll(
-                "Mathematics",
-                "English",
-                "Physics",
-                "History"
+        TaskRunner.run(
+                adminSubjectApi::getSubjects,
+                loadedSubjects -> {
+                    subjects = loadedSubjects;
+                    subjectComboBox.getItems().setAll(
+                            loadedSubjects.stream().map(SubjectResponse::name).toList());
+                    if (topicRow != null) {
+                        subjectComboBox.setValue(topicRow.getSubject());
+                    }
+                },
+                error -> Toast.error(error.getMessage() == null
+                        ? "Unable to load subjects." : error.getMessage())
         );
 
         statusComboBox.getItems().addAll(
@@ -81,14 +100,33 @@ public class EditTopicController {
             return;
         }
 
-        topicRow.setName(name);
+        Long subjectId = subjects.stream()
+                .filter(item -> item.name().equals(subject))
+                .map(SubjectResponse::id)
+                .findFirst()
+                .orElse(topicRow.getSubjectId());
+        AdminTopicApi.UpdateTopicRequest request =
+                new AdminTopicApi.UpdateTopicRequest(subjectId, name, null, 0);
+        TaskRunner.run(
+                () -> adminTopicApi.updateTopic(topicRow.getId(), request),
+                ignored -> {
+                    saved = true;
+                    Toast.success("Topic updated");
+                    statusComboBox.getScene().getWindow().hide();
+                },
+                error -> Toast.error(error.getMessage() == null
+                        ? "Unable to update topic." : error.getMessage()));
+    }
 
-        topicRow.setSubject(subject);
+    public String getName() {
+        return nameField.getText().trim();
+    }
 
-        topicRow.setStatus(status);
+    public String getSubject() {
+        return subjectComboBox.getValue();
+    }
 
-        statusComboBox.getScene()
-                .getWindow()
-                .hide();
+    public boolean isSaved() {
+        return saved;
     }
 }

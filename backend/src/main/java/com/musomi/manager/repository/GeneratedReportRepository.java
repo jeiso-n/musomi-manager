@@ -10,5 +10,9 @@ public interface GeneratedReportRepository extends JpaRepository<GeneratedReport
 
     Optional<GeneratedReport> findByStudentIdAndTermId(Long studentId, Long termId);
 
+    Optional<GeneratedReport> findByIdAndSchoolId(Long id, Long schoolId);
+
     List<GeneratedReport> findByStudentIdOrderByGeneratedAtDesc(Long studentId);
+
+    List<GeneratedReport> findBySchoolIdAndStudentIdOrderByGeneratedAtDesc(Long schoolId, Long studentId);
 }

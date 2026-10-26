@@ -277,7 +277,7 @@ public class MyClassesController {
         try {
             javafx.scene.layout.StackPane sp = findContentArea();
             if (sp == null) {
-                System.err.println("Could not locate contentArea StackPane");
+                log.warn("Could not locate contentArea StackPane");
                 return;
             }
 
@@ -297,8 +297,7 @@ public class MyClassesController {
             sp.getChildren().setAll(roster);
 
         } catch (Exception ex) {
-            ex.printStackTrace();
-            System.out.println("FAILED TO LOAD class-roster.fxml: " + ex.getMessage());
+            log.error("Failed to load class-roster.fxml", ex);
         }
     }
 
@@ -313,7 +312,7 @@ public class MyClassesController {
                 sp.getChildren().setAll(myClasses);
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Failed to return to My Classes view", ex);
         }
     }
 }

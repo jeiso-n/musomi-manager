@@ -13,6 +13,10 @@ public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
 
     List<Assessment> findByTeacherIdAndStatus(Long teacherId, String status);
 
+    List<Assessment> findBySchoolIdAndTeacherId(Long schoolId, Long teacherId);
+
+    List<Assessment> findBySchoolId(Long schoolId);
+
     boolean existsByTeacherIdAndClassEntityIdAndSubjectIdAndTitle(
             Long teacherId, Long classId, Long subjectId, String title);
 }

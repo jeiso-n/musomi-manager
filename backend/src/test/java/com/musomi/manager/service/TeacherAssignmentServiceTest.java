@@ -8,6 +8,7 @@ import com.musomi.manager.dto.response.AssignmentResponse;
 import com.musomi.manager.entity.AcademicYear;
 import com.musomi.manager.entity.ClassEntity;
 import com.musomi.manager.entity.School;
+import com.musomi.manager.entity.Stream;
 import com.musomi.manager.entity.Subject;
 import com.musomi.manager.entity.TeacherAssignment;
 import com.musomi.manager.entity.User;
@@ -73,6 +74,36 @@ class TeacherAssignmentServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).teacherId()).isEqualTo(2L);
         verify(teacherAssignmentRepository).findBySchoolIdAndTeacherIdOrderByIdAsc(SCHOOL_ID, 2L);
+    }
+
+    @Test
+    @DisplayName("should allow roster access for a teacher assigned to the class")
+    void shouldAllowRosterAccessForAssignedTeacher() {
+        Stream stream = Stream.builder()
+                .id(9L)
+                .school(school())
+                .classEntity(ClassEntity.builder().id(4L).school(school()).build())
+                .name("A")
+                .build();
+        when(streamRepository.findById(9L)).thenReturn(Optional.of(stream));
+        when(teacherAssignmentRepository.findBySchoolIdAndTeacherIdOrderByIdAsc(SCHOOL_ID, 2L))
+                .thenReturn(List.of(assignment()));
+
+        assertThat(teacherAssignmentService.isAssignedToClassStream(SCHOOL_ID, 2L, 4L, 9L)).isTrue();
+    }
+
+    @Test
+    @DisplayName("should deny roster access for a different class")
+    void shouldDenyRosterAccessForDifferentClass() {
+        Stream stream = Stream.builder()
+                .id(9L)
+                .school(school())
+                .classEntity(ClassEntity.builder().id(4L).school(school()).build())
+                .name("A")
+                .build();
+        when(streamRepository.findById(9L)).thenReturn(Optional.of(stream));
+
+        assertThat(teacherAssignmentService.isAssignedToClassStream(SCHOOL_ID, 2L, 99L, 9L)).isFalse();
     }
 
     @Test
@@ -146,7 +177,7 @@ class TeacherAssignmentServiceTest {
     void shouldDeleteWhenExists() {
         when(teacherAssignmentRepository.existsById(8L)).thenReturn(true);
 
-        teacherAssignmentService.deleteAssignment(8L);
+        teacherAssignmentService.deleteAssignment(8L, 1L);
 
         verify(teacherAssignmentRepository).deleteById(8L);
     }

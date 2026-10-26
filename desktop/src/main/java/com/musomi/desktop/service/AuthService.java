@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import com.musomi.desktop.api.AuthApi;
 import com.musomi.desktop.api.ApiException;
+import com.musomi.desktop.config.AppConfig;
 import com.musomi.desktop.config.Session;
 import com.musomi.desktop.model.dto.LoginRequest;
 import com.musomi.desktop.model.dto.LoginResponse;
@@ -67,7 +68,8 @@ public class AuthService {
     public LoginResponse login(String username, String password) {
         log.debug("AuthService.login");
 
-        LoginResponse response = api.login(new LoginRequest(username, password));
+        LoginResponse response = api.login(new LoginRequest(
+                AppConfig.getInstance().getSchoolId(), username, password));
         if (response == null) {
             throw new ApiException("INVALID_AUTH_RESPONSE", "The server returned an invalid login response.");
         }

@@ -50,7 +50,8 @@ class StudentIntegrationTest extends AbstractIntegrationTest {
         JsonNode created = createStudent(uniqueAdmission("A"), "Integration Test Student");
         long id = created.path("data").path("id").asLong();
 
-        mockMvc.perform(get("/api/v1/admin/students/{id}", id))
+        mockMvc.perform(get("/api/v1/admin/students/{id}", id)
+                        .with(withAuthenticatedUser("ADMIN", 1L, 1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.fullName").value("Integration Test Student"));
     }
@@ -62,6 +63,7 @@ class StudentIntegrationTest extends AbstractIntegrationTest {
         createStudent(admissionNumber, "First Duplicate Test");
 
         mockMvc.perform(post("/api/v1/admin/students")
+                        .with(withAuthenticatedUser("ADMIN", 1L, 1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(studentRequest(admissionNumber, "Second Duplicate Test")))
                 .andExpect(status().isConflict())
@@ -81,6 +83,7 @@ class StudentIntegrationTest extends AbstractIntegrationTest {
                 "status", "ACTIVE"));
 
         mockMvc.perform(put("/api/v1/admin/students/{id}", id)
+                        .with(withAuthenticatedUser("ADMIN", 1L, 1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isOk())
@@ -91,6 +94,7 @@ class StudentIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("should list students with class filter")
     void shouldListStudentsWithClassFilter() throws Exception {
         mockMvc.perform(get("/api/v1/admin/students")
+                        .with(withAuthenticatedUser("ADMIN", 1L, 1L))
                         .param("classId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isArray())
@@ -103,10 +107,12 @@ class StudentIntegrationTest extends AbstractIntegrationTest {
         JsonNode created = createStudent(uniqueAdmission("D"), "Student To Deactivate");
         long id = created.path("data").path("id").asLong();
 
-        mockMvc.perform(delete("/api/v1/admin/students/{id}", id))
+        mockMvc.perform(delete("/api/v1/admin/students/{id}", id)
+                        .with(withAuthenticatedUser("ADMIN", 1L, 1L)))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/api/v1/admin/students/{id}", id))
+        mockMvc.perform(get("/api/v1/admin/students/{id}", id)
+                        .with(withAuthenticatedUser("ADMIN", 1L, 1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.isActive").value(false));
     }
@@ -114,12 +120,25 @@ class StudentIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("should return 404 when student is not found")
     void shouldReturn404WhenStudentNotFound() throws Exception {
-        mockMvc.perform(get("/api/v1/admin/students/999999"))
+        mockMvc.perform(get("/api/v1/admin/students/999999")
+                        .with(withAuthenticatedUser("ADMIN", 1L, 1L)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("should hide student when admin belongs to another school")
+    void shouldHideStudentFromAnotherSchool() throws Exception {
+        JsonNode created = createStudent(uniqueAdmission("E"), "School Scoped Student");
+        long id = created.path("data").path("id").asLong();
+
+        mockMvc.perform(get("/api/v1/admin/students/{id}", id)
+                        .with(withAuthenticatedUser("ADMIN", 1L, 999L)))
                 .andExpect(status().isNotFound());
     }
 
     private JsonNode createStudent(String admissionNumber, String fullName) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/v1/admin/students")
+                        .with(withAuthenticatedUser("ADMIN", 1L, 1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(studentRequest(admissionNumber, fullName)))
                 .andExpect(status().isCreated())

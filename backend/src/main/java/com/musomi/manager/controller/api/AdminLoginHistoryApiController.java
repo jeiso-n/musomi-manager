@@ -28,7 +28,7 @@ public class AdminLoginHistoryApiController {
             @RequestParam(required = false) Long userId) {
         List<LoginHistoryResponse> history = userId == null
                 ? loginHistoryService.listBySchool(CurrentUser.getSchoolId())
-                : loginHistoryService.listByUser(userId);
+                : loginHistoryService.listByUser(userId, CurrentUser.getSchoolId());
         return ApiResponse.success(history);
     }
 }

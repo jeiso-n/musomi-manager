@@ -79,10 +79,11 @@ class AdminUserApiControllerTest {
                 20,
                 2,
                 1);
-        when(userService.listUsers(isNull(), isNull(), isNull(), isNull(), any(Pageable.class)))
+        when(userService.listUsers(org.mockito.ArgumentMatchers.eq(1L), isNull(), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(users);
 
         mockMvc.perform(get("/api/v1/admin/users")
+                        .with(adminAuthentication(1L))
                         .param("page", "0")
                         .param("size", "20"))
                 .andExpect(status().isOk())
@@ -114,9 +115,10 @@ class AdminUserApiControllerTest {
     @WithMockUser(roles = "ADMIN")
     void shouldCreateUserAndReturn201() throws Exception {
         CreateUserRequest request = createUserRequest();
-        when(userService.createUser(null, request)).thenReturn(user(3L, "newuser"));
+        when(userService.createUser(1L, 1L, request)).thenReturn(user(3L, "newuser"));
 
         mockMvc.perform(post("/api/v1/admin/users")
+                        .with(adminAuthentication(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -141,7 +143,7 @@ class AdminUserApiControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
 
-        verify(userService, never()).createUser(any(), any());
+        verify(userService, never()).createUser(any(), any(), any());
     }
 
     @Test
@@ -149,10 +151,11 @@ class AdminUserApiControllerTest {
     @WithMockUser(roles = "ADMIN")
     void shouldReturn409WhenUsernameTaken() throws Exception {
         CreateUserRequest request = createUserRequest();
-        when(userService.createUser(null, request))
+        when(userService.createUser(1L, 1L, request))
                 .thenThrow(new ValidationException(ErrorCode.USERNAME_TAKEN));
 
         mockMvc.perform(post("/api/v1/admin/users")
+                        .with(adminAuthentication(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
@@ -163,9 +166,9 @@ class AdminUserApiControllerTest {
     @DisplayName("should return 404 when user is not found")
     @WithMockUser(roles = "ADMIN")
     void shouldReturn404WhenUserNotFound() throws Exception {
-        when(userService.getUser(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND));
+        when(userService.getUser(99L, 1L)).thenThrow(new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND));
 
-        mockMvc.perform(get("/api/v1/admin/users/99"))
+        mockMvc.perform(get("/api/v1/admin/users/99").with(adminAuthentication(1L)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("USER_NOT_FOUND"));
     }
@@ -174,9 +177,9 @@ class AdminUserApiControllerTest {
     @DisplayName("should return user when admin requests an existing user")
     @WithMockUser(roles = "ADMIN")
     void shouldReturnUserWhenAdminRequestsExistingUser() throws Exception {
-        when(userService.getUser(5L)).thenReturn(user(5L, "teacher1"));
+        when(userService.getUser(5L, 1L)).thenReturn(user(5L, "teacher1"));
 
-        mockMvc.perform(get("/api/v1/admin/users/5"))
+        mockMvc.perform(get("/api/v1/admin/users/5").with(adminAuthentication(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(5))
                 .andExpect(jsonPath("$.data.username").value("teacher1"));
@@ -187,9 +190,10 @@ class AdminUserApiControllerTest {
     @WithMockUser(roles = "ADMIN")
     void shouldUpdateUserWhenAdminSubmitsValidRequest() throws Exception {
         UpdateUserRequest request = new UpdateUserRequest("Updated Name", "updated@school.ug", "+256700000009");
-        when(userService.updateUser(5L, request)).thenReturn(user(5L, "teacher1"));
+        when(userService.updateUser(5L, 1L, 1L, request)).thenReturn(user(5L, "teacher1"));
 
         mockMvc.perform(put("/api/v1/admin/users/5")
+                        .with(adminAuthentication(1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -206,7 +210,7 @@ class AdminUserApiControllerTest {
                 .andExpect(status().isNoContent())
                 .andExpect(content().string(""));
 
-        verify(userService).deactivateUser(5L, 5L);
+        verify(userService).deactivateUser(5L, 1L, 5L);
     }
 
     @Test
@@ -214,7 +218,7 @@ class AdminUserApiControllerTest {
     @WithMockUser(roles = "ADMIN")
     void shouldReturn422WhenDeactivatingSelf() throws Exception {
         doThrow(new ValidationException(ErrorCode.CANNOT_DEACTIVATE_SELF))
-                .when(userService).deactivateUser(1L, 1L);
+                .when(userService).deactivateUser(1L, 1L, 1L);
 
         mockMvc.perform(delete("/api/v1/admin/users/1")
                         .with(adminAuthentication(1L)))
@@ -226,9 +230,9 @@ class AdminUserApiControllerTest {
     @DisplayName("should return temporary password on reset")
     @WithMockUser(roles = "ADMIN")
     void shouldReturnTemporaryPasswordOnReset() throws Exception {
-        when(userService.resetPassword(5L)).thenReturn(new ResetPasswordResponse("Temp9x4Kp2"));
+        when(userService.resetPassword(5L, 1L, 1L)).thenReturn(new ResetPasswordResponse("Temp9x4Kp2"));
 
-        mockMvc.perform(post("/api/v1/admin/users/5/reset-password"))
+        mockMvc.perform(post("/api/v1/admin/users/5/reset-password").with(adminAuthentication(1L)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.temporaryPassword").value("Temp9x4Kp2"));
     }
@@ -257,10 +261,12 @@ class AdminUserApiControllerTest {
     }
 
     private static RequestPostProcessor adminAuthentication(Long userId) {
-        return authentication(new UsernamePasswordAuthenticationToken(
+        UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken(
                 userId,
                 null,
-                List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
+                List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+        principal.setDetails(1L);
+        return authentication(principal);
     }
 
     @TestConfiguration(proxyBeanMethods = false)

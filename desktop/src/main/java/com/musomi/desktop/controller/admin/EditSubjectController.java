@@ -16,6 +16,7 @@ public class EditSubjectController {
     private ComboBox<String> statusComboBox;
 
     private SubjectsController.SubjectRow subjectRow;
+    private boolean saved;
 
     @FXML
     private void initialize() {
@@ -33,6 +34,22 @@ public class EditSubjectController {
         nameField.setText(subjectRow.getName());
         codeField.setText(subjectRow.getCode());
         statusComboBox.setValue(subjectRow.getStatus());
+    }
+
+    public String getName() {
+        return nameField.getText().trim();
+    }
+
+    public String getCode() {
+        return codeField.getText().trim();
+    }
+
+    public boolean isSaved() {
+        return saved;
+    }
+
+    public String getStatus() {
+        return statusComboBox.getValue();
     }
 
     @FXML
@@ -64,6 +81,7 @@ public class EditSubjectController {
         subjectRow.setName(name);
         subjectRow.setCode(code);
         subjectRow.setStatus(status);
+        saved = true;
 
         statusComboBox.getScene()
                 .getWindow()

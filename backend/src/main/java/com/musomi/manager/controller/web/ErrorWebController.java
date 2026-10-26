@@ -9,16 +9,22 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import com.musomi.manager.repository.SchoolRepository;
+import lombok.RequiredArgsConstructor;
+
 /**
  * Controller to handle web error pages.
  */
 @Controller
+@RequiredArgsConstructor
 public class ErrorWebController implements ErrorController {
+
+    private final SchoolRepository schoolRepository;
 
     @RequestMapping("/error")
     public String handleError(HttpServletRequest request, Model model) {
         model.addAttribute("pageTitle", "Error");
-        model.addAttribute("schoolName", "St. Mary's Secondary School");
+        addSchoolName(model);
 
         Object status = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
 
@@ -36,14 +42,19 @@ public class ErrorWebController implements ErrorController {
     @GetMapping("/access-denied")
     public String accessDenied(Model model) {
         model.addAttribute("pageTitle", "Access Denied");
-        model.addAttribute("schoolName", "St. Mary's Secondary School");
+        addSchoolName(model);
         return "errors/access-denied";
     }
 
     @GetMapping("/500")
     public String serverError(Model model) {
         model.addAttribute("pageTitle", "Server Error");
-        model.addAttribute("schoolName", "St. Mary's Secondary School");
+        addSchoolName(model);
         return "errors/500";
+    }
+
+    private void addSchoolName(Model model) {
+        model.addAttribute("schoolName", schoolRepository.findAll().stream()
+                .findFirst().map(school -> school.getName()).orElse("Musomi Manager"));
     }
 }

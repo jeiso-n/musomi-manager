@@ -23,10 +23,10 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.musomi.desktop.controller.teacher.AssessmentStore;
-import com.musomi.desktop.controller.teacher.AssessmentStore.Assessment;
-import com.musomi.desktop.controller.teacher.AssessmentStore.StudentMark;
+import com.musomi.desktop.api.TeacherAssessmentApi;
+import com.musomi.desktop.model.AssessmentResponse;
 import com.musomi.desktop.util.GradeFormatter;
+import com.musomi.desktop.util.TaskRunner;
 import com.musomi.desktop.util.Toast;
 
 public class ReportPreviewController implements Initializable {
@@ -57,22 +57,31 @@ public class ReportPreviewController implements Initializable {
         reportTable.setEditable(false);
         reportTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
-        List<Assessment> assessments = AssessmentStore.getAssessments();
+        classComboBox.getSelectionModel().selectedItemProperty()
+                .addListener((observable, oldClass, newClass) -> refreshReport(newClass));
+        TaskRunner.run(
+                () -> new TeacherAssessmentApi().getMyAssessments(),
+                this::populateAssessments,
+                error -> {
+                    log.error("Unable to load teacher assessments for reports", error);
+                    classComboBox.getItems().clear();
+                    showEmpty("Reports unavailable", "Unable to load your assessments.");
+                    Toast.error("Unable to load assessments.");
+                });
+    }
+
+    private void populateAssessments(List<AssessmentResponse> assessments) {
         List<String> classNames = new ArrayList<>();
         if (assessments != null) {
             assessments.stream()
-                    .filter(assessment -> assessment != null
-                            && assessment.getClassName() != null
-                            && !assessment.getClassName().isBlank())
-                    .map(assessment -> assessment.getClassName().trim())
+                    .filter(item -> item != null && item.className() != null
+                            && !item.className().isBlank())
+                    .map(item -> item.className().trim())
                     .distinct()
                     .sorted(String.CASE_INSENSITIVE_ORDER)
                     .forEach(classNames::add);
         }
         classComboBox.setItems(FXCollections.observableArrayList(classNames));
-        classComboBox.getSelectionModel().selectedItemProperty()
-                .addListener((observable, oldClass, newClass) -> refreshReport(newClass));
-
         if (classNames.isEmpty()) {
             showEmpty("No assessments yet",
                     "Create an assessment first, then return to this screen.");
@@ -98,94 +107,8 @@ public class ReportPreviewController implements Initializable {
             return;
         }
 
-        List<Assessment> assessments = AssessmentStore.getAssessments();
-        if (assessments == null) {
-            assessments = List.of();
-        }
-        List<Assessment> publishedAssessments = assessments.stream()
-                .filter(assessment -> assessment != null
-                        && assessment.getClassName() != null
-                        && className.equals(assessment.getClassName().trim())
-                        && "Published".equals(assessment.getStatus()))
-                .toList();
-        if (publishedAssessments.isEmpty()) {
-            showEmpty("No published assessments",
-                    "Publish marks for this class to see the report.");
-            return;
-        }
-
-        Map<String, List<BigDecimal>> scoresByStudent = new LinkedHashMap<>();
-        Map<String, BigDecimal> percentageTotals = new LinkedHashMap<>();
-        Map<String, BigDecimal> scoreTotals = new LinkedHashMap<>();
-        Map<String, BigDecimal> maxTotals = new LinkedHashMap<>();
-        BigDecimal classPercentageTotal = BigDecimal.ZERO;
-        long classMarkCount = 0;
-
-        for (Assessment assessment : publishedAssessments) {
-            List<StudentMark> marks = AssessmentStore.getMarks(assessment);
-            if (marks == null) {
-                continue;
-            }
-            int maxMarks = assessment.getMaxMarks();
-            BigDecimal maxScore = BigDecimal.valueOf(maxMarks);
-            for (StudentMark mark : marks) {
-                if (mark == null || mark.getStudent() == null || mark.getStudent().isBlank()) {
-                    continue;
-                }
-                String studentName = mark.getStudent().trim();
-                scoresByStudent.computeIfAbsent(studentName, ignored -> new ArrayList<>());
-                if (!mark.hasValidMark(maxMarks)) {
-                    continue;
-                }
-                try {
-                    BigDecimal score = new BigDecimal(mark.getMark().trim());
-                    BigDecimal percentage = score.multiply(HUNDRED)
-                            .divide(maxScore, 12, RoundingMode.HALF_UP);
-                    scoresByStudent.get(studentName).add(score);
-                    percentageTotals.merge(studentName, percentage, BigDecimal::add);
-                    scoreTotals.merge(studentName, score, BigDecimal::add);
-                    maxTotals.merge(studentName, maxScore, BigDecimal::add);
-                    classPercentageTotal = classPercentageTotal.add(percentage);
-                    classMarkCount++;
-                } catch (NumberFormatException exception) {
-                    log.debug("Ignoring unparseable mark for student {}", studentName, exception);
-                }
-            }
-        }
-
-        List<ReportRow> rows = new ArrayList<>();
-        for (Map.Entry<String, List<BigDecimal>> entry : scoresByStudent.entrySet()) {
-            String studentName = entry.getKey();
-            int count = entry.getValue().size();
-            String averageDisplay = "—";
-            String gradeDisplay = "—";
-            if (count > 0) {
-                BigDecimal average = percentageTotals.get(studentName)
-                        .divide(BigDecimal.valueOf(count), 1, RoundingMode.HALF_UP);
-                averageDisplay = formatPercent(average);
-                String grade = GradeFormatter.from(
-                        scoreTotals.get(studentName), maxTotals.get(studentName));
-                if (grade != null) {
-                    gradeDisplay = grade;
-                }
-            }
-            rows.add(new ReportRow(studentName, count, averageDisplay, gradeDisplay));
-        }
-        rows.sort(Comparator.comparing(ReportRow::getStudentName, String.CASE_INSENSITIVE_ORDER));
-
-        if (rows.isEmpty()) {
-            showEmpty("No marks entered",
-                    "Students in this class have no valid marks yet.");
-            return;
-        }
-        reportTable.setItems(FXCollections.observableArrayList(rows));
-        studentCountLabel.setText(Integer.toString(rows.size()));
-        classAverageLabel.setText(classMarkCount == 0 ? "—" : formatPercent(
-                classPercentageTotal.divide(BigDecimal.valueOf(classMarkCount), 1, RoundingMode.HALF_UP)));
-        reportTable.setVisible(true);
-        reportTable.setManaged(true);
-        emptyState.setVisible(false);
-        emptyState.setManaged(false);
+        showEmpty("Report data unavailable",
+                "Assessment selection is loaded from the server. Report marks are not available yet.");
     }
 
     private void showEmpty(String title, String message) {

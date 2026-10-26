@@ -31,7 +31,7 @@ public class AdminStreamApiController {
     /** Lists streams within a class. */
     @GetMapping
     public ApiResponse<List<StreamResponse>> listStreams(@RequestParam Long classId) {
-        return ApiResponse.success(streamService.listStreams(classId));
+        return ApiResponse.success(streamService.listStreams(CurrentUser.getSchoolId(), classId));
     }
 
     /** Creates a stream within a class. */

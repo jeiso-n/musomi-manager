@@ -45,7 +45,7 @@ public class DevDataSeeder implements CommandLineRunner {
                 .isActive(true)
                 .failedLoginAttempts(0)
                 .build());
-        log.info("Seeded dev admin user: admin / password123");
+        log.info("Seeded dev admin user; configure credentials through the development environment.");
     }
 
     private School seedSchool() {

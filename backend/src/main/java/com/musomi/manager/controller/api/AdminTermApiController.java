@@ -25,13 +25,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/admin/terms")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 public class AdminTermApiController {
 
     private final TermService termService;
 
     /** Lists school terms, optionally filtered by academic year. */
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public ApiResponse<List<TermResponse>> listTerms(
             @RequestParam(required = false) Long yearId) {
         return ApiResponse.success(termService.listTerms(CurrentUser.getSchoolId(), yearId));
@@ -39,6 +39,7 @@ public class AdminTermApiController {
 
     /** Creates a school term. */
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<TermResponse>> createTerm(
             @Valid @RequestBody CreateTermRequest request) {
         TermResponse created = termService.createTerm(CurrentUser.getSchoolId(), request);
@@ -47,6 +48,7 @@ public class AdminTermApiController {
 
     /** Sets the specified term as current. */
     @PutMapping("/{id}/current")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<TermResponse> setCurrent(@PathVariable Long id) {
         return ApiResponse.success(termService.setCurrent(id, CurrentUser.getSchoolId()));
     }

@@ -32,40 +32,39 @@ public class AdminUserApiController {
             @RequestParam(required = false) String search,
             Pageable pageable) {
         return ApiResponse.success(
-                userService.listUsers(null, role, active, search, pageable));
+                    userService.listUsers(CurrentUser.getSchoolId(), role, active, search, pageable));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<UserResponse>> createUser(
             @Valid @RequestBody CreateUserRequest request) {
-        // TODO(backend): audit_log when V023 lands
-        UserResponse created = userService.createUser(null, request);
+        UserResponse created = userService.createUser(
+                CurrentUser.getSchoolId(), CurrentUser.getUserId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
     }
 
     @GetMapping("/{id}")
     public ApiResponse<UserResponse> getUser(@PathVariable Long id) {
-        return ApiResponse.success(userService.getUser(id));
+        return ApiResponse.success(userService.getUser(id, CurrentUser.getSchoolId()));
     }
 
     @PutMapping("/{id}")
     public ApiResponse<UserResponse> updateUser(
             @PathVariable Long id,
             @Valid @RequestBody UpdateUserRequest request) {
-        // TODO(backend): audit_log when V023 lands
-        return ApiResponse.success(userService.updateUser(id, request));
+        return ApiResponse.success(userService.updateUser(
+                id, CurrentUser.getSchoolId(), CurrentUser.getUserId(), request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivateUser(@PathVariable Long id) {
-        // TODO(backend): audit_log when V023 lands
-        userService.deactivateUser(id, CurrentUser.getUserId());
+        userService.deactivateUser(id, CurrentUser.getSchoolId(), CurrentUser.getUserId());
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/reset-password")
     public ApiResponse<ResetPasswordResponse> resetPassword(@PathVariable Long id) {
-        // TODO(backend): audit_log when V023 lands
-        return ApiResponse.success(userService.resetPassword(id));
+        return ApiResponse.success(userService.resetPassword(
+                id, CurrentUser.getSchoolId(), CurrentUser.getUserId()));
     }
 }

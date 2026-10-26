@@ -41,9 +41,11 @@ class TopicServiceTest {
     @Test
     @DisplayName("should return topics when listed")
     void shouldReturnTopicsWhenListed() {
-        when(topicRepository.findBySubjectIdOrderBySortOrderAsc(4L)).thenReturn(List.of(topic()));
+        when(subjectRepository.findById(4L)).thenReturn(Optional.of(subject()));
+        when(topicRepository.findBySubjectIdAndSchoolIdOrderBySortOrderAsc(4L, 1L))
+                .thenReturn(List.of(topic()));
 
-        List<TopicResponse> topics = topicService.listTopics(4L);
+        List<TopicResponse> topics = topicService.listTopics(1L, 4L);
 
         assertThat(topics).hasSize(1);
         assertThat(topics.getFirst().name()).isEqualTo("Algebra");

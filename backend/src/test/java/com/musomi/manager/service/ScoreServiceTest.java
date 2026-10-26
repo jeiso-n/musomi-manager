@@ -10,6 +10,7 @@ import com.musomi.manager.dto.response.MarkGridResponse;
 import com.musomi.manager.dto.response.ScoreResponse;
 import com.musomi.manager.entity.Assessment;
 import com.musomi.manager.entity.ClassEntity;
+import com.musomi.manager.entity.School;
 import com.musomi.manager.entity.Score;
 import com.musomi.manager.entity.Student;
 import com.musomi.manager.entity.User;
@@ -42,6 +43,7 @@ class ScoreServiceTest {
     private static final Long ASSESSMENT_ID = 20L;
     private static final Long STUDENT_ID = 30L;
     private static final Long TEACHER_ID = 40L;
+    private static final Long SCHOOL_ID = 1L;
 
     @Mock
     private ScoreRepository scoreRepository;
@@ -72,7 +74,7 @@ class ScoreServiceTest {
         when(scoreRepository.save(any(Score.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ScoreResponse response = scoreService.updateScore(
-                SCORE_ID, new SaveMarksRequest(new BigDecimal("82"), "Good work"), TEACHER_ID);
+                SCORE_ID, new SaveMarksRequest(new BigDecimal("82"), "Good work"), TEACHER_ID, SCHOOL_ID);
 
         assertThat(response.score()).isEqualTo(new BigDecimal("82"));
         assertThat(response.feedback()).isEqualTo("Good work");
@@ -85,7 +87,7 @@ class ScoreServiceTest {
         when(scoreRepository.findById(SCORE_ID)).thenReturn(Optional.of(score(new BigDecimal("40"))));
 
         assertThatThrownBy(() -> scoreService.updateScore(
-                SCORE_ID, new SaveMarksRequest(new BigDecimal("101"), null), TEACHER_ID))
+                SCORE_ID, new SaveMarksRequest(new BigDecimal("101"), null), TEACHER_ID, SCHOOL_ID))
                 .isInstanceOf(ValidationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SCORE_EXCEEDS_MAX);
     }
@@ -96,7 +98,7 @@ class ScoreServiceTest {
         when(scoreRepository.findById(SCORE_ID)).thenReturn(Optional.of(score(new BigDecimal("40"))));
 
         assertThatThrownBy(() -> scoreService.updateScore(
-                SCORE_ID, new SaveMarksRequest(new BigDecimal("-1"), null), TEACHER_ID))
+                SCORE_ID, new SaveMarksRequest(new BigDecimal("-1"), null), TEACHER_ID, SCHOOL_ID))
                 .isInstanceOf(ValidationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.SCORE_BELOW_MIN);
     }
@@ -109,7 +111,7 @@ class ScoreServiceTest {
         when(scoreRepository.findById(SCORE_ID)).thenReturn(Optional.of(score));
 
         assertThatThrownBy(() -> scoreService.updateScore(
-                SCORE_ID, new SaveMarksRequest(new BigDecimal("50"), null), TEACHER_ID))
+                SCORE_ID, new SaveMarksRequest(new BigDecimal("50"), null), TEACHER_ID, SCHOOL_ID))
                 .isInstanceOf(PermissionDeniedException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_YOUR_CLASS);
     }
@@ -121,7 +123,8 @@ class ScoreServiceTest {
         when(scoreRepository.findById(SCORE_ID)).thenReturn(Optional.of(score));
         when(scoreRepository.save(any(Score.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        scoreService.updateScore(SCORE_ID, new SaveMarksRequest(new BigDecimal("50"), "Updated"), TEACHER_ID);
+        scoreService.updateScore(
+                SCORE_ID, new SaveMarksRequest(new BigDecimal("50"), "Updated"), TEACHER_ID, SCHOOL_ID);
 
         verify(scoreHistoryRepository).save(any());
     }
@@ -135,7 +138,7 @@ class ScoreServiceTest {
         when(scoreRepository.save(any(Score.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         scoreService.updateScore(
-                SCORE_ID, new SaveMarksRequest(existingScore, "Same mark"), TEACHER_ID);
+                SCORE_ID, new SaveMarksRequest(existingScore, "Same mark"), TEACHER_ID, SCHOOL_ID);
 
         verify(scoreHistoryRepository, never()).save(any());
     }
@@ -151,7 +154,7 @@ class ScoreServiceTest {
         SaveMarksBatchRequest request = new SaveMarksBatchRequest(List.of(
                 new SaveMarksBatchRequest.ScoreEntry(SCORE_ID, STUDENT_ID, new BigDecimal("55"), "Saved")));
 
-        List<ScoreResponse> response = scoreService.saveBatch(ASSESSMENT_ID, request, TEACHER_ID);
+        List<ScoreResponse> response = scoreService.saveBatch(ASSESSMENT_ID, request, TEACHER_ID, SCHOOL_ID);
 
         assertThat(response).hasSize(1);
         assertThat(response.get(0).score()).isEqualTo(new BigDecimal("55"));
@@ -169,7 +172,7 @@ class ScoreServiceTest {
         when(scoreRepository.findByAssessmentId(ASSESSMENT_ID)).thenReturn(List.of());
         when(assessmentTopicRepository.findByAssessmentId(ASSESSMENT_ID)).thenReturn(List.of());
 
-        MarkGridResponse response = scoreService.getGrid(ASSESSMENT_ID);
+        MarkGridResponse response = scoreService.getGrid(ASSESSMENT_ID, SCHOOL_ID, TEACHER_ID);
 
         assertThat(response.assessment().id()).isEqualTo(ASSESSMENT_ID);
         assertThat(response.assessment().className()).isEqualTo("S3");
@@ -180,11 +183,14 @@ class ScoreServiceTest {
     private Score score(BigDecimal existingScore) {
         Student student = Student.builder()
                 .id(STUDENT_ID)
+                .school(school())
+                .currentClass(classEntity())
                 .admissionNumber("A-030")
                 .fullName("Alex Student")
                 .build();
         return Score.builder()
                 .id(SCORE_ID)
+                .school(school())
                 .assessment(assessment())
                 .student(student)
                 .score(existingScore)
@@ -195,11 +201,21 @@ class ScoreServiceTest {
     private Assessment assessment() {
         return Assessment.builder()
                 .id(ASSESSMENT_ID)
+                .school(school())
+                .classEntity(classEntity())
                 .teacher(User.builder().id(TEACHER_ID).build())
                 .title("Mid-Term Exam")
                 .type("EXAM")
                 .maxScore(new BigDecimal("100"))
                 .status("DRAFT")
                 .build();
+    }
+
+    private ClassEntity classEntity() {
+        return ClassEntity.builder().id(3L).school(school()).name("S3").build();
+    }
+
+    private School school() {
+        return School.builder().id(SCHOOL_ID).build();
     }
 }

@@ -9,14 +9,17 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -32,7 +35,14 @@ public class SecurityConfig {
                                 "/login", "/css/**", "/js/**", "/img/**", "/error", "/error/**",
                                 "/favicon.ico", "/", "/api/v1/auth/login", "/actuator/health")
                         .permitAll()
-                        .requestMatchers("/api/v1/**", "/student/**").authenticated()
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/admin/classes",
+                                "/api/v1/admin/subjects",
+                                "/api/v1/admin/subjects/*/topics",
+                                "/api/v1/admin/terms")
+                        .hasAnyRole("ADMIN", "TEACHER")
+                        .requestMatchers("/api/v1/**").authenticated()
+                        .requestMatchers("/student/**").hasRole("STUDENT")
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

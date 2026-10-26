@@ -1,11 +1,18 @@
 package com.musomi.desktop.controller.admin;
 
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 
+import com.musomi.desktop.api.AdminSettingsApi;
+import com.musomi.desktop.model.SchoolSettingsResponse;
+import com.musomi.desktop.model.UpdateSchoolSettingsRequest;
+import com.musomi.desktop.util.TaskRunner;
+import com.musomi.desktop.util.Toast;
+
 public class SettingsController {
+
+    private final AdminSettingsApi settingsApi = AdminSettingsApi.getInstance();
 
     @FXML
     private TextField schoolNameField;
@@ -25,9 +32,8 @@ public class SettingsController {
                 "Term 3"
         );
 
-        schoolNameField.setText("Musomi School");
-        academicYearField.setText("2026");
-        termComboBox.setValue("Term 1");
+        TaskRunner.run(settingsApi::getSettings, this::populateSettings,
+                error -> Toast.error("Unable to load settings: " + error.getMessage()));
     }
 
     @FXML
@@ -39,41 +45,24 @@ public class SettingsController {
         String academicYear =
                 academicYearField.getText().trim();
 
-        String term =
-                termComboBox.getValue();
-
-        if (schoolName.isEmpty()
-                || academicYear.isEmpty()
-                || term == null) {
-
-            showAlert(
-                    "Missing Information",
-                    "Please fill in all fields."
-            );
-
+        if (schoolName.isEmpty()) {
+            Toast.error("School name is required.");
             return;
         }
 
-        showAlert(
-                "Settings Saved",
-                "System settings have been saved successfully."
-        );
+        UpdateSchoolSettingsRequest request = new UpdateSchoolSettingsRequest(
+                schoolName, null, null, null, null, null, null, null);
+        TaskRunner.run(() -> settingsApi.updateSettings(request),
+                response -> Toast.success("Settings saved successfully."),
+                error -> Toast.error("Unable to save settings: " + error.getMessage()));
     }
 
-    private void showAlert(
-            String title,
-            String message
-    ) {
-
-        Alert alert =
-                new Alert(Alert.AlertType.INFORMATION);
-
-        alert.setTitle(title);
-
-        alert.setHeaderText(null);
-
-        alert.setContentText(message);
-
-        alert.showAndWait();
+    private void populateSettings(SchoolSettingsResponse settings) {
+        if (settings == null) {
+            return;
+        }
+        schoolNameField.setText(settings.schoolName() == null ? "" : settings.schoolName());
+        academicYearField.setText(settings.currentAcademicYearId() == null
+                ? "" : settings.currentAcademicYearId().toString());
     }
 }

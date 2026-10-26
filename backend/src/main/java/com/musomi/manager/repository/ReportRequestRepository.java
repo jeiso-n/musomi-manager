@@ -10,6 +10,8 @@ public interface ReportRequestRepository extends JpaRepository<ReportRequest, Lo
 
     List<ReportRequest> findByStatusOrderByRequestedAtAsc(String status);
 
+    Optional<ReportRequest> findByIdAndSchoolId(Long id, Long schoolId);
+
     List<ReportRequest> findByStudentIdAndTermId(Long studentId, Long termId);
 
     Optional<ReportRequest> findByStudentIdAndTermIdAndStatus(Long studentId, Long termId, String status);

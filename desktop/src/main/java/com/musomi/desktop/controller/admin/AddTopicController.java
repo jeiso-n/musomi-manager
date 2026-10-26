@@ -5,6 +5,14 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 
+import java.util.List;
+
+import com.musomi.desktop.api.AdminSubjectApi;
+import com.musomi.desktop.api.AdminTopicApi;
+import com.musomi.desktop.model.SubjectResponse;
+import com.musomi.desktop.util.TaskRunner;
+import com.musomi.desktop.util.Toast;
+
 public class AddTopicController {
 
     @FXML
@@ -13,18 +21,23 @@ public class AddTopicController {
     @FXML
     private ComboBox<String> subjectComboBox;
 
-    private String createdName;
-
-    private String createdSubject;
+    private final AdminSubjectApi adminSubjectApi = new AdminSubjectApi();
+    private final AdminTopicApi adminTopicApi = new AdminTopicApi();
+    private List<SubjectResponse> subjects = List.of();
+    private boolean topicCreated;
 
     @FXML
     private void initialize() {
 
-        subjectComboBox.getItems().addAll(
-                "Mathematics",
-                "English",
-                "Physics",
-                "History"
+        TaskRunner.run(
+                adminSubjectApi::getSubjects,
+                loadedSubjects -> {
+                    subjects = loadedSubjects;
+                    subjectComboBox.getItems().setAll(
+                            loadedSubjects.stream().map(SubjectResponse::name).toList());
+                },
+                error -> Toast.error(error.getMessage() == null
+                        ? "Unable to load subjects." : error.getMessage())
         );
     }
 
@@ -55,13 +68,27 @@ public class AddTopicController {
             return;
         }
 
-        createdName = name;
+        Long subjectId = subjects.stream()
+                .filter(item -> item.name().equals(subject))
+                .map(SubjectResponse::id)
+                .findFirst()
+                .orElse(null);
+        if (subjectId == null) {
+            showAlert("Invalid Subject", "The selected subject is no longer available.");
+            return;
+        }
 
-        createdSubject = subject;
-
-        subjectComboBox.getScene()
-                .getWindow()
-                .hide();
+        AdminTopicApi.CreateTopicRequest request =
+                new AdminTopicApi.CreateTopicRequest(subjectId, name, null, 0);
+        TaskRunner.run(
+                () -> adminTopicApi.createTopic(request),
+                ignored -> {
+                    topicCreated = true;
+                    Toast.success("Topic created");
+                    subjectComboBox.getScene().getWindow().hide();
+                },
+                error -> Toast.error(error.getMessage() == null
+                        ? "Unable to create topic." : error.getMessage()));
     }
 
     private void showAlert(
@@ -81,11 +108,7 @@ public class AddTopicController {
         alert.showAndWait();
     }
 
-    public String getCreatedName() {
-        return createdName;
-    }
-
-    public String getCreatedSubject() {
-        return createdSubject;
+    public boolean isTopicCreated() {
+        return topicCreated;
     }
 }

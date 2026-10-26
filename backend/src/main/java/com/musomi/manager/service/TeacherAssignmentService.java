@@ -14,6 +14,7 @@ import com.musomi.manager.entity.TeacherAssignment;
 import com.musomi.manager.entity.User;
 import com.musomi.manager.entity.enums.Role;
 import com.musomi.manager.exception.ErrorCode;
+import com.musomi.manager.exception.PermissionDeniedException;
 import com.musomi.manager.exception.ResourceNotFoundException;
 import com.musomi.manager.exception.ValidationException;
 import com.musomi.manager.mapper.TeacherAssignmentMapper;
@@ -48,6 +49,22 @@ public class TeacherAssignmentService {
                 ? teacherAssignmentRepository.findBySchoolIdOrderByIdAsc(schoolId)
                 : teacherAssignmentRepository.findBySchoolIdAndTeacherIdOrderByIdAsc(schoolId, teacherId);
         return TeacherAssignmentMapper.toResponseList(assignments);
+    }
+
+    /** Checks whether a teacher is assigned to a class and the requested stream. */
+    @Transactional(readOnly = true)
+    public boolean isAssignedToClassStream(Long schoolId, Long teacherId, Long classId, Long streamId) {
+        Stream stream = streamRepository.findById(streamId).orElse(null);
+        if (stream == null || stream.getSchool() == null || !schoolId.equals(stream.getSchool().getId())
+                || stream.getClassEntity() == null || !classId.equals(stream.getClassEntity().getId())) {
+            return false;
+        }
+
+        return teacherAssignmentRepository.findBySchoolIdAndTeacherIdOrderByIdAsc(schoolId, teacherId)
+                .stream()
+                .anyMatch(assignment -> assignment.getClassEntity() != null
+                        && classId.equals(assignment.getClassEntity().getId())
+                        && (assignment.getStream() == null || streamId.equals(assignment.getStream().getId())));
     }
 
     /** Creates an assignment after validating its parent records and school scope. */
@@ -106,12 +123,14 @@ public class TeacherAssignmentService {
 
     /** Deletes an assignment by id. */
     @Transactional
-    public void deleteAssignment(Long id) {
-        if (!teacherAssignmentRepository.existsById(id)) {
-            throw new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED);
+    public void deleteAssignment(Long id, Long schoolId) {
+        TeacherAssignment assignment = teacherAssignmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
+        if (!belongsToSchool(assignment.getSchool(), schoolId)) {
+            throw new PermissionDeniedException(ErrorCode.NOT_YOUR_SUBJECT);
         }
-        teacherAssignmentRepository.deleteById(id);
-        log.info("Teacher assignment deleted: assignmentId={}", id);
+        teacherAssignmentRepository.delete(assignment);
+        log.info("Teacher assignment deleted: assignmentId={}, schoolId={}", id, schoolId);
     }
 
     private boolean belongsToSchool(School school, Long schoolId) {

@@ -12,6 +12,7 @@ import com.musomi.manager.exception.ResourceNotFoundException;
 import com.musomi.manager.exception.ValidationException;
 import com.musomi.manager.mapper.AcademicYearMapper;
 import com.musomi.manager.repository.AcademicYearRepository;
+import com.musomi.manager.util.SchoolScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,8 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class AcademicYearService {
-
-    private static final long DEFAULT_SCHOOL_ID = 1L;
 
     private final AcademicYearRepository academicYearRepository;
 
@@ -72,6 +71,6 @@ public class AcademicYearService {
     }
 
     private Long resolveSchoolId(Long schoolId) {
-        return schoolId != null ? schoolId : DEFAULT_SCHOOL_ID;
+        return SchoolScope.require(schoolId);
     }
 }

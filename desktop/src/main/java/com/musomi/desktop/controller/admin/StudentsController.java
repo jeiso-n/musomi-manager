@@ -1,5 +1,7 @@
 package com.musomi.desktop.controller.admin;
 
+import java.util.List;
+
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -16,7 +18,23 @@ import javafx.scene.layout.HBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import com.musomi.desktop.api.AdminStudentApi;
+import com.musomi.desktop.api.AdminClassApi;
+import com.musomi.desktop.model.ClassResponse;
+import com.musomi.desktop.model.StudentResponse;
+import com.musomi.desktop.util.Modal;
+import com.musomi.desktop.util.TaskRunner;
+import com.musomi.desktop.util.Toast;
+
+@RequiredArgsConstructor
+@Slf4j
 public class StudentsController {
+
+    private final AdminStudentApi adminStudentApi = new AdminStudentApi();
+    private final AdminClassApi adminClassApi = new AdminClassApi();
 
     @FXML
     private TableView<StudentRow> studentsTable;
@@ -137,12 +155,8 @@ public class StudentsController {
                 }
         );
 
-        /*
-         * Load sample data
-         */
-        loadSampleStudents();
-
         studentsTable.setItems(allStudents);
+        loadStudentsFromBackend();
 
         /*
          * Search
@@ -153,41 +167,38 @@ public class StudentsController {
         );
     }
 
-    /*
-     * Sample students
-     */
-    private void loadSampleStudents() {
-
-        allStudents.addAll(
-
-                new StudentRow(
-                        "John Doe",
-                        "STU001",
-                        "Senior One",
-                        "Active"
-                ),
-
-                new StudentRow(
-                        "Jane Smith",
-                        "STU002",
-                        "Senior Two",
-                        "Active"
-                ),
-
-                new StudentRow(
-                        "Michael Brown",
-                        "STU003",
-                        "Senior Three",
-                        "Active"
-                ),
-
-                new StudentRow(
-                        "Sarah Wilson",
-                        "STU004",
-                        "Senior Four",
-                        "Inactive"
-                )
+    private void loadStudentsFromBackend() {
+        TaskRunner.run(
+                () -> adminStudentApi.getStudents(0, 100, ""),
+                result -> {
+                    List<StudentRow> students = result.data().stream()
+                            .map(this::toStudentRow)
+                            .toList();
+                    allStudents.setAll(students);
+                    filterStudents(searchField.getText());
+                },
+                error -> {
+                    log.error("Failed to load students", error);
+                    Toast.error(errorMessage(error));
+                }
         );
+    }
+
+    private StudentRow toStudentRow(StudentResponse student) {
+        return new StudentRow(
+                student.id(),
+                student.fullName(),
+                student.admissionNumber(),
+                student.currentClass(),
+                student.status(),
+                student.currentClassId()
+        );
+    }
+
+    private static String errorMessage(Exception error) {
+        return error.getMessage() == null || error.getMessage().isBlank()
+                ? "Unable to load students."
+                : error.getMessage();
     }
 
     /*
@@ -272,28 +283,15 @@ public class StudentsController {
             dialog.setResizable(false);
 
             dialog.showAndWait();
-
-            if (controller.getCreatedName() != null) {
-
-                StudentRow newStudent =
-                        new StudentRow(
-                                controller.getCreatedName(),
-                                controller.getCreatedAdmissionNumber(),
-                                controller.getCreatedClass(),
-                                "Active"
-                        );
-
-                allStudents.add(newStudent);
-
-                filterStudents(
-                        searchField.getText()
-                );
+            if (controller.isStudentCreated()) {
+                loadStudentsFromBackend();
             }
 
         } catch (Exception e) {
-
-            e.printStackTrace();
+            log.error("Unable to open add-student dialog", e);
+            Toast.error(errorMessage(e));
         }
+        loadStudentsFromBackend();
     }
 
     /*
@@ -337,13 +335,15 @@ public class StudentsController {
             dialog.setResizable(false);
 
             dialog.showAndWait();
-
-            studentsTable.refresh();
+            if (controller.isSaved()) {
+                loadStudentsFromBackend();
+            }
 
         } catch (Exception e) {
-
-            e.printStackTrace();
+            log.error("Unable to open edit-student dialog", e);
+            Toast.error(errorMessage(e));
         }
+        loadStudentsFromBackend();
     }
 
     /*
@@ -353,9 +353,23 @@ public class StudentsController {
             StudentRow student
     ) {
 
-        student.setStatus("Inactive");
-
-        studentsTable.refresh();
+        if (!Modal.confirm("Deactivate " + student.getName() + "?")) {
+            return;
+        }
+        TaskRunner.run(
+                () -> {
+                    adminStudentApi.deactivateStudent(student.getId());
+                    return null;
+                },
+                ignored -> {
+                    Toast.success("Student deactivated");
+                    loadStudentsFromBackend();
+                },
+                error -> {
+                    log.error("Failed to deactivate student {}", student.getId(), error);
+                    Toast.error(errorMessage(error));
+                }
+        );
     }
 
     /*
@@ -393,6 +407,8 @@ public class StudentsController {
      */
     public static class StudentRow {
 
+        private final Long id;
+
         private final SimpleStringProperty name;
 
         private final SimpleStringProperty admissionNumber;
@@ -400,14 +416,22 @@ public class StudentsController {
         private final SimpleStringProperty className;
 
         private final SimpleStringProperty status;
+        private final Long classId;
 
         public StudentRow(
+                Long id,
                 String name,
                 String admissionNumber,
                 String className,
                 String status
         ) {
+            this(id, name, admissionNumber, className, status, null);
+        }
 
+        public StudentRow(Long id, String name, String admissionNumber, String className,
+                          String status, Long classId) {
+
+            this.id = id;
             this.name =
                     new SimpleStringProperty(name);
 
@@ -423,10 +447,15 @@ public class StudentsController {
 
             this.status =
                     new SimpleStringProperty(status);
+            this.classId = classId;
         }
 
         public SimpleStringProperty nameProperty() {
             return name;
+        }
+
+        public Long getId() {
+            return id;
         }
 
         public SimpleStringProperty admissionNumberProperty() {
@@ -456,6 +485,10 @@ public class StudentsController {
         public String getStatus() {
             return status.get();
         }
+        
+        public Long getClassId() {
+            return classId;
+        }
 
         public void setName(String name) {
             this.name.set(name);
@@ -480,5 +513,13 @@ public class StudentsController {
         public void setStatus(String status) {
             this.status.set(status);
         }
+    }
+
+    private Long findClassId(String className) {
+        return adminClassApi.getClasses().stream()
+                .filter(item -> item.name().equals(className))
+                .map(ClassResponse::id)
+                .findFirst()
+                .orElse(null);
     }
 }

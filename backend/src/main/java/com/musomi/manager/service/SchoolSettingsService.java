@@ -13,6 +13,7 @@ import com.musomi.manager.mapper.SchoolSettingsMapper;
 import com.musomi.manager.repository.SchoolRepository;
 import com.musomi.manager.repository.SchoolSettingsRepository;
 import com.musomi.manager.repository.TermRepository;
+import com.musomi.manager.util.SchoolScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class SchoolSettingsService {
 
-    private static final long DEFAULT_SCHOOL_ID = 1L;
     private static final String DEFAULT_GRADING_SCALE = """
             [{"grade":"A","min":80,"max":100},{"grade":"B","min":70,"max":79},\
             {"grade":"C","min":60,"max":69},{"grade":"D","min":50,"max":59},\
@@ -38,7 +38,7 @@ public class SchoolSettingsService {
     /** Returns school settings, using defaults without persisting a missing settings row. */
     @Transactional(readOnly = true)
     public SchoolSettingsResponse getSettings(Long schoolId) {
-        Long resolvedSchoolId = schoolId != null ? schoolId : DEFAULT_SCHOOL_ID;
+        Long resolvedSchoolId = SchoolScope.require(schoolId);
         School school = findSchool(resolvedSchoolId);
         SchoolSettings settings = schoolSettingsRepository.findBySchoolId(resolvedSchoolId).orElse(null);
         SchoolSettingsResponse response = SchoolSettingsMapper.toResponse(settings, school);
@@ -63,8 +63,22 @@ public class SchoolSettingsService {
     /** Creates or updates school settings. */
     @Transactional
     public SchoolSettingsResponse updateSettings(Long schoolId, UpdateSchoolSettingsRequest request) {
-        Long resolvedSchoolId = schoolId != null ? schoolId : DEFAULT_SCHOOL_ID;
+        Long resolvedSchoolId = SchoolScope.require(schoolId);
         School school = findSchool(resolvedSchoolId);
+        if (request.schoolName() != null) {
+            school.setName(request.schoolName());
+        }
+        if (request.address() != null) {
+            school.setAddress(request.address());
+        }
+        if (request.phone() != null) {
+            school.setPhone(request.phone());
+        }
+        if (request.email() != null) {
+            school.setEmail(request.email());
+        }
+        school.setUpdatedAt(LocalDateTime.now());
+        schoolRepository.save(school);
         Term currentTerm = findCurrentTerm(request.currentTermId(), resolvedSchoolId);
         SchoolSettings settings = schoolSettingsRepository.findBySchoolId(resolvedSchoolId)
                 .orElseGet(() -> SchoolSettings.builder()
@@ -78,7 +92,9 @@ public class SchoolSettingsService {
         }
         settings.setReportHeader(request.reportHeader());
         settings.setReportFooter(request.reportFooter());
-        settings.setCurrentTerm(currentTerm);
+        if (request.currentTermId() != null) {
+            settings.setCurrentTerm(currentTerm);
+        }
         settings.setUpdatedAt(LocalDateTime.now());
 
         SchoolSettings saved = schoolSettingsRepository.save(settings);

@@ -16,6 +16,11 @@ public record CreateSubjectRequest(
 
         String description,
 
-        Boolean isCore
+        Boolean isCore,
+
+        Boolean isActive
 ) {
+    public CreateSubjectRequest(String code, String name, String description, Boolean isCore) {
+        this(code, name, description, isCore, true);
+    }
 }

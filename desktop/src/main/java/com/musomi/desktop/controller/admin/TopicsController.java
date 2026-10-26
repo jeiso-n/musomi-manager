@@ -1,5 +1,7 @@
 package com.musomi.desktop.controller.admin;
 
+import java.util.List;
+
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -15,8 +17,21 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.musomi.desktop.api.AdminSubjectApi;
+import com.musomi.desktop.api.AdminTopicApi;
+import com.musomi.desktop.model.SubjectResponse;
+import com.musomi.desktop.model.TopicResponse;
+import com.musomi.desktop.util.TaskRunner;
+import com.musomi.desktop.util.Toast;
 
 public class TopicsController {
+
+    private static final Logger log = LoggerFactory.getLogger(TopicsController.class);
+    private final AdminSubjectApi adminSubjectApi = new AdminSubjectApi();
+    private final AdminTopicApi adminTopicApi = new AdminTopicApi();
 
     @FXML
     private TableView<TopicRow> topicsTable;
@@ -119,7 +134,7 @@ public class TopicsController {
                 }
         );
 
-        loadSampleTopics();
+        loadTopicsFromBackend();
 
         topicsTable.setItems(allTopics);
 
@@ -129,34 +144,26 @@ public class TopicsController {
         );
     }
 
-    private void loadSampleTopics() {
-
-        allTopics.addAll(
-
-                new TopicRow(
-                        "Algebra",
-                        "Mathematics",
-                        "Active"
-                ),
-
-                new TopicRow(
-                        "Geometry",
-                        "Mathematics",
-                        "Active"
-                ),
-
-                new TopicRow(
-                        "Grammar",
-                        "English",
-                        "Active"
-                ),
-
-                new TopicRow(
-                        "Forces",
-                        "Physics",
-                        "Inactive"
-                )
-        );
+    private void loadTopicsFromBackend() {
+        TaskRunner.run(
+                () -> {
+                    List<SubjectResponse> subjects = adminSubjectApi.getSubjects();
+                    return subjects.stream()
+                            .flatMap(subject -> adminTopicApi.getTopics(subject.id()).stream()
+                                    .map(topic -> new TopicRow(
+                                            topic.id(), topic.subjectId(), topic.name(),
+                                            subject.name(), "Active")))
+                            .toList();
+                },
+                topics -> {
+                    allTopics.setAll(topics);
+                    filterTopics(searchField.getText());
+                },
+                error -> {
+                    log.error("Failed to load topics", error);
+                    Toast.error(error.getMessage() == null
+                            ? "Unable to load topics." : error.getMessage());
+                });
     }
 
     private void filterTopics(String searchText) {
@@ -227,25 +234,13 @@ public class TopicsController {
 
             dialog.showAndWait();
 
-            if (controller.getCreatedName() != null) {
-
-                TopicRow newTopic =
-                        new TopicRow(
-                                controller.getCreatedName(),
-                                controller.getCreatedSubject(),
-                                "Active"
-                        );
-
-                allTopics.add(newTopic);
-
-                filterTopics(
-                        searchField.getText()
-                );
+            if (controller.isTopicCreated()) {
+                loadTopicsFromBackend();
             }
 
         } catch (Exception e) {
 
-            e.printStackTrace();
+            log.error("Failed to load topic dialog", e);
         }
     }
 
@@ -284,11 +279,15 @@ public class TopicsController {
 
             dialog.showAndWait();
 
+            if (controller.isSaved() && topic.getId() != null) {
+                loadTopicsFromBackend();
+            }
+
             topicsTable.refresh();
 
         } catch (Exception e) {
 
-            e.printStackTrace();
+            log.error("Failed to load topic editor", e);
         }
     }
 
@@ -315,13 +314,23 @@ public class TopicsController {
             TopicRow topic
     ) {
 
-        topic.setStatus("Inactive");
-
-        topicsTable.refresh();
+        TaskRunner.run(
+                () -> {
+                    adminTopicApi.deactivateTopic(topic.getId());
+                    return null;
+                },
+                ignored -> {
+                    Toast.success("Topic deactivated");
+                    loadTopicsFromBackend();
+                },
+                error -> Toast.error(error.getMessage() == null
+                        ? "Unable to deactivate topic." : error.getMessage()));
     }
 
     public static class TopicRow {
 
+        private final Long id;
+        private final Long subjectId;
         private final SimpleStringProperty name;
 
         private final SimpleStringProperty subject;
@@ -333,6 +342,18 @@ public class TopicsController {
                 String subject,
                 String status
         ) {
+            this(null, null, name, subject, status);
+        }
+
+        public TopicRow(
+                Long id,
+                Long subjectId,
+                String name,
+                String subject,
+                String status
+        ) {
+            this.id = id;
+            this.subjectId = subjectId;
 
             this.name =
                     new SimpleStringProperty(name);
@@ -342,6 +363,14 @@ public class TopicsController {
 
             this.status =
                     new SimpleStringProperty(status);
+        }
+
+        public Long getId() {
+            return id;
+        }
+
+        public Long getSubjectId() {
+            return subjectId;
         }
 
         public SimpleStringProperty nameProperty() {

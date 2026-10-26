@@ -13,9 +13,11 @@ import com.musomi.manager.entity.ClassEntity;
 import com.musomi.manager.entity.School;
 import com.musomi.manager.entity.Subject;
 import com.musomi.manager.entity.Term;
+import com.musomi.manager.entity.TeacherAssignment;
 import com.musomi.manager.entity.Topic;
 import com.musomi.manager.entity.User;
 import com.musomi.manager.exception.ErrorCode;
+import com.musomi.manager.exception.PermissionDeniedException;
 import com.musomi.manager.exception.ResourceNotFoundException;
 import com.musomi.manager.exception.ValidationException;
 import com.musomi.manager.repository.AssessmentRepository;
@@ -26,6 +28,7 @@ import com.musomi.manager.repository.StreamRepository;
 import com.musomi.manager.repository.StudentRepository;
 import com.musomi.manager.repository.SubjectRepository;
 import com.musomi.manager.repository.TermRepository;
+import com.musomi.manager.repository.TeacherAssignmentRepository;
 import com.musomi.manager.repository.TopicRepository;
 import com.musomi.manager.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -73,6 +76,9 @@ class AssessmentServiceTest {
     private TermRepository termRepository;
 
     @Mock
+    private TeacherAssignmentRepository teacherAssignmentRepository;
+
+    @Mock
     private TopicRepository topicRepository;
 
     @Mock
@@ -91,9 +97,11 @@ class AssessmentServiceTest {
     @DisplayName("should list assessments when teacher has them")
     void shouldListAssessmentsWhenTeacherHasThem() {
         Assessment assessment = assessment("DRAFT");
-        when(assessmentRepository.findAll()).thenReturn(List.of(assessment));
+        when(assessmentRepository.findBySchoolIdAndTeacherId(SCHOOL_ID, TEACHER_ID))
+                .thenReturn(List.of(assessment));
 
-        List<AssessmentResponse> result = assessmentService.listAssessments(TEACHER_ID, null, null, null, null);
+        List<AssessmentResponse> result =
+                assessmentService.listAssessments(SCHOOL_ID, TEACHER_ID, null, null, null, null);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).title()).isEqualTo("Mid-Term Exam");
@@ -116,6 +124,21 @@ class AssessmentServiceTest {
         assertThat(response.status()).isEqualTo("DRAFT");
         assertThat(response.title()).isEqualTo("Mid-Term Exam");
         verify(assessmentTopicRepository).saveAll(any());
+    }
+
+    @Test
+    @DisplayName("should deny assessment creation for an unassigned class and subject")
+    void shouldDenyAssessmentCreationForUnassignedClassAndSubject() {
+        when(userRepository.findById(TEACHER_ID)).thenReturn(Optional.of(teacher()));
+        when(classRepository.findById(CLASS_ID)).thenReturn(Optional.of(classEntity()));
+        when(subjectRepository.findById(SUBJECT_ID)).thenReturn(Optional.of(subject()));
+        when(termRepository.findById(TERM_ID)).thenReturn(Optional.of(term()));
+        when(teacherAssignmentRepository.findBySchoolIdAndTeacherIdOrderByIdAsc(SCHOOL_ID, TEACHER_ID))
+                .thenReturn(List.of());
+
+        assertThatThrownBy(() -> assessmentService.createAssessment(SCHOOL_ID, TEACHER_ID, createRequest()))
+                .isInstanceOf(PermissionDeniedException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_YOUR_CLASS);
     }
 
     @Test
@@ -171,7 +194,7 @@ class AssessmentServiceTest {
     void shouldGetAssessmentWhenExists() {
         when(assessmentRepository.findById(8L)).thenReturn(Optional.of(assessment("DRAFT")));
 
-        AssessmentResponse response = assessmentService.getAssessment(8L);
+        AssessmentResponse response = assessmentService.getAssessment(8L, SCHOOL_ID, TEACHER_ID);
 
         assertThat(response.id()).isEqualTo(8L);
         assertThat(response.title()).isEqualTo("Mid-Term Exam");
@@ -182,7 +205,7 @@ class AssessmentServiceTest {
     void shouldThrowWhenAssessmentNotFound() {
         when(assessmentRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> assessmentService.getAssessment(999L))
+        assertThatThrownBy(() -> assessmentService.getAssessment(999L, SCHOOL_ID, TEACHER_ID))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ASSESSMENT_NOT_FOUND);
     }
@@ -192,7 +215,8 @@ class AssessmentServiceTest {
     void shouldThrowWhenUpdatingPublished() {
         when(assessmentRepository.findById(8L)).thenReturn(Optional.of(assessment("PUBLISHED")));
 
-        assertThatThrownBy(() -> assessmentService.updateAssessment(8L, updateRequest()))
+        assertThatThrownBy(() -> assessmentService.updateAssessment(
+                8L, SCHOOL_ID, TEACHER_ID, updateRequest()))
                 .isInstanceOf(ValidationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ASSESSMENT_ALREADY_PUBLISHED);
     }
@@ -202,7 +226,7 @@ class AssessmentServiceTest {
     void shouldThrowWhenPublishingNonDraft() {
         when(assessmentRepository.findById(8L)).thenReturn(Optional.of(assessment("PUBLISHED")));
 
-        assertThatThrownBy(() -> assessmentService.publishAssessment(8L, TEACHER_ID))
+        assertThatThrownBy(() -> assessmentService.publishAssessment(8L, SCHOOL_ID, TEACHER_ID))
                 .isInstanceOf(ValidationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ASSESSMENT_ALREADY_PUBLISHED);
     }
@@ -213,7 +237,7 @@ class AssessmentServiceTest {
         when(assessmentRepository.findById(8L)).thenReturn(Optional.of(assessment("DRAFT")));
         when(scoreRepository.countByAssessmentIdAndScoreIsNull(8L)).thenReturn(2L);
 
-        assertThatThrownBy(() -> assessmentService.publishAssessment(8L, TEACHER_ID))
+        assertThatThrownBy(() -> assessmentService.publishAssessment(8L, SCHOOL_ID, TEACHER_ID))
                 .isInstanceOf(ValidationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CANNOT_PUBLISH_EMPTY);
     }
@@ -227,11 +251,31 @@ class AssessmentServiceTest {
         when(userRepository.findById(TEACHER_ID)).thenReturn(Optional.of(teacher()));
         when(assessmentRepository.save(any(Assessment.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        assessmentService.publishAssessment(8L, TEACHER_ID);
+        assessmentService.publishAssessment(8L, SCHOOL_ID, TEACHER_ID);
 
         assertThat(assessment.getStatus()).isEqualTo("PUBLISHED");
         assertThat(assessment.getPublishedAt()).isNotNull();
         verify(assessmentRepository).save(assessment);
+    }
+
+    @Test
+    @DisplayName("should deny another teacher access to an assessment")
+    void shouldDenyAnotherTeacherAccessToAssessment() {
+        when(assessmentRepository.findById(8L)).thenReturn(Optional.of(assessment("DRAFT")));
+
+        assertThatThrownBy(() -> assessmentService.getAssessment(8L, SCHOOL_ID, 99L))
+                .isInstanceOf(PermissionDeniedException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_YOUR_CLASS);
+    }
+
+    @Test
+    @DisplayName("should hide an assessment from another school")
+    void shouldHideAssessmentFromAnotherSchool() {
+        when(assessmentRepository.findById(8L)).thenReturn(Optional.of(assessment("DRAFT")));
+
+        assertThatThrownBy(() -> assessmentService.getAssessment(8L, 99L, TEACHER_ID))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ASSESSMENT_NOT_FOUND);
     }
 
     private void stubCreateParents() {
@@ -241,6 +285,14 @@ class AssessmentServiceTest {
         when(termRepository.findById(TERM_ID)).thenReturn(Optional.of(term()));
         when(topicRepository.findById(TOPIC_ID)).thenReturn(Optional.of(
                 Topic.builder().id(TOPIC_ID).school(school()).name("Algebra").build()));
+        when(teacherAssignmentRepository.findBySchoolIdAndTeacherIdOrderByIdAsc(SCHOOL_ID, TEACHER_ID))
+                .thenReturn(List.of(TeacherAssignment.builder()
+                        .school(school())
+                        .teacher(teacher())
+                        .classEntity(classEntity())
+                        .subject(subject())
+                        .academicYear(null)
+                        .build()));
     }
 
     private CreateAssessmentRequest createRequest() {

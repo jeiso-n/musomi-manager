@@ -11,6 +11,9 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Long
     /** Lists a user's login history, newest first. */
     List<LoginHistory> findByUserIdOrderByCreatedAtDesc(Long userId);
 
+    /** Lists a user's login history within a school, newest first. */
+    List<LoginHistory> findByUserIdAndSchoolIdOrderByCreatedAtDesc(Long userId, Long schoolId);
+
     /** Lists a school's login history, newest first. */
     List<LoginHistory> findBySchoolIdOrderByCreatedAtDesc(Long schoolId);
 }

@@ -14,6 +14,7 @@ import com.musomi.manager.entity.Guardian;
 import com.musomi.manager.entity.School;
 import com.musomi.manager.entity.Stream;
 import com.musomi.manager.entity.Student;
+import com.musomi.manager.exception.AuthenticationException;
 import com.musomi.manager.exception.ErrorCode;
 import com.musomi.manager.exception.ResourceNotFoundException;
 import com.musomi.manager.exception.ValidationException;
@@ -33,8 +34,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class StudentService {
 
-    private static final long DEFAULT_SCHOOL_ID = 1L;
-
     private final StudentRepository studentRepository;
     private final GuardianRepository guardianRepository;
     private final ClassRepository classRepository;
@@ -45,7 +44,7 @@ public class StudentService {
     @Transactional(readOnly = true)
     public List<StudentResponse> listStudents(Long schoolId, Long classId, Long streamId,
                                               String status, String search) {
-        Long resolvedSchoolId = schoolId != null ? schoolId : DEFAULT_SCHOOL_ID;
+        Long resolvedSchoolId = requireSchoolId(schoolId);
         String resolvedStatus = status != null ? status : "ACTIVE";
         String normalizedSearch = search == null || search.isBlank()
                 ? null
@@ -65,8 +64,9 @@ public class StudentService {
 
     /** Creates a student and optionally creates the student's primary guardian. */
     @Transactional
-    public StudentResponse createStudent(Long schoolId, CreateStudentRequest request) {
-        Long resolvedSchoolId = schoolId != null ? schoolId : DEFAULT_SCHOOL_ID;
+    public StudentResponse createStudent(Long schoolId, Long currentUserId, CreateStudentRequest request) {
+        Long resolvedSchoolId = requireSchoolId(schoolId);
+        requireUserId(currentUserId);
         if (studentRepository.existsBySchoolIdAndAdmissionNumber(
                 resolvedSchoolId, request.admissionNumber())) {
             throw new ValidationException(
@@ -97,25 +97,25 @@ public class StudentService {
         }
 
         log.info("Student {} created for school {}", saved.getAdmissionNumber(), resolvedSchoolId);
-        // TODO(backend-lead): pass real userId once @CurrentUser is wired in services
-        auditService.log("STUDENT_CREATED", "Student", saved.getId(), 1L, resolvedSchoolId);
+        auditService.log("STUDENT_CREATED", "Student", saved.getId(), currentUserId, resolvedSchoolId);
         return StudentMapper.toResponseWithGuardians(saved, guardianRepository.findByStudentId(saved.getId()));
     }
 
     /** Returns one student with guardian details. */
     @Transactional(readOnly = true)
-    public StudentResponse getStudent(Long id) {
-        Student student = findStudent(id);
+    public StudentResponse getStudent(Long id, Long schoolId) {
+        Student student = findStudent(id, requireSchoolId(schoolId));
         return StudentMapper.toResponseWithGuardians(student, guardianRepository.findByStudentId(id));
     }
 
     /** Updates a student's mutable profile, enrollment, and status fields. */
     @Transactional
-    public StudentResponse updateStudent(Long id, UpdateStudentRequest request) {
-        Student student = findStudent(id);
-        Long schoolId = student.getSchool() != null ? student.getSchool().getId() : DEFAULT_SCHOOL_ID;
-        ClassEntity currentClass = findClass(request.currentClassId(), schoolId);
-        Stream currentStream = findStream(request.currentStreamId(), schoolId);
+    public StudentResponse updateStudent(Long id, Long schoolId, Long currentUserId, UpdateStudentRequest request) {
+        Long scopedSchoolId = requireSchoolId(schoolId);
+        requireUserId(currentUserId);
+        Student student = findStudent(id, scopedSchoolId);
+        ClassEntity currentClass = findClass(request.currentClassId(), scopedSchoolId);
+        Stream currentStream = findStream(request.currentStreamId(), scopedSchoolId);
         validateClassStream(currentClass, currentStream);
 
         student.setFullName(request.fullName());
@@ -130,41 +130,53 @@ public class StudentService {
 
         Student saved = studentRepository.save(student);
         log.info("Student {} updated", id);
-        // TODO(backend-lead): pass real userId once @CurrentUser is wired in services
-        // TODO(backend-lead): pass real schoolId once school context is wired in services
-        auditService.log("STUDENT_UPDATED", "Student", saved.getId(), 1L, 1L);
+        auditService.log("STUDENT_UPDATED", "Student", saved.getId(), currentUserId, scopedSchoolId);
         return StudentMapper.toResponseWithGuardians(saved, guardianRepository.findByStudentId(id));
     }
 
     /** Deactivates a student without deleting the record. */
     @Transactional
-    public void deactivateStudent(Long id) {
-        Student student = findStudent(id);
+    public void deactivateStudent(Long id, Long schoolId, Long currentUserId) {
+        Long scopedSchoolId = requireSchoolId(schoolId);
+        requireUserId(currentUserId);
+        Student student = findStudent(id, scopedSchoolId);
         student.setIsActive(false);
         student.setStatus("INACTIVE");
         student.setUpdatedAt(LocalDateTime.now());
         studentRepository.save(student);
         log.info("Student {} deactivated", id);
-        // TODO(backend-lead): pass real userId once @CurrentUser is wired in services
-        // TODO(backend-lead): pass real schoolId once school context is wired in services
-        auditService.log("STUDENT_DEACTIVATED", "Student", id, 1L, 1L);
+        auditService.log("STUDENT_DEACTIVATED", "Student", id, currentUserId, scopedSchoolId);
     }
 
     /** Adds a guardian to an existing student and returns the updated student details. */
     @Transactional
-    public StudentResponse addGuardian(Long studentId, CreateGuardianRequest request) {
-        Student student = findStudent(studentId);
+    public StudentResponse addGuardian(
+            Long studentId, Long schoolId, Long currentUserId, CreateGuardianRequest request) {
+        Long scopedSchoolId = requireSchoolId(schoolId);
+        requireUserId(currentUserId);
+        Student student = findStudent(studentId, scopedSchoolId);
         guardianRepository.save(buildGuardian(student, request));
-        // TODO(backend-lead): pass real userId once @CurrentUser is wired in services
-        // TODO(backend-lead): pass real schoolId once school context is wired in services
-        auditService.log("STUDENT_UPDATED", "Student", studentId, 1L, 1L);
+        auditService.log("STUDENT_UPDATED", "Student", studentId, currentUserId, scopedSchoolId);
         return StudentMapper.toResponseWithGuardians(
                 student, guardianRepository.findByStudentId(studentId));
     }
 
-    private Student findStudent(Long id) {
-        return studentRepository.findById(id)
+    private Student findStudent(Long id, Long schoolId) {
+        return studentRepository.findByIdAndSchoolId(id, schoolId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND));
+    }
+
+    private Long requireSchoolId(Long schoolId) {
+        if (schoolId == null || schoolId <= 0) {
+            throw new AuthenticationException(ErrorCode.SESSION_EXPIRED);
+        }
+        return schoolId;
+    }
+
+    private void requireUserId(Long userId) {
+        if (userId == null || userId <= 0) {
+            throw new AuthenticationException(ErrorCode.SESSION_EXPIRED);
+        }
     }
 
     private ClassEntity findClass(Long classId, Long schoolId) {

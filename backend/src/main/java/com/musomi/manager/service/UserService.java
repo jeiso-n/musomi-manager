@@ -7,6 +7,7 @@ import com.musomi.manager.dto.response.ResetPasswordResponse;
 import com.musomi.manager.dto.response.UserResponse;
 import com.musomi.manager.entity.User;
 import com.musomi.manager.entity.enums.Role;
+import com.musomi.manager.exception.AuthenticationException;
 import com.musomi.manager.exception.ErrorCode;
 import com.musomi.manager.exception.ResourceNotFoundException;
 import com.musomi.manager.exception.ValidationException;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,9 +28,6 @@ import java.security.SecureRandom;
 @RequiredArgsConstructor
 @Slf4j
 public class UserService {
-
-    /** v1 serves a single school; keep consistent with AuthService. */
-    private static final long DEFAULT_SCHOOL_ID = 1L;
 
     private static final String PASSWORD_ALPHABET =
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -47,11 +46,27 @@ public class UserService {
     @Transactional(readOnly = true)
     public PageResult<UserResponse> listUsers(Long schoolId, Role role, Boolean active,
                                               String search, Pageable pageable) {
-        Long scopedSchoolId = schoolId != null ? schoolId : DEFAULT_SCHOOL_ID;
-        String normalisedSearch = (search == null || search.isBlank()) ? null : search.trim();
+        Long scopedSchoolId = requireSchoolId(schoolId);
+        String normalisedSearch = (search == null || search.isBlank()) ? "" : search.trim();
 
-        Page<User> page = userRepository.findUsers(
-                scopedSchoolId, role, active, normalisedSearch, pageable);
+        Specification<User> specification = (root, query, builder) -> {
+            var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
+            predicates.add(builder.equal(root.get("school").get("id"), scopedSchoolId));
+            if (role != null) {
+                predicates.add(builder.equal(root.get("role"), role));
+            }
+            if (active != null) {
+                predicates.add(builder.equal(root.get("isActive"), active));
+            }
+            if (!normalisedSearch.isEmpty()) {
+                String pattern = "%" + normalisedSearch.toLowerCase() + "%";
+                predicates.add(builder.or(
+                        builder.like(builder.lower(root.get("fullName")), pattern),
+                        builder.like(builder.lower(root.get("username")), pattern)));
+            }
+            return builder.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
+        Page<User> page = userRepository.findAll(specification, pageable);
 
         return new PageResult<>(
                 UserMapper.toResponseList(page.getContent()),
@@ -67,15 +82,14 @@ public class UserService {
      * {@code USERNAME_TAKEN} if the username is already used within the school.
      */
     @Transactional
-    public UserResponse createUser(Long schoolId, CreateUserRequest request) {
-        Long scopedSchoolId = schoolId != null ? schoolId : DEFAULT_SCHOOL_ID;
+    public UserResponse createUser(Long schoolId, Long currentUserId, CreateUserRequest request) {
+        Long scopedSchoolId = requireSchoolId(schoolId);
+        requireUserId(currentUserId);
 
         if (userRepository.existsBySchoolIdAndUsername(scopedSchoolId, request.username())) {
             throw new ValidationException(ErrorCode.USERNAME_TAKEN);
         }
 
-        // The school is resolved by the caller context in v1 (single school).
-        // We attach via school id to avoid an extra SchoolRepository dependency.
         User user = User.builder()
                 .school(com.musomi.manager.entity.School.builder().id(scopedSchoolId).build())
                 .username(request.username())
@@ -93,8 +107,7 @@ public class UserService {
         log.info("User created: userId={}, username={}, role={}",
                 saved.getId(), saved.getUsername(), saved.getRole());
 
-        // TODO(backend-lead): pass real userId once @CurrentUser is wired in services
-        auditService.log("USER_CREATED", "User", saved.getId(), 1L, scopedSchoolId);
+        auditService.log("USER_CREATED", "User", saved.getId(), currentUserId, scopedSchoolId);
         return UserMapper.toResponse(saved);
     }
 
@@ -104,8 +117,8 @@ public class UserService {
      * @throws ResourceNotFoundException with {@code USER_NOT_FOUND} if missing
      */
     @Transactional(readOnly = true)
-    public UserResponse getUser(Long id) {
-        User user = userRepository.findById(id)
+    public UserResponse getUser(Long id, Long schoolId) {
+        User user = userRepository.findByIdAndSchoolId(id, requireSchoolId(schoolId))
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND));
         return UserMapper.toResponse(user);
     }
@@ -117,8 +130,10 @@ public class UserService {
      * @throws ResourceNotFoundException with {@code USER_NOT_FOUND} if missing
      */
     @Transactional
-    public UserResponse updateUser(Long id, UpdateUserRequest request) {
-        User user = userRepository.findById(id)
+    public UserResponse updateUser(Long id, Long schoolId, Long currentUserId, UpdateUserRequest request) {
+        Long scopedSchoolId = requireSchoolId(schoolId);
+        requireUserId(currentUserId);
+        User user = userRepository.findByIdAndSchoolId(id, scopedSchoolId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND));
 
         user.setFullName(request.fullName());
@@ -128,9 +143,7 @@ public class UserService {
         User saved = userRepository.save(user);
         log.info("User updated: userId={}", saved.getId());
 
-        // TODO(backend-lead): pass real userId once @CurrentUser is wired in services
-        // TODO(backend-lead): pass real schoolId once school context is wired in services
-        auditService.log("USER_UPDATED", "User", saved.getId(), 1L, 1L);
+        auditService.log("USER_UPDATED", "User", saved.getId(), currentUserId, scopedSchoolId);
         return UserMapper.toResponse(saved);
     }
 
@@ -142,20 +155,21 @@ public class UserService {
      * @throws ResourceNotFoundException with {@code USER_NOT_FOUND} if missing
      */
     @Transactional
-    public void deactivateUser(Long id, Long currentUserId) {
-        if (currentUserId != null && currentUserId.equals(id)) {
+    public void deactivateUser(Long id, Long schoolId, Long currentUserId) {
+        Long scopedSchoolId = requireSchoolId(schoolId);
+        requireUserId(currentUserId);
+        if (currentUserId.equals(id)) {
             throw new ValidationException(ErrorCode.CANNOT_DEACTIVATE_SELF);
         }
 
-        User user = userRepository.findById(id)
+        User user = userRepository.findByIdAndSchoolId(id, scopedSchoolId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND));
 
         user.setIsActive(false);
         userRepository.save(user);
 
         log.info("User deactivated: userId={}, by={}", id, currentUserId);
-        // TODO(backend-lead): pass real schoolId once school context is wired in services
-        auditService.log("USER_DEACTIVATED", "User", id, currentUserId, 1L);
+        auditService.log("USER_DEACTIVATED", "User", id, currentUserId, scopedSchoolId);
     }
 
     /**
@@ -167,8 +181,10 @@ public class UserService {
      * @throws ResourceNotFoundException with {@code USER_NOT_FOUND} if missing
      */
     @Transactional
-    public ResetPasswordResponse resetPassword(Long id) {
-        User user = userRepository.findById(id)
+    public ResetPasswordResponse resetPassword(Long id, Long schoolId, Long currentUserId) {
+        Long scopedSchoolId = requireSchoolId(schoolId);
+        requireUserId(currentUserId);
+        User user = userRepository.findByIdAndSchoolId(id, scopedSchoolId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND));
 
         String temporaryPassword = generateTemporaryPassword();
@@ -176,10 +192,21 @@ public class UserService {
         userRepository.save(user);
 
         log.info("Password reset for userId={}", id);
-        // TODO(backend-lead): pass real userId once @CurrentUser is wired in services
-        // TODO(backend-lead): pass real schoolId once school context is wired in services
-        auditService.log("USER_PASSWORD_RESET", "User", id, 1L, 1L);
+        auditService.log("USER_PASSWORD_RESET", "User", id, currentUserId, scopedSchoolId);
         return new ResetPasswordResponse(temporaryPassword);
+    }
+
+    private Long requireSchoolId(Long schoolId) {
+        if (schoolId == null || schoolId <= 0) {
+            throw new AuthenticationException(ErrorCode.SESSION_EXPIRED);
+        }
+        return schoolId;
+    }
+
+    private void requireUserId(Long userId) {
+        if (userId == null || userId <= 0) {
+            throw new AuthenticationException(ErrorCode.SESSION_EXPIRED);
+        }
     }
 
     private String generateTemporaryPassword() {

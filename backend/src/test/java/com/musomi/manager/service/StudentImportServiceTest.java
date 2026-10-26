@@ -72,7 +72,8 @@ class StudentImportServiceTest {
     @Test
     @DisplayName("should throw when job reference invalid on confirm")
     void shouldThrowWhenJobReferenceInvalidOnConfirm() {
-        when(importJobRepository.findByJobReference("missing")).thenReturn(Optional.empty());
+        when(importJobRepository.findByJobReferenceAndSchoolId("missing", SCHOOL_ID))
+                .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> studentImportService.confirmImport(SCHOOL_ID, "missing"))
                 .isInstanceOf(ResourceNotFoundException.class)
@@ -83,7 +84,8 @@ class StudentImportServiceTest {
     @DisplayName("should skip duplicates on confirm")
     void shouldSkipDuplicatesOnConfirm() throws Exception {
         ImportJob job = jobWithRows(List.of(studentRow(), studentRow()));
-        when(importJobRepository.findByJobReference("imp_test")).thenReturn(Optional.of(job));
+        when(importJobRepository.findByJobReferenceAndSchoolId("imp_test", SCHOOL_ID))
+                .thenReturn(Optional.of(job));
         when(studentRepository.existsBySchoolIdAndAdmissionNumber(SCHOOL_ID, "A-1"))
                 .thenReturn(false, false);
         when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -100,7 +102,8 @@ class StudentImportServiceTest {
     @DisplayName("should confirm and create students")
     void shouldConfirmAndCreateStudents() throws Exception {
         ImportJob job = jobWithRows(List.of(studentRow()));
-        when(importJobRepository.findByJobReference("imp_test")).thenReturn(Optional.of(job));
+        when(importJobRepository.findByJobReferenceAndSchoolId("imp_test", SCHOOL_ID))
+                .thenReturn(Optional.of(job));
         when(studentRepository.existsBySchoolIdAndAdmissionNumber(SCHOOL_ID, "A-1")).thenReturn(false);
         when(studentRepository.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(importJobRepository.save(any(ImportJob.class))).thenAnswer(invocation -> invocation.getArgument(0));

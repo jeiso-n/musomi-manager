@@ -19,6 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -39,7 +41,7 @@ public class AuthService {
     @Transactional
     public LoginResponse login(LoginRequest request) {
         String usernameAttempted = request.username();
-        User user = userRepository.findBySchoolIdAndUsername(1L, request.username())
+        User user = userRepository.findBySchoolIdAndUsername(request.schoolId(), request.username())
                 .orElse(null);
         if (user == null) {
             recordLoginAttempt(usernameAttempted, null, false);
@@ -47,12 +49,12 @@ public class AuthService {
         }
 
         if (!Boolean.TRUE.equals(user.getIsActive())) {
-            recordLoginAttempt(usernameAttempted, user.getId(), false);
+            recordLoginAttempt(usernameAttempted, user, false);
             throw new AuthenticationException(ErrorCode.ACCOUNT_INACTIVE);
         }
 
         if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(LocalDateTime.now())) {
-            recordLoginAttempt(usernameAttempted, user.getId(), false);
+            recordLoginAttempt(usernameAttempted, user, false);
             throw new AuthenticationException(ErrorCode.ACCOUNT_LOCKED);
         }
 
@@ -65,7 +67,7 @@ public class AuthService {
                         user.getId(), user.getUsername());
             }
             userRepository.save(user);
-            recordLoginAttempt(usernameAttempted, user.getId(), false);
+            recordLoginAttempt(usernameAttempted, user, false);
             throw new AuthenticationException(ErrorCode.INVALID_CREDENTIALS);
         }
 
@@ -93,15 +95,24 @@ public class AuthService {
                 .createdAt(LocalDateTime.now())
                 .expiresAt(LocalDateTime.ofInstant(expiresAt, ZoneOffset.UTC))
                 .build());
-        recordLoginAttempt(usernameAttempted, user.getId(), true);
+        recordLoginAttempt(usernameAttempted, user, true);
         return new LoginResponse(token, expiresAt, summary);
     }
 
-    private void recordLoginAttempt(String usernameAttempted, Long userId, boolean success) {
-        // TODO(backend-lead): capture IP and User-Agent from the HTTP request
-        // when AuthApiController passes them in.
+    private void recordLoginAttempt(String usernameAttempted, User user, boolean success) {
+        String ip = null;
+        String userAgent = null;
+        ServletRequestAttributes attributes =
+                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes != null) {
+            ip = attributes.getRequest().getRemoteAddr();
+            userAgent = attributes.getRequest().getHeader("User-Agent");
+        }
         try {
-            loginHistoryService.record(usernameAttempted, userId, success, null, null);
+            loginHistoryService.record(usernameAttempted,
+                    user == null ? null : user.getId(),
+                    user == null || user.getSchool() == null ? null : user.getSchool().getId(),
+                    success, ip, userAgent);
         } catch (RuntimeException exception) {
             log.warn("Failed to record login history for username={}", usernameAttempted, exception);
         }

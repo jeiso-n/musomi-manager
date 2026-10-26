@@ -19,10 +19,10 @@ import com.musomi.manager.repository.ScoreRepository;
 import com.musomi.manager.repository.StudentRepository;
 import com.musomi.manager.repository.TermRepository;
 import com.musomi.manager.repository.UserRepository;
+import com.musomi.manager.security.WebUserPrincipal;
 import com.musomi.manager.util.GradeCalculator;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -42,8 +42,9 @@ public class StudentDashboardWebController {
     private final TermRepository termRepository;
 
     @GetMapping("/student/dashboard")
-    public String showDashboard(Model model) {
-        Optional<Student> studentOpt = findCurrentStudent();
+    public String showDashboard(
+            @AuthenticationPrincipal WebUserPrincipal principal, Model model) {
+        Optional<Student> studentOpt = findCurrentStudent(principal);
         if (studentOpt.isEmpty()) {
             return "redirect:/login";
         }
@@ -165,12 +166,13 @@ public class StudentDashboardWebController {
                 .divide(maxScore, 1, RoundingMode.HALF_UP);
     }
 
-    private Optional<Student> findCurrentStudent() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
+    private Optional<Student> findCurrentStudent(WebUserPrincipal principal) {
+        if (principal == null || principal.getSchoolId() == null
+                || principal.getUsername() == null || principal.getUsername().isBlank()) {
             return Optional.empty();
         }
-        Optional<User> user = userRepository.findBySchoolIdAndUsername(1L, auth.getName());
+        Optional<User> user = userRepository.findBySchoolIdAndUsername(
+                principal.getSchoolId(), principal.getUsername());
         if (user.isEmpty()) {
             return Optional.empty();
         }

@@ -11,6 +11,7 @@ import com.musomi.manager.exception.ErrorCode;
 import com.musomi.manager.exception.ValidationException;
 import com.musomi.manager.mapper.ClassLevelMapper;
 import com.musomi.manager.repository.ClassLevelRepository;
+import com.musomi.manager.util.SchoolScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,8 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class ClassLevelService {
-
-    private static final long DEFAULT_SCHOOL_ID = 1L;
 
     private final ClassLevelRepository classLevelRepository;
 
@@ -54,6 +53,6 @@ public class ClassLevelService {
     }
 
     private Long resolveSchoolId(Long schoolId) {
-        return schoolId != null ? schoolId : DEFAULT_SCHOOL_ID;
+        return SchoolScope.require(schoolId);
     }
 }

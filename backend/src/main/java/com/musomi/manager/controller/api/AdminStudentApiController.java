@@ -47,14 +47,15 @@ public class AdminStudentApiController {
     @PostMapping
     public ResponseEntity<ApiResponse<StudentResponse>> createStudent(
             @Valid @RequestBody CreateStudentRequest request) {
-        StudentResponse created = studentService.createStudent(CurrentUser.getSchoolId(), request);
+        StudentResponse created = studentService.createStudent(
+                CurrentUser.getSchoolId(), CurrentUser.getUserId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
     }
 
     /** Returns a student with guardian details. */
     @GetMapping("/{id}")
     public ApiResponse<StudentResponse> getStudent(@PathVariable Long id) {
-        return ApiResponse.success(studentService.getStudent(id));
+        return ApiResponse.success(studentService.getStudent(id, CurrentUser.getSchoolId()));
     }
 
     /** Updates a student's profile. */
@@ -62,13 +63,14 @@ public class AdminStudentApiController {
     public ApiResponse<StudentResponse> updateStudent(
             @PathVariable Long id,
             @Valid @RequestBody UpdateStudentRequest request) {
-        return ApiResponse.success(studentService.updateStudent(id, request));
+        return ApiResponse.success(studentService.updateStudent(
+                id, CurrentUser.getSchoolId(), CurrentUser.getUserId(), request));
     }
 
     /** Deactivates a student without deleting the record. */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivateStudent(@PathVariable Long id) {
-        studentService.deactivateStudent(id);
+        studentService.deactivateStudent(id, CurrentUser.getSchoolId(), CurrentUser.getUserId());
         return ResponseEntity.noContent().build();
     }
 }

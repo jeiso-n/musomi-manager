@@ -5,9 +5,12 @@ import java.util.List;
 import com.musomi.manager.dto.response.ApiResponse;
 import com.musomi.manager.dto.response.TopicResponse;
 import com.musomi.manager.service.TopicService;
+import com.musomi.manager.util.CurrentUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,6 +27,12 @@ public class AdminTopicApiController {
     /** Lists topics within a subject. */
     @GetMapping
     public ApiResponse<List<TopicResponse>> listTopics(@RequestParam Long subjectId) {
-        return ApiResponse.success(topicService.listTopics(subjectId));
+        return ApiResponse.success(topicService.listTopics(CurrentUser.getSchoolId(), subjectId));
+    }
+
+    @PutMapping("/{id}/deactivate")
+    public org.springframework.http.ResponseEntity<Void> deactivateTopic(@PathVariable Long id) {
+        topicService.deactivateTopic(CurrentUser.getSchoolId(), id);
+        return org.springframework.http.ResponseEntity.noContent().build();
     }
 }

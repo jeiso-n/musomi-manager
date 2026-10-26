@@ -14,6 +14,7 @@ import com.musomi.manager.exception.ValidationException;
 import com.musomi.manager.mapper.TopicMapper;
 import com.musomi.manager.repository.SubjectRepository;
 import com.musomi.manager.repository.TopicRepository;
+import com.musomi.manager.util.SchoolScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,21 +26,25 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class TopicService {
 
-    private static final long DEFAULT_SCHOOL_ID = 1L;
-
     private final TopicRepository topicRepository;
     private final SubjectRepository subjectRepository;
 
     /** Lists topics within a subject in configured order. */
     @Transactional(readOnly = true)
-    public List<TopicResponse> listTopics(Long subjectId) {
-        return TopicMapper.toResponseList(topicRepository.findBySubjectIdOrderBySortOrderAsc(subjectId));
+    public List<TopicResponse> listTopics(Long schoolId, Long subjectId) {
+        Long resolvedSchoolId = SchoolScope.require(schoolId);
+        Subject subject = subjectRepository.findById(subjectId)
+                .filter(found -> found.getSchool() != null
+                        && resolvedSchoolId.equals(found.getSchool().getId()))
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
+        return TopicMapper.toResponseList(
+                topicRepository.findBySubjectIdAndSchoolIdOrderBySortOrderAsc(subject.getId(), resolvedSchoolId));
     }
 
     /** Creates a topic within a school's subject. */
     @Transactional
     public TopicResponse createTopic(Long schoolId, CreateTopicRequest request) {
-        Long resolvedSchoolId = schoolId != null ? schoolId : DEFAULT_SCHOOL_ID;
+        Long resolvedSchoolId = SchoolScope.require(schoolId);
         Subject subject = subjectRepository.findById(request.subjectId())
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
         if (subject.getSchool() == null
@@ -56,11 +61,44 @@ public class TopicService {
                 .name(request.name())
                 .description(request.description())
                 .sortOrder(request.sortOrder())
+                .isActive(true)
                 .createdAt(LocalDateTime.now())
                 .build();
         Topic saved = topicRepository.save(topic);
         log.info("Topic created: topicId={}, subjectId={}, name={}",
                 saved.getId(), request.subjectId(), saved.getName());
         return TopicMapper.toResponse(saved);
+    }
+
+    /** Updates a topic within the selected school. */
+    @Transactional
+    public TopicResponse updateTopic(Long schoolId, Long topicId, CreateTopicRequest request) {
+        Long resolvedSchoolId = SchoolScope.require(schoolId);
+        Topic topic = topicRepository.findById(topicId)
+                .filter(found -> found.getSchool() != null
+                        && resolvedSchoolId.equals(found.getSchool().getId()))
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
+        Subject subject = subjectRepository.findById(request.subjectId())
+                .filter(found -> found.getSchool() != null
+                        && resolvedSchoolId.equals(found.getSchool().getId()))
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
+        topic.setSubject(subject);
+        topic.setName(request.name());
+        topic.setDescription(request.description());
+        topic.setSortOrder(request.sortOrder());
+        topic.setUpdatedAt(LocalDateTime.now());
+        return TopicMapper.toResponse(topicRepository.save(topic));
+    }
+
+    @Transactional
+    public void deactivateTopic(Long schoolId, Long topicId) {
+        Long resolvedSchoolId = SchoolScope.require(schoolId);
+        Topic topic = topicRepository.findById(topicId)
+                .filter(found -> found.getSchool() != null
+                        && resolvedSchoolId.equals(found.getSchool().getId()))
+                .orElseThrow(() -> new ValidationException(ErrorCode.VALIDATION_FAILED));
+        topic.setIsActive(false);
+        topic.setUpdatedAt(LocalDateTime.now());
+        topicRepository.save(topic);
     }
 }

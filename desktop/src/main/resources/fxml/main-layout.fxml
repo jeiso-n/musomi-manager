@@ -35,11 +35,11 @@
 
             <Region HBox.hgrow="ALWAYS"/>
 
-            <Label text="Teacher"
+            <Label fx:id="roleLabel" text="Teacher"
                    style="-fx-font-size: 13px;
                           -fx-text-fill: #64748b;"/>
 
-            <Label text="John"
+            <Label fx:id="userNameLabel" text="John"
                    style="-fx-font-size: 14px;
                           -fx-font-weight: bold;
                           -fx-text-fill: #1e293b;"/>
@@ -65,7 +65,7 @@
 
 
             <!-- ROLE -->
-            <Label text="TEACHER"
+            <Label fx:id="sectionRoleLabel" text="TEACHER"
                    style="-fx-font-size: 11px;
                           -fx-font-weight: bold;
                           -fx-text-fill: #94a3b8;
@@ -179,6 +179,10 @@
                               -fx-text-fill: #94a3b8;
                               -fx-padding: 0 0 8 8;"/>
 
+                <Button text="Dashboard"
+                        maxWidth="1.7976931348623157E308"
+                        onAction="#showDashboard"/>
+
                 <Button text="Users"
                         maxWidth="1.7976931348623157E308"
                         onAction="#showUsers"/>
@@ -198,6 +202,10 @@
                 <Button text="Students"
                         maxWidth="1.7976931348623157E308"
                         onAction="#showStudents"/>
+
+                <Button text="Teacher Assignments"
+                        maxWidth="1.7976931348623157E308"
+                        onAction="#showTeacherAssignments"/>
 
                 <Button text="Settings"
                         maxWidth="1.7976931348623157E308"

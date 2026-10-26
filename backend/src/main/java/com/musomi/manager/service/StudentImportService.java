@@ -28,6 +28,7 @@ import com.musomi.manager.exception.ResourceNotFoundException;
 import com.musomi.manager.exception.ValidationException;
 import com.musomi.manager.repository.ImportJobRepository;
 import com.musomi.manager.repository.StudentRepository;
+import com.musomi.manager.util.SchoolScope;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,6 +57,10 @@ public class StudentImportService {
     /** Parses a student spreadsheet and persists a pending preview job. */
     @Transactional
     public ImportPreviewResponse previewImport(Long schoolId, Long userId, MultipartFile file) {
+        Long scopedSchoolId = SchoolScope.require(schoolId);
+        if (userId == null || userId <= 0) {
+            throw new com.musomi.manager.exception.AuthenticationException(ErrorCode.SESSION_EXPIRED);
+        }
         ExcelService.ParsedStudentFile parsed;
         try {
             byte[] bytes = file.getBytes();
@@ -68,7 +73,7 @@ public class StudentImportService {
         String errorsJson = serializePayload(parsed);
         ImportPreviewResponse preview = parsed.preview();
         ImportJob job = ImportJob.builder()
-                .school(School.builder().id(schoolId).build())
+                .school(School.builder().id(scopedSchoolId).build())
                 .jobReference(jobReference)
                 .importType("STUDENTS")
                 .status("PENDING")
@@ -83,7 +88,7 @@ public class StudentImportService {
         importJobRepository.save(job);
 
         log.info("Student import preview created: reference={}, schoolId={}, validRows={}, errorRows={}",
-                jobReference, schoolId, preview.validRows(), preview.errorRows());
+                jobReference, scopedSchoolId, preview.validRows(), preview.errorRows());
         return new ImportPreviewResponse(
                 jobReference, preview.totalRows(), preview.validRows(), preview.errorRows(), preview.errors());
     }
@@ -91,7 +96,8 @@ public class StudentImportService {
     /** Imports valid rows from a pending preview job and marks the job confirmed. */
     @Transactional
     public ImportConfirmResponse confirmImport(Long schoolId, String jobReference) {
-        ImportJob job = importJobRepository.findByJobReference(jobReference)
+        Long scopedSchoolId = SchoolScope.require(schoolId);
+        ImportJob job = importJobRepository.findByJobReferenceAndSchoolId(jobReference, scopedSchoolId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
         if (!"PENDING".equals(job.getStatus())) {
             throw new ValidationException(ErrorCode.VALIDATION_FAILED);
@@ -104,12 +110,12 @@ public class StudentImportService {
         for (JsonNode row : validRows) {
             String admissionNumber = requiredText(row, "admissionNumber");
             if (!admissionsInImport.add(admissionNumber)
-                    || studentRepository.existsBySchoolIdAndAdmissionNumber(schoolId, admissionNumber)) {
+                    || studentRepository.existsBySchoolIdAndAdmissionNumber(scopedSchoolId, admissionNumber)) {
                 skipped++;
                 continue;
             }
             Student student = Student.builder()
-                    .school(School.builder().id(schoolId).build())
+                    .school(School.builder().id(scopedSchoolId).build())
                     .admissionNumber(admissionNumber)
                     .fullName(requiredText(row, "fullName"))
                     .gender(optionalText(row, "gender"))

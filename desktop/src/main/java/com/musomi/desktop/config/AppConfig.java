@@ -33,6 +33,7 @@ public final class AppConfig {
 
     private static final String KEY_API_BASE_URL = "api.baseUrl";
     private static final String KEY_APP_VERSION  = "app.version";
+    private static final String KEY_SCHOOL_ID   = "school.id";
 
     // ------------------------------------------------------------------
     // System-property override keys
@@ -40,6 +41,7 @@ public final class AppConfig {
 
     private static final String SYS_API_BASE_URL = "musomi.api.baseUrl";
     private static final String SYS_MOCK_MODE    = "musomi.mock";
+    private static final String SYS_SCHOOL_ID    = "musomi.schoolId";
 
     // ------------------------------------------------------------------
     // Singleton (initialisation-on-demand holder)
@@ -65,6 +67,7 @@ public final class AppConfig {
     private final String  apiBaseUrl;
     private final String  appVersion;
     private final boolean mockMode;
+    private final Long schoolId;
 
     // ------------------------------------------------------------------
     // Constructor — loads and validates config
@@ -79,6 +82,8 @@ public final class AppConfig {
                 System.getProperty(SYS_MOCK_MODE,
                         props.getProperty(SYS_MOCK_MODE, "false"))
         );
+        this.schoolId = Long.parseLong(System.getProperty(
+                SYS_SCHOOL_ID, props.getProperty(KEY_SCHOOL_ID, "1")));
 
         log.info("Musomi Manager configuration loaded:");
         log.info("  app.version  = {}", appVersion);
@@ -119,6 +124,10 @@ public final class AppConfig {
      */
     public boolean isMockMode() {
         return mockMode;
+    }
+
+    public Long getSchoolId() {
+        return schoolId;
     }
 
     // ------------------------------------------------------------------

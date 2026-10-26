@@ -33,10 +33,10 @@ class LoginHistoryServiceTest {
     @Test
     @DisplayName("should list login history by user")
     void shouldListByUser() {
-        when(loginHistoryRepository.findByUserIdOrderByCreatedAtDesc(42L))
+        when(loginHistoryRepository.findByUserIdAndSchoolIdOrderByCreatedAtDesc(42L, 1L))
                 .thenReturn(List.of(history(true, user())));
 
-        List<LoginHistoryResponse> result = loginHistoryService.listByUser(42L);
+        List<LoginHistoryResponse> result = loginHistoryService.listByUser(42L, 1L);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).userId()).isEqualTo(42L);
@@ -58,7 +58,7 @@ class LoginHistoryServiceTest {
     @Test
     @DisplayName("should record successful login")
     void shouldRecordSuccess() {
-        loginHistoryService.record("jamie", 42L, true, "127.0.0.1", "browser");
+        loginHistoryService.record("jamie", 42L, 1L, true, "127.0.0.1", "browser");
 
         ArgumentCaptor<LoginHistory> captor = ArgumentCaptor.forClass(LoginHistory.class);
         verify(loginHistoryRepository).save(captor.capture());
@@ -72,7 +72,7 @@ class LoginHistoryServiceTest {
     @Test
     @DisplayName("should record failed login without user")
     void shouldRecordFailureWithoutUser() {
-        loginHistoryService.record("unknown", null, false, null, null);
+        loginHistoryService.record("unknown", null, 1L, false, null, null);
 
         ArgumentCaptor<LoginHistory> captor = ArgumentCaptor.forClass(LoginHistory.class);
         verify(loginHistoryRepository).save(captor.capture());

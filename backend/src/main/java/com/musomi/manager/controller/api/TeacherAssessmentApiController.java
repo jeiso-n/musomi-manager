@@ -40,7 +40,8 @@ public class TeacherAssessmentApiController {
             @RequestParam(required = false) Long termId,
             @RequestParam(required = false) String status) {
         return ApiResponse.success(
-                assessmentService.listAssessments(CurrentUser.getUserId(), classId, subjectId, termId, status));
+                assessmentService.listAssessments(
+                        CurrentUser.getSchoolId(), CurrentUser.getUserId(), classId, subjectId, termId, status));
     }
 
     /** Creates an assessment draft. */
@@ -55,7 +56,8 @@ public class TeacherAssessmentApiController {
     /** Returns an assessment by id. */
     @GetMapping("/{id}")
     public ApiResponse<AssessmentResponse> getAssessment(@PathVariable Long id) {
-        return ApiResponse.success(assessmentService.getAssessment(id));
+        return ApiResponse.success(
+                assessmentService.getAssessment(id, CurrentUser.getSchoolId(), CurrentUser.getUserId()));
     }
 
     /** Updates an assessment draft. */
@@ -63,20 +65,22 @@ public class TeacherAssessmentApiController {
     public ApiResponse<AssessmentResponse> updateAssessment(
             @PathVariable Long id,
             @Valid @RequestBody UpdateAssessmentRequest request) {
-        return ApiResponse.success(assessmentService.updateAssessment(id, request));
+        return ApiResponse.success(assessmentService.updateAssessment(
+                id, CurrentUser.getSchoolId(), CurrentUser.getUserId(), request));
     }
 
     /** Deletes an assessment draft. */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAssessment(@PathVariable Long id) {
-        assessmentService.deleteAssessment(id);
+        assessmentService.deleteAssessment(id, CurrentUser.getSchoolId(), CurrentUser.getUserId());
         return ResponseEntity.noContent().build();
     }
 
     /** Publishes an assessment and returns its updated representation. */
     @PostMapping("/{id}/publish")
     public ApiResponse<AssessmentResponse> publishAssessment(@PathVariable Long id) {
-        assessmentService.publishAssessment(id, CurrentUser.getUserId());
-        return ApiResponse.success(assessmentService.getAssessment(id));
+        assessmentService.publishAssessment(id, CurrentUser.getSchoolId(), CurrentUser.getUserId());
+        return ApiResponse.success(
+                assessmentService.getAssessment(id, CurrentUser.getSchoolId(), CurrentUser.getUserId()));
     }
 }

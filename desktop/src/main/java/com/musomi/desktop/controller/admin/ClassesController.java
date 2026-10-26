@@ -1,5 +1,7 @@
 package com.musomi.desktop.controller.admin;
 
+import java.util.List;
+
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -16,7 +18,19 @@ import javafx.scene.layout.HBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import com.musomi.desktop.api.AdminClassApi;
+import com.musomi.desktop.model.ClassResponse;
+import com.musomi.desktop.util.TaskRunner;
+import com.musomi.desktop.util.Toast;
+
+@RequiredArgsConstructor
+@Slf4j
 public class ClassesController {
+
+    private final AdminClassApi adminClassApi = new AdminClassApi();
 
     @FXML
     private TableView<ClassRow> classesTable;
@@ -44,327 +58,172 @@ public class ClassesController {
 
     @FXML
     private void initialize() {
+        nameColumn.setCellValueFactory(data -> data.getValue().nameProperty());
+        levelColumn.setCellValueFactory(data -> data.getValue().levelProperty());
+        studentsColumn.setCellValueFactory(data -> data.getValue().studentsProperty());
+        statusColumn.setCellValueFactory(data -> data.getValue().statusProperty());
 
-        nameColumn.setCellValueFactory(
-                data -> data.getValue().nameProperty()
-        );
+        actionsColumn.setCellFactory(column -> new TableCell<>() {
+            private final Button editButton = new Button("Edit");
 
-        levelColumn.setCellValueFactory(
-                data -> data.getValue().levelProperty()
-        );
+            {
+                editButton.getStyleClass().add("table-action-button");
+                editButton.setOnAction(event -> {
+                    ClassRow classRow = getTableView().getItems().get(getIndex());
+                    handleEditClass(classRow);
+                });
+            }
 
-        studentsColumn.setCellValueFactory(
-                data -> data.getValue().studentsProperty()
-        );
-
-        statusColumn.setCellValueFactory(
-                data -> data.getValue().statusProperty()
-        );
-
-        actionsColumn.setCellFactory(column ->
-                new TableCell<ClassRow, String>() {
-
-                    private final Button editButton =
-                            new Button("Edit");
-
-                    private final Button deactivateButton =
-                            new Button("Deactivate");
-
-                    private final HBox container =
-                            new HBox(
-                                    8,
-                                    editButton,
-                                    deactivateButton
-                            );
-
-                    {
-                        // Standard table action styling
-                        editButton.getStyleClass().add(
-                                "table-action-button"
-                        );
-
-                        deactivateButton.getStyleClass().addAll(
-                                "table-action-button",
-                                "table-action-danger"
-                        );
-
-                        editButton.setOnAction(event -> {
-
-                            ClassRow classRow =
-                                    getTableView()
-                                            .getItems()
-                                            .get(getIndex());
-
-                            handleEditClass(classRow);
-                        });
-
-                        deactivateButton.setOnAction(event -> {
-
-                            ClassRow classRow =
-                                    getTableView()
-                                            .getItems()
-                                            .get(getIndex());
-
-                            handleDeactivateClass(classRow);
-                        });
-                    }
-
-                    @Override
-                    protected void updateItem(
-                            String item,
-                            boolean empty
-                    ) {
-
-                        super.updateItem(item, empty);
-
-                        if (empty) {
-                            setGraphic(null);
-                        } else {
-                            setGraphic(container);
-                        }
-                    }
-                }
-        );
-
-        loadSampleClasses();
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : new HBox(8, editButton));
+            }
+        });
 
         classesTable.setItems(allClasses);
+        loadClassesFromBackend();
 
         searchField.textProperty().addListener(
-                (observable, oldValue, newValue) ->
-                        filterClasses(newValue)
-        );
-
+                (observable, oldValue, newValue) -> filterClasses(newValue));
         classesTable.setColumnResizePolicy(
-                TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN
-        );
+                TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
     }
 
-    private void loadSampleClasses() {
+    private void loadClassesFromBackend() {
+        TaskRunner.run(
+                adminClassApi::getClasses,
+                classes -> {
+                    List<ClassRow> rows = classes.stream()
+                            .map(this::toClassRow)
+                            .toList();
+                    allClasses.setAll(rows);
+                    filterClasses(searchField.getText());
+                },
+                error -> {
+                    log.error("Failed to load classes", error);
+                    Toast.error(errorMessage(error));
+                });
+    }
 
-        allClasses.addAll(
+    private ClassRow toClassRow(ClassResponse classResponse) {
+        return new ClassRow(
+                classResponse.id(),
+                classResponse.name(),
+                classResponse.classLevelId() == null
+                        ? ""
+                        : String.valueOf(classResponse.classLevelId()),
+                "",
+                classResponse.isActive() ? "Active" : "Inactive",
+                classResponse.classLevelId(), classResponse.academicYearId());
+    }
 
-                new ClassRow(
-                        "Senior One",
-                        "O-Level",
-                        "45",
-                        "Active"
-                ),
-
-                new ClassRow(
-                        "Senior Two",
-                        "O-Level",
-                        "42",
-                        "Active"
-                ),
-
-                new ClassRow(
-                        "Senior Three",
-                        "O-Level",
-                        "38",
-                        "Active"
-                ),
-
-                new ClassRow(
-                        "Senior Four",
-                        "O-Level",
-                        "35",
-                        "Inactive"
-                )
-        );
+    private static String errorMessage(Exception error) {
+        return error.getMessage() == null || error.getMessage().isBlank()
+                ? "Unable to load classes."
+                : error.getMessage();
     }
 
     private void filterClasses(String searchText) {
-
-        String search =
-                searchText.toLowerCase().trim();
-
+        String search = searchText == null ? "" : searchText.toLowerCase().trim();
         if (search.isEmpty()) {
-
             classesTable.setItems(allClasses);
-
             return;
         }
 
-        ObservableList<ClassRow> filteredClasses =
-                FXCollections.observableArrayList();
-
+        ObservableList<ClassRow> filteredClasses = FXCollections.observableArrayList();
         for (ClassRow classRow : allClasses) {
-
-            if (classRow.getName()
-                    .toLowerCase()
-                    .contains(search)
-
-                    || classRow.getLevel()
-                    .toLowerCase()
-                    .contains(search)
-
-                    || classRow.getStatus()
-                    .toLowerCase()
-                    .contains(search)) {
-
+            if (classRow.getName().toLowerCase().contains(search)
+                    || classRow.getLevel().toLowerCase().contains(search)
+                    || classRow.getStatus().toLowerCase().contains(search)) {
                 filteredClasses.add(classRow);
             }
         }
-
         classesTable.setItems(filteredClasses);
     }
 
     @FXML
     private void showAddClassDialog() {
-
         try {
-
             FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource(
-                            "/fxml/admin/add-class.fxml"
-                    )
-            );
-
+                    getClass().getResource("/fxml/admin/add-class.fxml"));
             Parent root = loader.load();
-
-            AddClassController controller =
-                    loader.getController();
-
             Stage dialog = new Stage();
-
             dialog.setTitle("Add Class");
-
-            dialog.initModality(
-                    Modality.APPLICATION_MODAL
-            );
-
-            Scene scene = createStyledScene(root);
-
-            dialog.setScene(scene);
-
+            dialog.initModality(Modality.APPLICATION_MODAL);
+            dialog.setScene(createStyledScene(root));
             dialog.setResizable(false);
-
             dialog.showAndWait();
-
-            if (controller.getCreatedName() != null) {
-
-                ClassRow newClass = new ClassRow(
-                        controller.getCreatedName(),
-                        controller.getCreatedLevel(),
-                        "0",
-                        "Active"
-                );
-
-                allClasses.add(newClass);
-
-                filterClasses(
-                        searchField.getText()
-                );
-            }
-
         } catch (Exception e) {
-
-            e.printStackTrace();
+            log.error("Unable to open add-class dialog", e);
+            Toast.error(errorMessage(e));
         }
+        loadClassesFromBackend();
     }
 
     private void handleEditClass(ClassRow classRow) {
-
         try {
-
             FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource(
-                            "/fxml/admin/edit-class.fxml"
-                    )
-            );
-
+                    getClass().getResource("/fxml/admin/edit-class.fxml"));
             Parent root = loader.load();
-
-            EditClassController controller =
-                    loader.getController();
-
+            EditClassController controller = loader.getController();
             controller.setClassRow(classRow);
-
             Stage dialog = new Stage();
-
             dialog.setTitle("Edit Class");
-
-            dialog.initModality(
-                    Modality.APPLICATION_MODAL
-            );
-
-            Scene scene = createStyledScene(root);
-
-            dialog.setScene(scene);
-
+            dialog.initModality(Modality.APPLICATION_MODAL);
+            dialog.setScene(createStyledScene(root));
             dialog.setResizable(false);
-
             dialog.showAndWait();
-
-            classesTable.refresh();
-
+            if (controller.isSaved()) {
+                loadClassesFromBackend();
+            }
         } catch (Exception e) {
-
-            e.printStackTrace();
+            log.error("Unable to open edit-class dialog", e);
+            Toast.error(errorMessage(e));
         }
+        loadClassesFromBackend();
     }
 
-    /**
-     * Applies the same CSS used by the main
-     * Musomi Manager application.
-     */
     private Scene createStyledScene(Parent root) {
-
         Scene scene = new Scene(root);
-
-        scene.getStylesheets().add(
-                getClass()
-                        .getResource("/css/styles.css")
-                        .toExternalForm()
-        );
-
-        scene.getStylesheets().add(
-                getClass()
-                        .getResource("/css/components.css")
-                        .toExternalForm()
-        );
-
+        var styles = getClass().getResource("/css/styles.css");
+        var components = getClass().getResource("/css/components.css");
+        if (styles != null) {
+            scene.getStylesheets().add(styles.toExternalForm());
+        }
+        if (components != null) {
+            scene.getStylesheets().add(components.toExternalForm());
+        }
         return scene;
-    }
-
-    private void handleDeactivateClass(
-            ClassRow classRow
-    ) {
-
-        classRow.setStatus("Inactive");
-
-        classesTable.refresh();
     }
 
     public static class ClassRow {
 
+        private final Long id;
         private final SimpleStringProperty name;
-
         private final SimpleStringProperty level;
-
         private final SimpleStringProperty students;
-
         private final SimpleStringProperty status;
+        private final Long classLevelId;
+        private final Long academicYearId;
 
-        public ClassRow(
-                String name,
-                String level,
-                String students,
-                String status
-        ) {
+        public ClassRow(Long id, String name, String level, String students, String status) {
+            this(id, name, level, students, status, null, null);
+        }
 
-            this.name =
-                    new SimpleStringProperty(name);
+        public ClassRow(Long id, String name, String level, String students, String status,
+                        Long classLevelId, Long academicYearId) {
+            this.id = id;
+            this.name = new SimpleStringProperty(name);
+            this.level = new SimpleStringProperty(level);
+            this.students = new SimpleStringProperty(students);
+            this.status = new SimpleStringProperty(status);
+            this.classLevelId = classLevelId;
+            this.academicYearId = academicYearId;
+        }
 
-            this.level =
-                    new SimpleStringProperty(level);
-
-            this.students =
-                    new SimpleStringProperty(students);
-
-            this.status =
-                    new SimpleStringProperty(status);
+        public Long getId() {
+            return id;
         }
 
         public SimpleStringProperty nameProperty() {
@@ -398,6 +257,8 @@ public class ClassesController {
         public String getStatus() {
             return status.get();
         }
+        public Long getClassLevelId() { return classLevelId; }
+        public Long getAcademicYearId() { return academicYearId; }
 
         public void setName(String name) {
             this.name.set(name);

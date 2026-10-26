@@ -10,6 +10,7 @@ import com.musomi.manager.entity.User;
 import com.musomi.manager.mapper.AuditLogMapper;
 import com.musomi.manager.repository.AuditLogRepository;
 import com.musomi.manager.repository.UserRepository;
+import com.musomi.manager.util.SchoolScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -59,6 +60,12 @@ public class AuditService {
         return AuditLogMapper.toResponseList(auditLogRepository.findByUserIdOrderByCreatedAtDesc(userId));
     }
 
+    @Transactional(readOnly = true)
+    public List<AuditLogResponse> listByUser(Long userId, Long schoolId) {
+        return AuditLogMapper.toResponseList(auditLogRepository.findByUserIdAndSchoolIdOrderByCreatedAtDesc(
+                userId, SchoolScope.require(schoolId)));
+    }
+
     /** Lists audit events for a school. */
     @Transactional(readOnly = true)
     public List<AuditLogResponse> listBySchool(Long schoolId) {
@@ -71,10 +78,23 @@ public class AuditService {
         return AuditLogMapper.toResponseList(auditLogRepository.findByActionOrderByCreatedAtDesc(action));
     }
 
+    @Transactional(readOnly = true)
+    public List<AuditLogResponse> listByAction(String action, Long schoolId) {
+        return AuditLogMapper.toResponseList(auditLogRepository.findBySchoolIdAndActionOrderByCreatedAtDesc(
+                SchoolScope.require(schoolId), action));
+    }
+
     /** Lists audit events for an entity. */
     @Transactional(readOnly = true)
     public List<AuditLogResponse> listByEntity(String entityType, Long entityId) {
         return AuditLogMapper.toResponseList(
                 auditLogRepository.findByEntityTypeAndEntityIdOrderByCreatedAtDesc(entityType, entityId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<AuditLogResponse> listByEntity(String entityType, Long entityId, Long schoolId) {
+        return AuditLogMapper.toResponseList(
+                auditLogRepository.findBySchoolIdAndEntityTypeAndEntityIdOrderByCreatedAtDesc(
+                        SchoolScope.require(schoolId), entityType, entityId));
     }
 }

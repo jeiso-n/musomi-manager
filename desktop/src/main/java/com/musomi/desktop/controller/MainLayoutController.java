@@ -8,6 +8,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
@@ -43,12 +44,34 @@ public class MainLayoutController {
     @FXML
     private Button reportsButton;
 
+    @FXML
+    private Label roleLabel;
+
+    @FXML
+    private Label userNameLabel;
+
+    @FXML
+    private Label sectionRoleLabel;
 
     @FXML
     private void initialize() {
-        boolean isTeacher = "TEACHER".equalsIgnoreCase(Session.getInstance().getRole());
+        Session session = Session.getInstance();
+        String role = normalizeRole(session.getRole());
+        boolean isTeacher = "TEACHER".equals(role);
+        boolean isAdmin = "ADMIN".equals(role);
         setSectionVisible(teacherNavSection, isTeacher);
-        setSectionVisible(adminNavSection, !isTeacher);
+        setSectionVisible(adminNavSection, isAdmin);
+        log.info("Initialising main layout for role={}", role);
+        if (roleLabel != null) {
+            roleLabel.setText(role.isEmpty() ? "User" : capitalize(role));
+        }
+        if (sectionRoleLabel != null) {
+            sectionRoleLabel.setText(role.isEmpty() ? "USER" : role);
+        }
+        if (userNameLabel != null) {
+            String fullName = session.getUser() == null ? null : session.getUser().getFullName();
+            userNameLabel.setText(fullName == null || fullName.isBlank() ? "User" : fullName);
+        }
 
         if (isTeacher && teacherNavSection != null) {
             for (Node child : teacherNavSection.getChildren()) {
@@ -70,6 +93,18 @@ public class MainLayoutController {
         }
     }
 
+    private String capitalize(String value) {
+        String normalized = value.toLowerCase();
+        return normalized.substring(0, 1).toUpperCase() + normalized.substring(1);
+    }
+
+    private String normalizeRole(String role) {
+        if (role == null) {
+            return "";
+        }
+        String normalized = role.trim().toUpperCase();
+        return normalized.startsWith("ROLE_") ? normalized.substring(5) : normalized;
+    }
 
     // =========================================================
     // DASHBOARD
@@ -171,6 +206,11 @@ public class MainLayoutController {
         loadView("/fxml/admin/audit-log.fxml");
     }
 
+    @FXML
+    private void showTeacherAssignments() {
+        loadView("/fxml/admin/teacher-assignments.fxml");
+    }
+
 
     // =========================================================
     // ACTIVE NAVIGATION BUTTON
@@ -226,8 +266,7 @@ public class MainLayoutController {
 
         try {
 
-            System.out.println("========================================");
-            System.out.println("Loading view: " + fxmlPath);
+            log.debug("Loading view: {}", fxmlPath);
 
             FXMLLoader loader =
                     new FXMLLoader(
@@ -251,23 +290,10 @@ public class MainLayoutController {
 
             contentArea.getChildren().setAll(view);
 
-            System.out.println(
-                    "Successfully loaded: " + fxmlPath
-            );
-
-            System.out.println("========================================");
+            log.debug("Successfully loaded: {}", fxmlPath);
 
         } catch (Exception e) {
-
-            System.out.println("========================================");
-            System.out.println(
-                    "FAILED TO LOAD: " + fxmlPath
-            );
-            System.out.println("========================================");
-
-            e.printStackTrace();
-
-            System.out.println("========================================");
+            log.error("Failed to load view: {}", fxmlPath, e);
         }
     }
 }

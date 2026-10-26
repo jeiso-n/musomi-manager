@@ -32,7 +32,7 @@ public class TeacherMarkApiController {
     /** Loads the mark grid for an assessment. */
     @GetMapping("/assessments/{id}/grid")
     public ApiResponse<MarkGridResponse> getGrid(@PathVariable Long id) {
-        return ApiResponse.success(scoreService.getGrid(id));
+        return ApiResponse.success(scoreService.getGrid(id, CurrentUser.getSchoolId(), CurrentUser.getUserId()));
     }
 
     /** Updates one assessment score. */
@@ -40,7 +40,8 @@ public class TeacherMarkApiController {
     public ApiResponse<ScoreResponse> updateScore(
             @PathVariable Long scoreId,
             @Valid @RequestBody SaveMarksRequest request) {
-        return ApiResponse.success(scoreService.updateScore(scoreId, request, CurrentUser.getUserId()));
+        return ApiResponse.success(scoreService.updateScore(
+                scoreId, request, CurrentUser.getUserId(), CurrentUser.getSchoolId()));
     }
 
     /** Saves a batch of scores for an assessment. */
@@ -48,6 +49,7 @@ public class TeacherMarkApiController {
     public ApiResponse<List<ScoreResponse>> saveBatch(
             @PathVariable Long id,
             @Valid @RequestBody SaveMarksBatchRequest request) {
-        return ApiResponse.success(scoreService.saveBatch(id, request, CurrentUser.getUserId()));
+        return ApiResponse.success(
+                scoreService.saveBatch(id, request, CurrentUser.getUserId(), CurrentUser.getSchoolId()));
     }
 }

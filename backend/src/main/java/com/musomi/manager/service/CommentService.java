@@ -11,13 +11,16 @@ import com.musomi.manager.entity.Student;
 import com.musomi.manager.entity.Subject;
 import com.musomi.manager.entity.Term;
 import com.musomi.manager.entity.User;
+import com.musomi.manager.exception.AuthenticationException;
 import com.musomi.manager.exception.ErrorCode;
+import com.musomi.manager.exception.PermissionDeniedException;
 import com.musomi.manager.exception.ResourceNotFoundException;
 import com.musomi.manager.mapper.CommentMapper;
 import com.musomi.manager.repository.CommentRepository;
 import com.musomi.manager.repository.StudentRepository;
 import com.musomi.manager.repository.SubjectRepository;
 import com.musomi.manager.repository.TermRepository;
+import com.musomi.manager.repository.TeacherAssignmentRepository;
 import com.musomi.manager.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,18 +33,30 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class CommentService {
 
-    private static final long DEFAULT_SCHOOL_ID = 1L;
-
     private final CommentRepository commentRepository;
     private final StudentRepository studentRepository;
     private final TermRepository termRepository;
     private final SubjectRepository subjectRepository;
+    private final TeacherAssignmentRepository teacherAssignmentRepository;
     private final UserRepository userRepository;
     private final AuditService auditService;
 
     /** Lists comments for a student and term. */
     @Transactional(readOnly = true)
-    public List<CommentResponse> listComments(Long studentId, Long termId) {
+    public List<CommentResponse> listComments(Long studentId, Long termId, Long schoolId, Long teacherId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND));
+        if (student.getSchool() == null || !schoolId.equals(student.getSchool().getId())) {
+            throw new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND);
+        }
+        verifyTeacherAssignment(schoolId, teacherId, student, null);
+        if (termId != null) {
+            Term term = termRepository.findById(termId)
+                    .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
+            if (term.getSchool() == null || !schoolId.equals(term.getSchool().getId())) {
+                throw new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED);
+            }
+        }
         return commentRepository.findByStudentIdAndTermIdOrderByWrittenAtDesc(studentId, termId)
                 .stream()
                 .map(CommentMapper::toResponse)
@@ -60,7 +75,10 @@ public class CommentService {
     /** Creates or updates the comment for the same student, term, subject, and type. */
     @Transactional
     public CommentResponse saveComment(Long schoolId, Long authorId, SaveCommentRequest request) {
-        Long resolvedSchoolId = schoolId != null ? schoolId : DEFAULT_SCHOOL_ID;
+        if (schoolId == null || schoolId <= 0 || authorId == null || authorId <= 0) {
+            throw new AuthenticationException(ErrorCode.SESSION_EXPIRED);
+        }
+        Long resolvedSchoolId = schoolId;
         Student student = studentRepository.findById(request.studentId())
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND));
         if (student.getSchool() == null || !resolvedSchoolId.equals(student.getSchool().getId())) {
@@ -85,9 +103,14 @@ public class CommentService {
             // TODO: Use a dedicated comment/subject ownership error code when one is available.
             throw new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED);
         }
+        verifyTeacherAssignment(resolvedSchoolId, authorId, student,
+                subject == null ? null : subject.getId());
 
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND));
+        if (author.getSchool() == null || !resolvedSchoolId.equals(author.getSchool().getId())) {
+            throw new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND);
+        }
         Comment comment = commentRepository
                 .findByStudentIdAndTermIdAndCommentType(request.studentId(), request.termId(), request.commentType())
                 .stream()
@@ -118,19 +141,42 @@ public class CommentService {
 
     /** Deletes a comment by id. */
     @Transactional
-    public void deleteComment(Long id) {
+    public void deleteComment(Long id, Long schoolId, Long authorId) {
         Comment comment = commentRepository.findById(id)
                 // TODO: Use a dedicated comment-not-found error code when one is available.
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
+        if (comment.getSchool() == null || !schoolId.equals(comment.getSchool().getId())) {
+            throw new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED);
+        }
+        if (comment.getWrittenBy() == null || !authorId.equals(comment.getWrittenBy().getId())) {
+            throw new PermissionDeniedException(ErrorCode.PERMISSION_DENIED);
+        }
         commentRepository.delete(comment);
         log.info("Comment {} deleted", id);
-        // TODO(backend-lead): pass real userId once @CurrentUser is wired in services
-        // TODO(backend-lead): pass real schoolId once school context is wired in services
-        auditService.log("COMMENT_DELETED", "Comment", id, 1L, 1L);
+        auditService.log("COMMENT_DELETED", "Comment", id, authorId, schoolId);
     }
 
     private boolean sameSubject(Subject first, Subject second) {
         return first == null ? second == null
                 : second != null && first.getId().equals(second.getId());
+    }
+
+    private void verifyTeacherAssignment(Long schoolId, Long teacherId, Student student, Long subjectId) {
+        if (student.getCurrentClass() == null) {
+            throw new PermissionDeniedException(ErrorCode.NOT_YOUR_CLASS);
+        }
+        boolean assigned = teacherAssignmentRepository
+                .findBySchoolIdAndTeacherIdOrderByIdAsc(schoolId, teacherId)
+                .stream()
+                .anyMatch(assignment -> assignment.getClassEntity() != null
+                        && student.getCurrentClass().getId().equals(assignment.getClassEntity().getId())
+                        && (subjectId == null || assignment.getSubject() != null
+                        && subjectId.equals(assignment.getSubject().getId()))
+                        && (assignment.getStream() == null
+                        || student.getCurrentStream() != null
+                        && assignment.getStream().getId().equals(student.getCurrentStream().getId())));
+        if (!assigned) {
+            throw new PermissionDeniedException(ErrorCode.NOT_YOUR_CLASS);
+        }
     }
 }

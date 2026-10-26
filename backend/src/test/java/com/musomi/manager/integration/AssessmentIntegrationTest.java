@@ -59,6 +59,7 @@ class AssessmentIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("should throw when topic IDs are empty")
     void shouldThrowWhenTopicIdsEmpty() throws Exception {
         mockMvc.perform(post("/api/v1/teacher/assessments")
+                        .with(withAuthenticatedUser("TEACHER", 2L, 1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(assessmentRequest(uniqueTitle(), List.of())))
                 .andExpect(status().isBadRequest())
@@ -68,7 +69,8 @@ class AssessmentIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("should return 404 when assessment is not found")
     void shouldReturn404WhenAssessmentNotFound() throws Exception {
-        mockMvc.perform(get("/api/v1/teacher/assessments/999999"))
+        mockMvc.perform(get("/api/v1/teacher/assessments/999999")
+                        .with(withAuthenticatedUser("TEACHER", 2L, 1L)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("ASSESSMENT_NOT_FOUND"));
     }
@@ -87,6 +89,7 @@ class AssessmentIntegrationTest extends AbstractIntegrationTest {
                 "topicIds", List.of(1)));
 
         mockMvc.perform(put("/api/v1/teacher/assessments/{id}", id)
+                        .with(withAuthenticatedUser("TEACHER", 2L, 1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isOk())
@@ -98,10 +101,12 @@ class AssessmentIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("should throw when updating published assessment")
     void shouldThrowWhenUpdatingPublishedAssessment() throws Exception {
         long id = createAssessment().path("data").path("id").asLong();
-        mockMvc.perform(post("/api/v1/teacher/assessments/{id}/publish", id))
+        mockMvc.perform(post("/api/v1/teacher/assessments/{id}/publish", id)
+                        .with(withAuthenticatedUser("TEACHER", 2L, 1L)))
                 .andExpect(status().isOk());
 
         mockMvc.perform(put("/api/v1/teacher/assessments/{id}", id)
+                        .with(withAuthenticatedUser("TEACHER", 2L, 1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(assessmentUpdateRequest(uniqueTitle())))
                 .andExpect(status().isConflict())
@@ -113,15 +118,18 @@ class AssessmentIntegrationTest extends AbstractIntegrationTest {
     void shouldDeleteDraftAssessment() throws Exception {
         long id = createAssessment().path("data").path("id").asLong();
 
-        mockMvc.perform(delete("/api/v1/teacher/assessments/{id}", id))
+        mockMvc.perform(delete("/api/v1/teacher/assessments/{id}", id)
+                        .with(withAuthenticatedUser("TEACHER", 2L, 1L)))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/api/v1/teacher/assessments/{id}", id))
+        mockMvc.perform(get("/api/v1/teacher/assessments/{id}", id)
+                        .with(withAuthenticatedUser("TEACHER", 2L, 1L)))
                 .andExpect(status().isNotFound());
     }
 
     private JsonNode createAssessment() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/v1/teacher/assessments")
+                        .with(withAuthenticatedUser("TEACHER", 2L, 1L))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(assessmentRequest(uniqueTitle(), List.of(1))))
                 .andExpect(status().isCreated())

@@ -49,9 +49,9 @@ class UserServiceTest {
     @DisplayName("should return user when found")
     void shouldReturnUserWhenFound() {
         User user = createUser();
-        when(userRepository.findById(42L)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdAndSchoolId(42L, 1L)).thenReturn(Optional.of(user));
 
-        UserResponse response = userService.getUser(42L);
+        UserResponse response = userService.getUser(42L, 1L);
 
         assertThat(response.id()).isEqualTo(42L);
         assertThat(response.username()).isEqualTo("jane");
@@ -63,9 +63,19 @@ class UserServiceTest {
     @Test
     @DisplayName("should throw when user not found")
     void shouldThrowWhenUserNotFound() {
-        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndSchoolId(999L, 1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> userService.getUser(999L))
+        assertThatThrownBy(() -> userService.getUser(999L, 1L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("should hide user from another school")
+    void shouldHideUserFromAnotherSchool() {
+        when(userRepository.findByIdAndSchoolId(42L, 99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.getUser(42L, 99L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USER_NOT_FOUND);
     }
@@ -84,7 +94,7 @@ class UserServiceTest {
             return u;
         });
 
-        UserResponse response = userService.createUser(1L, request);
+        UserResponse response = userService.createUser(1L, 42L, request);
 
         assertThat(response.id()).isEqualTo(7L);
         assertThat(response.username()).isEqualTo("newuser");
@@ -101,7 +111,7 @@ class UserServiceTest {
                 null, null, Role.TEACHER);
         when(userRepository.existsBySchoolIdAndUsername(1L, "existing")).thenReturn(true);
 
-        assertThatThrownBy(() -> userService.createUser(1L, request))
+        assertThatThrownBy(() -> userService.createUser(1L, 42L, request))
                 .isInstanceOf(ValidationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.USERNAME_TAKEN);
 
@@ -118,7 +128,7 @@ class UserServiceTest {
         when(passwordEncoder.encode("plaintext-pw")).thenReturn("bcrypt-hash");
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        userService.createUser(1L, request);
+        userService.createUser(1L, 42L, request);
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
@@ -129,7 +139,7 @@ class UserServiceTest {
     @Test
     @DisplayName("should throw when deactivating self")
     void shouldThrowWhenDeactivatingSelf() {
-        assertThatThrownBy(() -> userService.deactivateUser(42L, 42L))
+        assertThatThrownBy(() -> userService.deactivateUser(42L, 1L, 42L))
                 .isInstanceOf(ValidationException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.CANNOT_DEACTIVATE_SELF);
 
@@ -141,10 +151,10 @@ class UserServiceTest {
     void shouldSetInactiveWhenDeactivatingOther() {
         User target = createUser();
         target.setId(7L);
-        when(userRepository.findById(7L)).thenReturn(Optional.of(target));
+        when(userRepository.findByIdAndSchoolId(7L, 1L)).thenReturn(Optional.of(target));
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        userService.deactivateUser(7L, 42L);
+        userService.deactivateUser(7L, 1L, 42L);
 
         assertThat(target.getIsActive()).isFalse();
         verify(userRepository).save(target);
@@ -154,11 +164,11 @@ class UserServiceTest {
     @DisplayName("should return plaintext when resetting password")
     void shouldReturnPlaintextWhenResettingPassword() {
         User target = createUser();
-        when(userRepository.findById(42L)).thenReturn(Optional.of(target));
+        when(userRepository.findByIdAndSchoolId(42L, 1L)).thenReturn(Optional.of(target));
         when(passwordEncoder.encode(anyString())).thenReturn("hashed-temp");
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        ResetPasswordResponse response = userService.resetPassword(42L);
+        ResetPasswordResponse response = userService.resetPassword(42L, 1L, 8L);
 
         assertThat(response.temporaryPassword()).isNotNull();
         assertThat(response.temporaryPassword()).hasSize(10);

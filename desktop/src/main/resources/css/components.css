@@ -235,6 +235,11 @@
     -fx-border-color: transparent;
 }
 
+.assessment-table .table-cell.numeric-cell {
+    -fx-font-family: "JetBrains Mono", "Courier New", monospace;
+    -fx-alignment: CENTER-RIGHT;
+}
+
 .assessment-table .table-row-cell {
     -fx-cell-size: 48px;
     -fx-background-color: #FFFFFF;

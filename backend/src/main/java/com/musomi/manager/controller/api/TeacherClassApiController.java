@@ -7,6 +7,8 @@ import com.musomi.manager.dto.response.ApiResponse;
 import com.musomi.manager.dto.response.AssessmentResponse;
 import com.musomi.manager.dto.response.AssignmentResponse;
 import com.musomi.manager.dto.response.StudentResponse;
+import com.musomi.manager.exception.ErrorCode;
+import com.musomi.manager.exception.PermissionDeniedException;
 import com.musomi.manager.mapper.StudentMapper;
 import com.musomi.manager.repository.StudentRepository;
 import com.musomi.manager.service.AssessmentService;
@@ -46,9 +48,15 @@ public class TeacherClassApiController {
     public ApiResponse<List<StudentResponse>> listStudents(
             @PathVariable Long classId,
             @PathVariable Long streamId) {
+        if (!teacherAssignmentService.isAssignedToClassStream(
+                CurrentUser.getSchoolId(), CurrentUser.getUserId(), classId, streamId)) {
+            throw new PermissionDeniedException(ErrorCode.NOT_YOUR_CLASS);
+        }
         List<StudentResponse> students = StudentMapper.toResponseList(
                 studentRepository.findByCurrentClassIdAndIsActiveTrue(classId).stream()
-                        .filter(student -> student.getCurrentStream() != null
+                        .filter(student -> student.getSchool() != null
+                                && CurrentUser.getSchoolId().equals(student.getSchool().getId())
+                                && student.getCurrentStream() != null
                                 && streamId.equals(student.getCurrentStream().getId()))
                         .toList());
         return ApiResponse.success(students);
@@ -56,7 +64,8 @@ public class TeacherClassApiController {
 
     private ClassStreamResponse toClassStreamResponse(AssignmentResponse assignment) {
         List<AssessmentResponse> assessments = assessmentService.listAssessments(
-                        CurrentUser.getUserId(), assignment.classId(), assignment.subjectId(), null, null)
+                        CurrentUser.getSchoolId(), CurrentUser.getUserId(),
+                        assignment.classId(), assignment.subjectId(), null, null)
                 .stream()
                 .filter(assessment -> Objects.equals(assessment.streamId(), assignment.streamId()))
                 .toList();

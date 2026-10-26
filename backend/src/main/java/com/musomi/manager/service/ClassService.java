@@ -18,10 +18,13 @@ import com.musomi.manager.repository.AcademicYearRepository;
 import com.musomi.manager.repository.ClassLevelRepository;
 import com.musomi.manager.repository.ClassRepository;
 import com.musomi.manager.repository.UserRepository;
+import com.musomi.manager.util.SchoolScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 /** Manages classes within school academic years. */
 @Service
@@ -29,19 +32,21 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class ClassService {
 
-    private static final long DEFAULT_SCHOOL_ID = 1L;
-
     private final ClassRepository classRepository;
     private final ClassLevelRepository classLevelRepository;
     private final AcademicYearRepository academicYearRepository;
     private final UserRepository userRepository;
+    private final AuditService auditService;
 
     /** Lists active classes for a school and academic year. */
     @Transactional(readOnly = true)
     public List<ClassResponse> listClasses(Long schoolId, Long academicYearId) {
-        return ClassMapper.toResponseList(
-                classRepository.findBySchoolIdAndAcademicYearIdAndIsActiveTrue(
-                        resolveSchoolId(schoolId), academicYearId));
+        Long resolvedSchoolId = resolveSchoolId(schoolId);
+        List<ClassEntity> classes = academicYearId == null
+                ? classRepository.findBySchoolIdAndIsActiveTrue(resolvedSchoolId)
+                : classRepository.findBySchoolIdAndAcademicYearIdAndIsActiveTrue(
+                        resolvedSchoolId, academicYearId);
+        return ClassMapper.toResponseList(classes);
     }
 
     /** Creates a class for a school and academic year. */
@@ -83,10 +88,41 @@ public class ClassService {
         ClassEntity saved = classRepository.save(classEntity);
         log.info("Class created: classId={}, name={}, academicYearId={}",
                 saved.getId(), saved.getName(), request.academicYearId());
+        if (auditService != null) {
+            auditService.log("CLASS_CREATED", "Class", saved.getId(),
+                    currentUserId(), resolvedSchoolId);
+        }
         return ClassMapper.toResponse(saved);
     }
 
+    @Transactional
+    public ClassResponse updateClass(Long id, Long schoolId, CreateClassRequest request) {
+        Long resolvedSchoolId = resolveSchoolId(schoolId);
+        ClassEntity classEntity = classRepository.findById(id)
+                .filter(item -> item.getSchool() != null
+                        && resolvedSchoolId.equals(item.getSchool().getId()))
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
+        ClassLevel classLevel = classLevelRepository.findById(request.classLevelId())
+                .filter(item -> resolvedSchoolId.equals(item.getSchool().getId()))
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
+        User classTeacher = request.classTeacherId() == null ? null
+                : userRepository.findById(request.classTeacherId())
+                        .filter(item -> item.getSchool() != null
+                                && resolvedSchoolId.equals(item.getSchool().getId()))
+                        .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND));
+        classEntity.setName(request.name());
+        classEntity.setClassLevel(classLevel);
+        classEntity.setClassTeacher(classTeacher);
+        return ClassMapper.toResponse(classRepository.save(classEntity));
+    }
+
+    private Long currentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getPrincipal() instanceof Long userId
+                ? userId : null;
+    }
+
     private Long resolveSchoolId(Long schoolId) {
-        return schoolId != null ? schoolId : DEFAULT_SCHOOL_ID;
+        return SchoolScope.require(schoolId);
     }
 }

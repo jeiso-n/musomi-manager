@@ -12,6 +12,6 @@ public interface ImportJobRepository extends JpaRepository<ImportJob, Long> {
     /** Lists import jobs for a school, newest first. */
     List<ImportJob> findBySchoolIdOrderByCreatedAtDesc(Long schoolId);
 
-    /** Finds an import job by its unique reference. */
-    Optional<ImportJob> findByJobReference(String jobReference);
+    /** Finds an import job by reference within a school. */
+    Optional<ImportJob> findByJobReferenceAndSchoolId(String jobReference, Long schoolId);
 }

@@ -1,5 +1,7 @@
 package com.musomi.desktop.controller.admin;
 
+import java.util.List;
+
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -16,7 +18,19 @@ import javafx.scene.layout.HBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import com.musomi.desktop.api.AdminSubjectApi;
+import com.musomi.desktop.model.SubjectResponse;
+import com.musomi.desktop.util.TaskRunner;
+import com.musomi.desktop.util.Toast;
+
+@RequiredArgsConstructor
+@Slf4j
 public class SubjectsController {
+
+    private final AdminSubjectApi adminSubjectApi = new AdminSubjectApi();
 
     @FXML
     private TableView<SubjectRow> subjectsTable;
@@ -41,311 +55,207 @@ public class SubjectsController {
 
     @FXML
     private void initialize() {
+        nameColumn.setCellValueFactory(data -> data.getValue().nameProperty());
+        codeColumn.setCellValueFactory(data -> data.getValue().codeProperty());
+        statusColumn.setCellValueFactory(data -> data.getValue().statusProperty());
 
-        nameColumn.setCellValueFactory(
-                data -> data.getValue().nameProperty()
-        );
+        actionsColumn.setCellFactory(column -> new TableCell<>() {
+            private final Button editButton = new Button("Edit");
+            private final Button deactivateButton = new Button("Deactivate");
+            private final HBox buttons = new HBox(8, editButton, deactivateButton);
 
-        codeColumn.setCellValueFactory(
-                data -> data.getValue().codeProperty()
-        );
+            {
+                editButton.getStyleClass().add("table-action-button");
+                deactivateButton.getStyleClass().addAll(
+                        "table-action-button", "table-action-danger");
+                editButton.setOnAction(event -> {
+                    SubjectRow subject = getTableView().getItems().get(getIndex());
+                    handleEditSubject(subject);
+                });
+                deactivateButton.setOnAction(event -> {
+                    SubjectRow subject = getTableView().getItems().get(getIndex());
+                    handleDeactivateSubject(subject);
+                });
+            }
 
-        statusColumn.setCellValueFactory(
-                data -> data.getValue().statusProperty()
-        );
-
-        actionsColumn.setCellFactory(column ->
-                new TableCell<SubjectRow, String>() {
-
-                    private final Button editButton =
-                            new Button("Edit");
-
-                    private final Button deactivateButton =
-                            new Button("Deactivate");
-
-                    private final HBox container =
-                            new HBox(
-                                    8,
-                                    editButton,
-                                    deactivateButton
-                            );
-
-                    {
-                        // Table action button styling
-                        editButton.getStyleClass().add(
-                                "table-action-button"
-                        );
-
-                        deactivateButton.getStyleClass().addAll(
-                                "table-action-button",
-                                "table-action-danger"
-                        );
-
-                        editButton.setOnAction(event -> {
-
-                            SubjectRow subject =
-                                    getTableView()
-                                            .getItems()
-                                            .get(getIndex());
-
-                            handleEditSubject(subject);
-                        });
-
-                        deactivateButton.setOnAction(event -> {
-
-                            SubjectRow subject =
-                                    getTableView()
-                                            .getItems()
-                                            .get(getIndex());
-
-                            handleDeactivateSubject(subject);
-                        });
-                    }
-
-                    @Override
-                    protected void updateItem(
-                            String item,
-                            boolean empty
-                    ) {
-
-                        super.updateItem(item, empty);
-
-                        if (empty) {
-                            setGraphic(null);
-                        } else {
-                            setGraphic(container);
-                        }
-                    }
-                }
-        );
-
-        loadSampleSubjects();
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : buttons);
+            }
+        });
 
         subjectsTable.setItems(allSubjects);
+        loadSubjectsFromBackend();
 
         subjectsTable.setColumnResizePolicy(
-                TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN
-        );
-
+                TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         searchField.textProperty().addListener(
-                (observable, oldValue, newValue) ->
-                        filterSubjects(newValue)
-        );
+                (observable, oldValue, newValue) -> filterSubjects(newValue));
     }
 
-    private void loadSampleSubjects() {
+    private void loadSubjectsFromBackend() {
+        TaskRunner.run(
+                adminSubjectApi::getSubjects,
+                subjects -> {
+                    List<SubjectRow> rows = subjects.stream()
+                            .map(this::toSubjectRow)
+                            .toList();
+                    allSubjects.setAll(rows);
+                    filterSubjects(searchField.getText());
+                },
+                error -> {
+                    log.error("Failed to load subjects", error);
+                    Toast.error(errorMessage(error));
+                });
+    }
 
-        allSubjects.addAll(
+    private SubjectRow toSubjectRow(SubjectResponse subject) {
+        return new SubjectRow(
+                subject.id(),
+                subject.name(),
+                subject.code(),
+                subject.isActive() ? "Active" : "Inactive");
+    }
 
-                new SubjectRow(
-                        "Mathematics",
-                        "MATH",
-                        "Active"
-                ),
-
-                new SubjectRow(
-                        "English",
-                        "ENG",
-                        "Active"
-                ),
-
-                new SubjectRow(
-                        "Physics",
-                        "PHY",
-                        "Active"
-                ),
-
-                new SubjectRow(
-                        "History",
-                        "HIST",
-                        "Inactive"
-                )
-        );
+    private static String errorMessage(Exception error) {
+        return error.getMessage() == null || error.getMessage().isBlank()
+                ? "Unable to load subjects."
+                : error.getMessage();
     }
 
     private void filterSubjects(String searchText) {
-
-        String search =
-                searchText.toLowerCase().trim();
-
+        String search = searchText == null ? "" : searchText.toLowerCase().trim();
         if (search.isEmpty()) {
-
             subjectsTable.setItems(allSubjects);
-
             return;
         }
 
         ObservableList<SubjectRow> filteredSubjects =
                 FXCollections.observableArrayList();
-
         for (SubjectRow subject : allSubjects) {
-
-            if (subject.getName()
-                    .toLowerCase()
-                    .contains(search)
-
-                    || subject.getCode()
-                    .toLowerCase()
-                    .contains(search)
-
-                    || subject.getStatus()
-                    .toLowerCase()
-                    .contains(search)) {
-
+            if (subject.getName().toLowerCase().contains(search)
+                    || subject.getCode().toLowerCase().contains(search)
+                    || subject.getStatus().toLowerCase().contains(search)) {
                 filteredSubjects.add(subject);
             }
         }
-
         subjectsTable.setItems(filteredSubjects);
     }
 
     @FXML
     private void showAddSubjectDialog() {
-
         try {
-
             FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource(
-                            "/fxml/admin/add-subject.fxml"
-                    )
-            );
-
+                    getClass().getResource("/fxml/admin/add-subject.fxml"));
             Parent root = loader.load();
-
-            AddSubjectController controller =
-                    loader.getController();
-
+            AddSubjectController controller = loader.getController();
             Stage dialog = new Stage();
-
             dialog.setTitle("Add Subject");
-
-            dialog.initModality(
-                    Modality.APPLICATION_MODAL
-            );
-
-            dialog.setScene(
-                    createStyledScene(root)
-            );
-
+            dialog.initModality(Modality.APPLICATION_MODAL);
+            dialog.setScene(createStyledScene(root));
             dialog.setResizable(false);
-
             dialog.showAndWait();
-
             if (controller.getCreatedName() != null) {
-
-                SubjectRow newSubject =
-                        new SubjectRow(
-                                controller.getCreatedName(),
-                                controller.getCreatedCode(),
-                                "Active"
-                        );
-
-                allSubjects.add(newSubject);
-
-                filterSubjects(
-                        searchField.getText()
-                );
+                TaskRunner.run(
+                        () -> adminSubjectApi.createSubject(
+                                controller.getCreatedCode(), controller.getCreatedName()),
+                        ignored -> loadSubjectsFromBackend(),
+                        error -> {
+                            log.error("Failed to create subject", error);
+                            Toast.error(errorMessage(error));
+                        });
             }
-
         } catch (Exception e) {
-
-            e.printStackTrace();
+            log.error("Unable to open add-subject dialog", e);
+            Toast.error(errorMessage(e));
         }
+        loadSubjectsFromBackend();
     }
 
-    private void handleEditSubject(
-            SubjectRow subject
-    ) {
-
+    private void handleEditSubject(SubjectRow subject) {
         try {
-
             FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource(
-                            "/fxml/admin/edit-subject.fxml"
-                    )
-            );
-
+                    getClass().getResource("/fxml/admin/edit-subject.fxml"));
             Parent root = loader.load();
-
-            EditSubjectController controller =
-                    loader.getController();
-
+            EditSubjectController controller = loader.getController();
             controller.setSubjectRow(subject);
-
             Stage dialog = new Stage();
-
             dialog.setTitle("Edit Subject");
-
-            dialog.initModality(
-                    Modality.APPLICATION_MODAL
-            );
-
-            dialog.setScene(
-                    createStyledScene(root)
-            );
-
+            dialog.initModality(Modality.APPLICATION_MODAL);
+            dialog.setScene(createStyledScene(root));
             dialog.setResizable(false);
-
             dialog.showAndWait();
-
-            subjectsTable.refresh();
-
+            if (controller.isSaved()) {
+                TaskRunner.run(
+                        () -> adminSubjectApi.updateSubject(
+                                subject.getId(), controller.getCode(), controller.getName(),
+                                "Active".equals(controller.getStatus())),
+                        ignored -> loadSubjectsFromBackend(),
+                        error -> {
+                            log.error("Failed to update subject", error);
+                            Toast.error(errorMessage(error));
+                        });
+            }
         } catch (Exception e) {
-
-            e.printStackTrace();
+            log.error("Unable to open edit-subject dialog", e);
+            Toast.error(errorMessage(e));
         }
+        loadSubjectsFromBackend();
+    }
+
+    private void handleDeactivateSubject(SubjectRow subject) {
+        TaskRunner.run(
+                () -> {
+                    adminSubjectApi.deactivateSubject(subject.getId());
+                    return null;
+                },
+                ignored -> {
+                    Toast.success("Subject deactivated");
+                    loadSubjectsFromBackend();
+                },
+                error -> Toast.error(errorMessage(error)));
+    }
+
+    @FXML
+    private void deactivateSelectedSubject() {
+        SubjectRow selected = subjectsTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            Toast.error("Select a subject first.");
+            return;
+        }
+        handleDeactivateSubject(selected);
     }
 
     private Scene createStyledScene(Parent root) {
-
         Scene scene = new Scene(root);
-
-        scene.getStylesheets().add(
-                getClass()
-                        .getResource("/css/styles.css")
-                        .toExternalForm()
-        );
-
-        scene.getStylesheets().add(
-                getClass()
-                        .getResource("/css/components.css")
-                        .toExternalForm()
-        );
-
+        var styles = getClass().getResource("/css/styles.css");
+        var components = getClass().getResource("/css/components.css");
+        if (styles != null) {
+            scene.getStylesheets().add(styles.toExternalForm());
+        }
+        if (components != null) {
+            scene.getStylesheets().add(components.toExternalForm());
+        }
         return scene;
-    }
-
-    private void handleDeactivateSubject(
-            SubjectRow subject
-    ) {
-
-        subject.setStatus("Inactive");
-
-        subjectsTable.refresh();
     }
 
     public static class SubjectRow {
 
+        private final Long id;
         private final SimpleStringProperty name;
-
         private final SimpleStringProperty code;
-
         private final SimpleStringProperty status;
 
-        public SubjectRow(
-                String name,
-                String code,
-                String status
-        ) {
+        public SubjectRow(Long id, String name, String code, String status) {
+            this.id = id;
+            this.name = new SimpleStringProperty(name);
+            this.code = new SimpleStringProperty(code);
+            this.status = new SimpleStringProperty(status);
+        }
 
-            this.name =
-                    new SimpleStringProperty(name);
-
-            this.code =
-                    new SimpleStringProperty(code);
-
-            this.status =
-                    new SimpleStringProperty(status);
+        public Long getId() {
+            return id;
         }
 
         public SimpleStringProperty nameProperty() {

@@ -9,6 +9,8 @@ public interface ClassRepository extends JpaRepository<ClassEntity, Long> {
 
     List<ClassEntity> findBySchoolIdAndAcademicYearIdAndIsActiveTrue(Long schoolId, Long academicYearId);
 
+    List<ClassEntity> findBySchoolIdAndIsActiveTrue(Long schoolId);
+
     boolean existsBySchoolIdAndAcademicYearIdAndClassLevelId(
             Long schoolId, Long academicYearId, Long classLevelId);
 }

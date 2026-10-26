@@ -46,9 +46,10 @@ class ImportJobServiceTest {
     @Test
     @DisplayName("should find import job by reference")
     void shouldFindByReference() {
-        when(importJobRepository.findByJobReference("imp_20261005_001")).thenReturn(Optional.of(job()));
+        when(importJobRepository.findByJobReferenceAndSchoolId("imp_20261005_001", 1L))
+                .thenReturn(Optional.of(job()));
 
-        ImportJobResponse result = importJobService.getByReference("imp_20261005_001");
+        ImportJobResponse result = importJobService.getByReference("imp_20261005_001", 1L);
 
         assertThat(result.status()).isEqualTo("PENDING");
         assertThat(result.totalRows()).isEqualTo(12);
@@ -57,9 +58,9 @@ class ImportJobServiceTest {
     @Test
     @DisplayName("should throw when import job reference missing")
     void shouldThrowWhenReferenceMissing() {
-        when(importJobRepository.findByJobReference("missing")).thenReturn(Optional.empty());
+        when(importJobRepository.findByJobReferenceAndSchoolId("missing", 1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> importJobService.getByReference("missing"))
+        assertThatThrownBy(() -> importJobService.getByReference("missing", 1L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.VALIDATION_FAILED);
     }
@@ -74,7 +75,7 @@ class ImportJobServiceTest {
         });
 
         ImportJobResponse result = importJobService.create(
-                "imp_20261005_002", "STUDENTS", 12, "students.xlsx", 42L);
+                1L, "imp_20261005_002", "STUDENTS", 12, "students.xlsx", 42L);
 
         assertThat(result.id()).isEqualTo(7L);
         assertThat(result.status()).isEqualTo("PENDING");

@@ -30,13 +30,14 @@ public class AdminAuditApiController {
             @RequestParam(required = false) String entityType,
             @RequestParam(required = false) Long entityId) {
         if (userId != null) {
-            return ApiResponse.success(auditService.listByUser(userId));
+            return ApiResponse.success(auditService.listByUser(userId, CurrentUser.getSchoolId()));
         }
         if (action != null) {
-            return ApiResponse.success(auditService.listByAction(action));
+            return ApiResponse.success(auditService.listByAction(action, CurrentUser.getSchoolId()));
         }
         if (entityType != null && entityId != null) {
-            return ApiResponse.success(auditService.listByEntity(entityType, entityId));
+            return ApiResponse.success(auditService.listByEntity(
+                    entityType, entityId, CurrentUser.getSchoolId()));
         }
         return ApiResponse.success(auditService.listBySchool(CurrentUser.getSchoolId()));
     }

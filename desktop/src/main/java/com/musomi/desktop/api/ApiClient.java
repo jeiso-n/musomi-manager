@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import com.musomi.desktop.config.ApiConfig;
 import com.musomi.desktop.config.AppConfig;
@@ -86,6 +87,15 @@ public final class ApiClient {
         return exchange("GET", path, null, type);
     }
 
+    public <T> T get(String path, TypeReference<T> type) {
+        if (AppConfig.getInstance().isMockMode()) {
+            throw new ApiException("MOCK_UNSUPPORTED",
+                    "Mock mode does not support generic response types");
+        }
+        return exchange("GET", path, null,
+                mapper.getTypeFactory().constructType(type));
+    }
+
     /**
      * Executes an HTTP POST request.
      *
@@ -136,6 +146,10 @@ public final class ApiClient {
     // -------------------------------------------------------------------------
 
     private <T> T exchange(String method, String path, Object body, Class<T> type) {
+        return exchange(method, path, body, mapper.getTypeFactory().constructType(type));
+    }
+
+    private <T> T exchange(String method, String path, Object body, JavaType type) {
         log.debug("{} {}", method, path);
 
         try {
@@ -168,7 +182,7 @@ public final class ApiClient {
                 throw ApiException.from(response);
             }
 
-            if (type == Void.class || response.statusCode() == 204
+            if (type.getRawClass() == Void.class || response.statusCode() == 204
                     || response.body() == null || response.body().isBlank()) {
                 return null;
             }

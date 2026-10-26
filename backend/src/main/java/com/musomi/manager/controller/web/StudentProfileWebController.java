@@ -12,6 +12,7 @@ import com.musomi.manager.entity.User;
 import com.musomi.manager.repository.GuardianRepository;
 import com.musomi.manager.repository.StudentRepository;
 import com.musomi.manager.repository.UserRepository;
+import com.musomi.manager.util.WebCurrentUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -109,17 +110,25 @@ public class StudentProfileWebController {
             return passwordResponse("Please sign in again before changing your password.", false);
         }
         User user = userOpt.get();
-        if (currentPassword == null || currentPassword.isBlank()
-                || newPassword == null || newPassword.length() < 6
-                || !newPassword.equals(confirmPassword)) {
-            return passwordResponse("Enter a valid new password and confirm it correctly.", false);
+        if (newPassword == null || newPassword.length() < 8) {
+            return passwordResponse("Password must be at least 8 characters.", false);
+        }
+        if (!newPassword.equals(confirmPassword)) {
+            return passwordResponse("Passwords do not match.", false);
+        }
+        if (currentPassword == null || currentPassword.isBlank()) {
+            return passwordResponse("Enter your current password.", false);
         }
         if (user.getPasswordHash() == null
                 || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
-            return passwordResponse("The current password is incorrect.", false);
+            return passwordResponse("Invalid current password.", false);
         }
-        user.setPasswordHash(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
+        try {
+            user.setPasswordHash(passwordEncoder.encode(newPassword));
+            userRepository.save(user);
+        } catch (RuntimeException exception) {
+            return passwordResponse("Unable to update your password. Please try again.", false);
+        }
         return passwordResponse("Your password has been changed successfully.", true);
     }
 
@@ -128,7 +137,7 @@ public class StudentProfileWebController {
         if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
             return Optional.empty();
         }
-        return userRepository.findBySchoolIdAndUsername(1L, auth.getName());
+        return userRepository.findBySchoolIdAndUsername(WebCurrentUser.getSchoolId(), auth.getName());
     }
 
     private Optional<Student> findStudent(User user) {

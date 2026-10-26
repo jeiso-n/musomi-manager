@@ -9,5 +9,7 @@ public interface StreamRepository extends JpaRepository<Stream, Long> {
 
     List<Stream> findByClassEntityIdAndIsActiveTrue(Long classId);
 
+    List<Stream> findByClassEntityIdAndSchoolIdAndIsActiveTrue(Long classId, Long schoolId);
+
     boolean existsByClassEntityIdAndName(Long classId, String name);
 }

@@ -7,13 +7,18 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
 
     Optional<User> findBySchoolIdAndUsername(Long schoolId, String username);
+
+    Optional<User> findByUsername(String username);
+
+    Optional<User> findByIdAndSchoolId(Long id, Long schoolId);
 
     List<User> findBySchoolIdAndRole(Long schoolId, Role role);
 
@@ -21,22 +26,4 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsBySchoolIdAndUsername(Long schoolId, String username);
 
-    /**
-     * Paginated, filtered, searchable lookup used by the admin user list.
-     * Any of {@code role}, {@code active}, or {@code search} may be null to
-     * skip that filter.
-     */
-    @Query("""
-            SELECT u FROM User u
-            WHERE u.school.id = :schoolId
-              AND (:role IS NULL OR u.role = :role)
-              AND (:active IS NULL OR u.isActive = :active)
-              AND (:search IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%'))
-                                   OR LOWER(u.username) LIKE LOWER(CONCAT('%', :search, '%')))
-            """)
-    Page<User> findUsers(@Param("schoolId") Long schoolId,
-                         @Param("role") Role role,
-                         @Param("active") Boolean active,
-                         @Param("search") String search,
-                         Pageable pageable);
 }

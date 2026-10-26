@@ -150,6 +150,7 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
 
     private String loginRequest(String username, String password) throws Exception {
         return objectMapper.writeValueAsString(java.util.Map.of(
+                "schoolId", 1L,
                 "username", username,
                 "password", password));
     }

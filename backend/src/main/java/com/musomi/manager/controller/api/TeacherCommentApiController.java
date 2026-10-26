@@ -34,7 +34,8 @@ public class TeacherCommentApiController {
     public ApiResponse<List<CommentResponse>> listComments(
             @PathVariable Long studentId,
             @RequestParam(required = false) Long termId) {
-        return ApiResponse.success(commentService.listComments(studentId, termId));
+        return ApiResponse.success(commentService.listComments(
+                studentId, termId, CurrentUser.getSchoolId(), CurrentUser.getUserId()));
     }
 
     /** Creates or updates a teacher comment. */
@@ -47,7 +48,7 @@ public class TeacherCommentApiController {
     /** Deletes a teacher comment. */
     @DeleteMapping("/comments/{id}")
     public ResponseEntity<Void> deleteComment(@PathVariable Long id) {
-        commentService.deleteComment(id);
+        commentService.deleteComment(id, CurrentUser.getSchoolId(), CurrentUser.getUserId());
         return ResponseEntity.noContent().build();
     }
 }

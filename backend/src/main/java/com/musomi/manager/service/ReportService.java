@@ -25,6 +25,7 @@ import com.musomi.manager.entity.Score;
 import com.musomi.manager.entity.Student;
 import com.musomi.manager.entity.Term;
 import com.musomi.manager.entity.User;
+import com.musomi.manager.exception.AuthenticationException;
 import com.musomi.manager.exception.ErrorCode;
 import com.musomi.manager.exception.ResourceNotFoundException;
 import com.musomi.manager.exception.ValidationException;
@@ -33,9 +34,12 @@ import com.musomi.manager.repository.CommentRepository;
 import com.musomi.manager.repository.GeneratedReportRepository;
 import com.musomi.manager.repository.ReportRequestRepository;
 import com.musomi.manager.repository.SchoolSettingsRepository;
+import com.musomi.manager.repository.SchoolRepository;
 import com.musomi.manager.repository.ScoreRepository;
 import com.musomi.manager.repository.StudentRepository;
 import com.musomi.manager.repository.TermRepository;
+import com.musomi.manager.repository.ClassRepository;
+import com.musomi.manager.util.SchoolScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -47,28 +51,37 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class ReportService {
 
-    private static final long DEFAULT_SCHOOL_ID = 1L;
-
     private final GeneratedReportRepository generatedReportRepository;
     private final ReportRequestRepository reportRequestRepository;
     private final StudentRepository studentRepository;
     private final TermRepository termRepository;
+    private final ClassRepository classRepository;
     private final AssessmentRepository assessmentRepository;
     private final ScoreRepository scoreRepository;
     private final CommentRepository commentRepository;
     private final SchoolSettingsRepository schoolSettingsRepository;
+    private final SchoolRepository schoolRepository;
     private final PdfService pdfService;
 
     /** Generates PDF report cards for active students in a class and stream. */
     @Transactional
     public List<ReportResponse> generateForClassStreamTerm(Long schoolId, Long classId, Long streamId, Long termId,
                                                            Long generatedBy) {
-        Long resolvedSchoolId = schoolId != null ? schoolId : DEFAULT_SCHOOL_ID;
+        Long resolvedSchoolId = SchoolScope.require(schoolId);
+        if (generatedBy == null || generatedBy <= 0) {
+            throw new AuthenticationException(ErrorCode.SESSION_EXPIRED);
+        }
         Term term = termRepository.findById(termId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
         if (term.getSchool() == null || !resolvedSchoolId.equals(term.getSchool().getId())) {
             throw new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED);
         }
+        classRepository.findById(classId)
+                .filter(clazz -> clazz.getSchool() != null
+                        && resolvedSchoolId.equals(clazz.getSchool().getId()))
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
+        School school = schoolRepository.findById(resolvedSchoolId)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
         SchoolSettings settings = schoolSettingsRepository.findBySchoolId(resolvedSchoolId).orElse(null);
         List<Student> students = studentRepository.findByCurrentClassIdAndIsActiveTrue(classId).stream()
                 .filter(student -> belongsToSchoolAndStream(student, resolvedSchoolId, streamId))
@@ -103,7 +116,7 @@ public class ReportService {
         List<ReportResponse> responses = new ArrayList<>();
         for (StudentReport report : reports) {
             responses.add(generateStudentReport(
-                    report, term, settings, resolvedSchoolId, termId, generatedBy,
+                    report, term, school, settings, resolvedSchoolId, termId, generatedBy,
                     positions.get(report.student().getId()), students.size()));
         }
         return List.copyOf(responses);
@@ -111,8 +124,12 @@ public class ReportService {
 
     /** Lists generated reports for a student. */
     @Transactional(readOnly = true)
-    public List<ReportResponse> listByStudent(Long studentId) {
-        return generatedReportRepository.findByStudentIdOrderByGeneratedAtDesc(studentId)
+    public List<ReportResponse> listByStudent(Long schoolId, Long studentId) {
+        Long resolvedSchoolId = SchoolScope.require(schoolId);
+        studentRepository.findByIdAndSchoolId(studentId, resolvedSchoolId)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND));
+        return generatedReportRepository.findBySchoolIdAndStudentIdOrderByGeneratedAtDesc(
+                        resolvedSchoolId, studentId)
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -120,28 +137,28 @@ public class ReportService {
 
     /** Returns a generated report by id. */
     @Transactional(readOnly = true)
-    public ReportResponse getReport(Long id) {
-        GeneratedReport report = generatedReportRepository.findById(id)
+    public ReportResponse getReport(Long id, Long schoolId) {
+        GeneratedReport report = generatedReportRepository.findByIdAndSchoolId(id, SchoolScope.require(schoolId))
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.REPORT_NOT_FOUND));
         return toResponse(report);
     }
 
     /** Returns generated report metadata for file download. */
     @Transactional(readOnly = true)
-    public GeneratedReport getGeneratedReport(Long id) {
-        return generatedReportRepository.findById(id)
+    public GeneratedReport getGeneratedReport(Long id, Long schoolId) {
+        return generatedReportRepository.findByIdAndSchoolId(id, SchoolScope.require(schoolId))
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.REPORT_NOT_FOUND));
     }
 
     /** Creates a pending report request when no pending request exists for the student and term. */
     @Transactional
     public ReportRequest createReportRequest(Long schoolId, Long studentId, Long termId, Long requestedBy) {
-        Long resolvedSchoolId = schoolId != null ? schoolId : DEFAULT_SCHOOL_ID;
-        Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND));
-        if (student.getSchool() == null || !resolvedSchoolId.equals(student.getSchool().getId())) {
-            throw new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED);
+        Long resolvedSchoolId = SchoolScope.require(schoolId);
+        if (requestedBy == null || requestedBy <= 0) {
+            throw new com.musomi.manager.exception.AuthenticationException(ErrorCode.SESSION_EXPIRED);
         }
+        Student student = studentRepository.findByIdAndSchoolId(studentId, resolvedSchoolId)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND));
         Term term = termRepository.findById(termId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
         if (term.getSchool() == null || !resolvedSchoolId.equals(term.getSchool().getId())) {
@@ -166,11 +183,18 @@ public class ReportService {
 
     /** Marks a report request generated after its report has been recorded. */
     @Transactional
-    public void markGenerated(Long requestId, Long reportId) {
-        ReportRequest request = reportRequestRepository.findById(requestId)
+    public void markGenerated(Long requestId, Long reportId, Long schoolId) {
+        Long resolvedSchoolId = SchoolScope.require(schoolId);
+        ReportRequest request = reportRequestRepository.findByIdAndSchoolId(requestId, resolvedSchoolId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.REPORT_NOT_FOUND));
-        generatedReportRepository.findById(reportId)
+        GeneratedReport report = generatedReportRepository.findByIdAndSchoolId(reportId, resolvedSchoolId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.REPORT_NOT_FOUND));
+        if (request.getStudent() == null || report.getStudent() == null
+                || !request.getStudent().getId().equals(report.getStudent().getId())
+                || request.getTerm() == null || report.getTerm() == null
+                || !request.getTerm().getId().equals(report.getTerm().getId())) {
+            throw new ResourceNotFoundException(ErrorCode.REPORT_NOT_FOUND);
+        }
         request.setStatus("GENERATED");
         request.setProcessedAt(LocalDateTime.now());
         reportRequestRepository.save(request);
@@ -181,12 +205,12 @@ public class ReportService {
     @Transactional
     public GeneratedReport recordGenerated(Long schoolId, Long studentId, Long termId, String filePath,
                                            Long fileSizeBytes, Long generatedBy) {
-        Long resolvedSchoolId = schoolId != null ? schoolId : DEFAULT_SCHOOL_ID;
-        Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND));
-        if (student.getSchool() == null || !resolvedSchoolId.equals(student.getSchool().getId())) {
-            throw new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED);
+        Long resolvedSchoolId = SchoolScope.require(schoolId);
+        if (generatedBy == null || generatedBy <= 0) {
+            throw new AuthenticationException(ErrorCode.SESSION_EXPIRED);
         }
+        Student student = studentRepository.findByIdAndSchoolId(studentId, resolvedSchoolId)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND));
         Term term = termRepository.findById(termId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
         if (term.getSchool() == null || !resolvedSchoolId.equals(term.getSchool().getId())) {
@@ -316,11 +340,12 @@ public class ReportService {
         return positions;
     }
 
-    private ReportResponse generateStudentReport(StudentReport report, Term term, SchoolSettings settings,
+    private ReportResponse generateStudentReport(StudentReport report, Term term, School school,
+                                                 SchoolSettings settings,
                                                  Long schoolId, Long termId, Long generatedBy, Integer position,
                                                  int classSize) {
         byte[] pdf = pdfService.generateReportCard(
-                report.student(), term, settings, report.subjects(), report.overallAverage(), report.overallGrade(),
+                report.student(), term, school, settings, report.subjects(), report.overallAverage(), report.overallGrade(),
                 position == null ? 0 : position, classSize,
                 commentRepository.findByStudentIdAndTermIdOrderByWrittenAtDesc(report.student().getId(), termId));
         Path filePath = reportFilePath(report.student(), term, schoolId, termId);
@@ -338,7 +363,7 @@ public class ReportService {
                 .term(term)
                 .filePath(storedFilePath)
                 .fileSizeBytes((long) pdf.length)
-                .generatedBy(User.builder().id(generatedBy == null ? DEFAULT_SCHOOL_ID : generatedBy).build())
+                .generatedBy(User.builder().id(generatedBy).build())
                 .generatedAt(LocalDateTime.now())
                 .build());
         log.info("Generated report {} for student {} in term {}", saved.getId(),

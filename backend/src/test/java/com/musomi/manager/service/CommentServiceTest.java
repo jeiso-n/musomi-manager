@@ -5,18 +5,22 @@ import java.util.Optional;
 
 import com.musomi.manager.dto.request.SaveCommentRequest;
 import com.musomi.manager.dto.response.CommentResponse;
+import com.musomi.manager.entity.ClassEntity;
 import com.musomi.manager.entity.Comment;
 import com.musomi.manager.entity.School;
 import com.musomi.manager.entity.Student;
 import com.musomi.manager.entity.Subject;
 import com.musomi.manager.entity.Term;
+import com.musomi.manager.entity.TeacherAssignment;
 import com.musomi.manager.entity.User;
 import com.musomi.manager.exception.ErrorCode;
+import com.musomi.manager.exception.PermissionDeniedException;
 import com.musomi.manager.exception.ResourceNotFoundException;
 import com.musomi.manager.repository.CommentRepository;
 import com.musomi.manager.repository.StudentRepository;
 import com.musomi.manager.repository.SubjectRepository;
 import com.musomi.manager.repository.TermRepository;
+import com.musomi.manager.repository.TeacherAssignmentRepository;
 import com.musomi.manager.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -54,6 +58,9 @@ class CommentServiceTest {
     private SubjectRepository subjectRepository;
 
     @Mock
+    private TeacherAssignmentRepository teacherAssignmentRepository;
+
+    @Mock
     private UserRepository userRepository;
 
     @Mock
@@ -65,10 +72,13 @@ class CommentServiceTest {
     @Test
     @DisplayName("should list comments for student")
     void shouldListCommentsForStudent() {
+        when(studentRepository.findById(STUDENT_ID)).thenReturn(Optional.of(student()));
+        when(termRepository.findById(TERM_ID)).thenReturn(Optional.of(term()));
+        stubAssignment();
         when(commentRepository.findByStudentIdAndTermIdOrderByWrittenAtDesc(STUDENT_ID, TERM_ID))
                 .thenReturn(List.of(comment()));
 
-        List<CommentResponse> response = commentService.listComments(STUDENT_ID, TERM_ID);
+        List<CommentResponse> response = commentService.listComments(STUDENT_ID, TERM_ID, SCHOOL_ID, AUTHOR_ID);
 
         assertThat(response).hasSize(1);
         assertThat(response.get(0).commentText()).isEqualTo("Good improvement");
@@ -136,11 +146,25 @@ class CommentServiceTest {
     }
 
     @Test
+    @DisplayName("should deny comment creation for an unassigned class and subject")
+    void shouldDenyCommentCreationForUnassignedClassAndSubject() {
+        when(studentRepository.findById(STUDENT_ID)).thenReturn(Optional.of(student()));
+        when(termRepository.findById(TERM_ID)).thenReturn(Optional.of(term()));
+        when(subjectRepository.findById(SUBJECT_ID)).thenReturn(Optional.of(subject()));
+        when(teacherAssignmentRepository.findBySchoolIdAndTeacherIdOrderByIdAsc(SCHOOL_ID, AUTHOR_ID))
+                .thenReturn(List.of());
+
+        assertThatThrownBy(() -> commentService.saveComment(SCHOOL_ID, AUTHOR_ID, request()))
+                .isInstanceOf(PermissionDeniedException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_YOUR_CLASS);
+    }
+
+    @Test
     @DisplayName("should delete comment when it exists")
     void shouldDeleteCommentWhenExists() {
         when(commentRepository.findById(9L)).thenReturn(Optional.of(comment()));
 
-        commentService.deleteComment(9L);
+        commentService.deleteComment(9L, SCHOOL_ID, AUTHOR_ID);
 
         verify(commentRepository).delete(any(Comment.class));
     }
@@ -150,18 +174,40 @@ class CommentServiceTest {
     void shouldThrowWhenDeletingMissingComment() {
         when(commentRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> commentService.deleteComment(99L))
+        assertThatThrownBy(() -> commentService.deleteComment(99L, SCHOOL_ID, AUTHOR_ID))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.VALIDATION_FAILED);
         verify(commentRepository, never()).delete(any(Comment.class));
+    }
+
+    @Test
+    @DisplayName("should deny deleting another teacher's comment")
+    void shouldDenyDeletingAnotherTeachersComment() {
+        when(commentRepository.findById(9L)).thenReturn(Optional.of(comment()));
+
+        assertThatThrownBy(() -> commentService.deleteComment(9L, SCHOOL_ID, 99L))
+                .isInstanceOf(PermissionDeniedException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PERMISSION_DENIED);
+        verify(commentRepository, never()).delete(any(Comment.class));
+    }
+
+    @Test
+    @DisplayName("should hide a student's comments from another school")
+    void shouldHideCommentsFromAnotherSchool() {
+        when(studentRepository.findById(STUDENT_ID)).thenReturn(Optional.of(student()));
+
+        assertThatThrownBy(() -> commentService.listComments(STUDENT_ID, TERM_ID, 99L, AUTHOR_ID))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.STUDENT_NOT_FOUND);
     }
 
     private void stubValidParents() {
         when(studentRepository.findById(STUDENT_ID)).thenReturn(Optional.of(student()));
         when(termRepository.findById(TERM_ID)).thenReturn(Optional.of(term()));
         when(subjectRepository.findById(SUBJECT_ID)).thenReturn(Optional.of(subject()));
+        stubAssignment();
         when(userRepository.findById(AUTHOR_ID)).thenReturn(Optional.of(
-                User.builder().id(AUTHOR_ID).fullName("Teacher").build()));
+                User.builder().id(AUTHOR_ID).school(school()).fullName("Teacher").build()));
     }
 
     private SaveCommentRequest request() {
@@ -177,12 +223,27 @@ class CommentServiceTest {
                 .subject(subject())
                 .commentType("SUBJECT")
                 .commentText("Good improvement")
-                .writtenBy(User.builder().id(AUTHOR_ID).fullName("Teacher").build())
+                .writtenBy(User.builder().id(AUTHOR_ID).school(school()).fullName("Teacher").build())
                 .build();
     }
 
     private Student student() {
-        return Student.builder().id(STUDENT_ID).school(school()).fullName("Alex Student").build();
+        return Student.builder().id(STUDENT_ID).school(school()).currentClass(classEntity())
+                .fullName("Alex Student").build();
+    }
+
+    private ClassEntity classEntity() {
+        return ClassEntity.builder().id(12L).school(school()).name("S3").build();
+    }
+
+    private void stubAssignment() {
+        when(teacherAssignmentRepository.findBySchoolIdAndTeacherIdOrderByIdAsc(SCHOOL_ID, AUTHOR_ID))
+                .thenReturn(List.of(TeacherAssignment.builder()
+                        .school(school())
+                        .teacher(User.builder().id(AUTHOR_ID).school(school()).build())
+                        .classEntity(classEntity())
+                        .subject(subject())
+                        .build()));
     }
 
     private Term term() {

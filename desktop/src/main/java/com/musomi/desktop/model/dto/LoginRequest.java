@@ -11,6 +11,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record LoginRequest(
+    @JsonProperty("schoolId")
+    Long schoolId,
+
     @JsonProperty("username")
     String username,
 
@@ -18,8 +21,16 @@ public record LoginRequest(
     String password
 ) {
 
+    public LoginRequest(String username, String password) {
+        this(null, username, password);
+    }
+
     public String getUsername() {
         return username;
+    }
+
+    public Long getSchoolId() {
+        return schoolId;
     }
 
     public String getPassword() {

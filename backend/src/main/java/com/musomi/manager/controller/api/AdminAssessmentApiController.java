@@ -29,6 +29,7 @@ public class AdminAssessmentApiController {
             @RequestParam(required = false) Long subjectId,
             @RequestParam(required = false) Long termId) {
         return ApiResponse.success(
-                assessmentService.listAssessments(CurrentUser.getUserId(), classId, subjectId, termId, null));
+                assessmentService.listAssessments(
+                        CurrentUser.getSchoolId(), null, classId, subjectId, termId, null));
     }
 }

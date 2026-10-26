@@ -48,7 +48,7 @@ public class AdminAssignmentApiController {
     /** Deletes a teacher assignment. */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAssignment(@PathVariable Long id) {
-        teacherAssignmentService.deleteAssignment(id);
+        teacherAssignmentService.deleteAssignment(id, CurrentUser.getSchoolId());
         return ResponseEntity.noContent().build();
     }
 }

@@ -42,6 +42,10 @@
                 onAction="#showAddSubjectDialog"
                 styleClass="primary-button"/>
 
+        <Button text="Deactivate Selected"
+                onAction="#deactivateSelectedSubject"
+                styleClass="secondary-button"/>
+
     </HBox>
 
 

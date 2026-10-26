@@ -1,5 +1,7 @@
 package com.musomi.desktop.controller.admin;
 
+import java.util.List;
+
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -16,7 +18,20 @@ import javafx.scene.layout.HBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import com.musomi.desktop.api.AdminUserApi;
+import com.musomi.desktop.model.UserResponse;
+import com.musomi.desktop.util.Modal;
+import com.musomi.desktop.util.TaskRunner;
+import com.musomi.desktop.util.Toast;
+
+@RequiredArgsConstructor
+@Slf4j
 public class UsersController {
+
+    private final AdminUserApi adminUserApi = new AdminUserApi();
 
     @FXML
     private TableView<UserRow> usersTable;
@@ -116,9 +131,8 @@ public class UsersController {
             }
         });
 
-        loadSampleUsers();
-
         usersTable.setItems(allUsers);
+        loadUsersFromBackend();
 
         searchField.textProperty().addListener(
                 (observable, oldValue, newValue) ->
@@ -129,31 +143,49 @@ public class UsersController {
         );
     }
 
-    private void loadSampleUsers() {
-
-        allUsers.addAll(
-
-                new UserRow(
-                        "John Doe",
-                        "john",
-                        "Teacher",
-                        "Active"
-                ),
-
-                new UserRow(
-                        "Mary Admin",
-                        "mary",
-                        "Administrator",
-                        "Active"
-                ),
-
-                new UserRow(
-                        "Peter Smith",
-                        "peter",
-                        "Teacher",
-                        "Inactive"
-                )
+    private void loadUsersFromBackend() {
+        TaskRunner.run(
+                () -> adminUserApi.getUsers(0, 100, ""),
+                result -> {
+                    List<UserRow> users = result.data().stream()
+                            .map(this::toUserRow)
+                            .toList();
+                    allUsers.setAll(users);
+                    filterUsers(searchField.getText());
+                },
+                error -> {
+                    log.error("Failed to load users", error);
+                    Toast.error(errorMessage(error));
+                }
         );
+    }
+
+    private UserRow toUserRow(UserResponse user) {
+        return new UserRow(
+                user.id(),
+                user.fullName(),
+                user.username(),
+                formatRole(user.role()),
+                user.isActive() ? "Active" : "Inactive"
+        );
+    }
+
+    private static String formatRole(String role) {
+        if (role == null || role.isBlank()) {
+            return "";
+        }
+        return switch (role) {
+            case "ADMIN" -> "Administrator";
+            case "TEACHER" -> "Teacher";
+            case "STUDENT" -> "Student";
+            default -> role;
+        };
+    }
+
+    private static String errorMessage(Exception error) {
+        return error.getMessage() == null || error.getMessage().isBlank()
+                ? "Unable to load users."
+                : error.getMessage();
     }
 
     private void filterUsers(String searchText) {
@@ -219,25 +251,15 @@ public class UsersController {
             dialog.setResizable(false);
 
             dialog.showAndWait();
-
-            if (controller.getCreatedName() != null) {
-
-                UserRow newUser = new UserRow(
-                        controller.getCreatedName(),
-                        controller.getCreatedUsername(),
-                        controller.getCreatedRole(),
-                        "Active"
-                );
-
-                allUsers.add(newUser);
-
-                filterUsers(searchField.getText());
+            if (controller.isUserCreated()) {
+                loadUsersFromBackend();
             }
 
         } catch (Exception e) {
-
-            e.printStackTrace();
+            log.error("Unable to open add-user dialog", e);
+            Toast.error(errorMessage(e));
         }
+        loadUsersFromBackend();
     }
 
     private void handleEditUser(UserRow user) {
@@ -272,13 +294,21 @@ public class UsersController {
             dialog.setResizable(false);
 
             dialog.showAndWait();
-
-            usersTable.refresh();
+            if (controller.isSaved()) {
+                TaskRunner.run(
+                        () -> adminUserApi.updateUser(user.getId(), controller.getFullName(), null, null),
+                        ignored -> {
+                            Toast.success("User updated");
+                            loadUsersFromBackend();
+                        },
+                        error -> Toast.error(errorMessage(error)));
+            }
 
         } catch (Exception e) {
-
-            e.printStackTrace();
+            log.error("Unable to open edit-user dialog", e);
+            Toast.error(errorMessage(e));
         }
+        loadUsersFromBackend();
     }
 
     /**
@@ -305,13 +335,28 @@ public class UsersController {
     }
 
     private void handleDeactivateUser(UserRow user) {
-
-        user.setStatus("Inactive");
-
-        usersTable.refresh();
+        if (!Modal.confirm("Deactivate " + user.getName() + "?")) {
+            return;
+        }
+        TaskRunner.run(
+                () -> {
+                    adminUserApi.deactivateUser(user.getId());
+                    return null;
+                },
+                ignored -> {
+                    Toast.success("User deactivated");
+                    loadUsersFromBackend();
+                },
+                error -> {
+                    log.error("Failed to deactivate user {}", user.getId(), error);
+                    Toast.error(errorMessage(error));
+                }
+        );
     }
 
     public static class UserRow {
+
+        private final Long id;
 
         private final SimpleStringProperty name;
 
@@ -322,12 +367,14 @@ public class UsersController {
         private final SimpleStringProperty status;
 
         public UserRow(
+                Long id,
                 String name,
                 String username,
                 String role,
                 String status
         ) {
 
+            this.id = id;
             this.name =
                     new SimpleStringProperty(name);
 
@@ -343,6 +390,10 @@ public class UsersController {
 
         public SimpleStringProperty nameProperty() {
             return name;
+        }
+
+        public Long getId() {
+            return id;
         }
 
         public SimpleStringProperty usernameProperty() {

@@ -5,11 +5,17 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.musomi.manager.repository.SchoolRepository;
+import lombok.RequiredArgsConstructor;
+
 /**
  * Handles web authentication screens for students.
  */
 @Controller
+@RequiredArgsConstructor
 public class LoginWebController {
+
+    private final SchoolRepository schoolRepository;
 
     @GetMapping("/login")
     public String showLoginForm(
@@ -17,7 +23,8 @@ public class LoginWebController {
             Model model) {
 
         model.addAttribute("pageTitle", "Student Login");
-        model.addAttribute("schoolName", "St. Mary's Secondary School");
+        model.addAttribute("schoolName", schoolRepository.findAll().stream()
+                .findFirst().map(school -> school.getName()).orElse("Musomi Manager"));
 
         if (error != null) {
             String errorMessage = "Wrong username or password.";

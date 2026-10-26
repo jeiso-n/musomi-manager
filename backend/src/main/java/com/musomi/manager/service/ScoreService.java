@@ -39,8 +39,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class ScoreService {
 
-    private static final long DEFAULT_SCHOOL_ID = 1L;
-
     private final ScoreRepository scoreRepository;
     private final AssessmentRepository assessmentRepository;
     private final ScoreHistoryRepository scoreHistoryRepository;
@@ -50,15 +48,19 @@ public class ScoreService {
 
     /** Updates a single score after permission and range checks. */
     @Transactional
-    public ScoreResponse updateScore(Long scoreId, SaveMarksRequest req, Long currentUserId) {
+    public ScoreResponse updateScore(Long scoreId, SaveMarksRequest req, Long currentUserId, Long schoolId) {
         Score score = scoreRepository.findById(scoreId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.SCORE_NOT_FOUND));
 
         Assessment assessment = score.getAssessment();
-        if (assessment == null || assessment.getTeacher() == null
-                || !assessment.getTeacher().getId().equals(currentUserId)) {
-            throw new PermissionDeniedException(ErrorCode.NOT_YOUR_CLASS);
+        verifyAssessmentAccess(assessment, schoolId, currentUserId);
+        if (score.getSchool() == null || !schoolId.equals(score.getSchool().getId())) {
+            throw new ResourceNotFoundException(ErrorCode.SCORE_NOT_FOUND);
         }
+        if (score.getStudent() == null) {
+            throw new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND);
+        }
+        verifyStudentRoster(score.getStudent(), assessment, schoolId);
 
         BigDecimal maxScore = assessment.getMaxScore();
         BigDecimal newScore = req.score();
@@ -67,7 +69,7 @@ public class ScoreService {
         BigDecimal oldScore = score.getScore();
         if (hasScoreChanged(oldScore, newScore)) {
             scoreHistoryRepository.save(ScoreHistory.builder()
-                    .school(School.builder().id(DEFAULT_SCHOOL_ID).build())
+                    .school(School.builder().id(schoolId).build())
                     .score(score)
                     .oldScore(oldScore)
                     .newScore(newScore)
@@ -89,20 +91,18 @@ public class ScoreService {
 
         log.info("Score updated: scoreId={}, studentId={}, teacherId={}",
                 saved.getId(), saved.getStudent().getId(), currentUserId);
-        // TODO(backend-lead): pass real schoolId once school context is wired in services
-        auditService.log("SCORE_UPDATED", "Score", scoreId, currentUserId, DEFAULT_SCHOOL_ID);
+        auditService.log("SCORE_UPDATED", "Score", scoreId, currentUserId, schoolId);
         return ScoreMapper.toResponse(saved, GradeCalculator.calculate(saved.getScore(), assessment.getMaxScore()));
     }
 
     /** Saves a batch of scores for an assessment. */
     @Transactional
-    public List<ScoreResponse> saveBatch(Long assessmentId, SaveMarksBatchRequest req, Long currentUserId) {
+    public List<ScoreResponse> saveBatch(
+            Long assessmentId, SaveMarksBatchRequest req, Long currentUserId, Long schoolId) {
         Assessment assessment = assessmentRepository.findById(assessmentId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ASSESSMENT_NOT_FOUND));
 
-        if (assessment.getTeacher() == null || !assessment.getTeacher().getId().equals(currentUserId)) {
-            throw new PermissionDeniedException(ErrorCode.NOT_YOUR_CLASS);
-        }
+        verifyAssessmentAccess(assessment, schoolId, currentUserId);
 
         List<ScoreResponse> responses = new ArrayList<>();
         for (SaveMarksBatchRequest.ScoreEntry entry : req.scores()) {
@@ -113,8 +113,9 @@ public class ScoreService {
                             .orElseGet(() -> {
                                 Student student = studentRepository.findById(entry.studentId())
                                         .orElseThrow(() -> new ValidationException(ErrorCode.VALIDATION_FAILED));
+                                verifyStudentRoster(student, assessment, schoolId);
                                 return Score.builder()
-                                        .school(School.builder().id(DEFAULT_SCHOOL_ID).build())
+                                        .school(School.builder().id(schoolId).build())
                                         .assessment(assessment)
                                         .student(student)
                                         .score(null)
@@ -122,6 +123,15 @@ public class ScoreService {
                                         .createdAt(LocalDateTime.now())
                                         .build();
                             });
+
+            if (score.getAssessment() == null || !assessmentId.equals(score.getAssessment().getId())
+                    || score.getStudent() == null || !entry.studentId().equals(score.getStudent().getId())) {
+                throw new ResourceNotFoundException(ErrorCode.SCORE_NOT_FOUND);
+            }
+            verifyStudentRoster(score.getStudent(), assessment, schoolId);
+            if (score.getSchool() == null || !schoolId.equals(score.getSchool().getId())) {
+                throw new ResourceNotFoundException(ErrorCode.SCORE_NOT_FOUND);
+            }
 
             if (entry.score() != null) {
                 validateScoreRange(entry.score(), assessment.getMaxScore());
@@ -139,7 +149,7 @@ public class ScoreService {
 
             if (hasScoreChanged(previousValue, entry.score())) {
                 scoreHistoryRepository.save(ScoreHistory.builder()
-                        .school(School.builder().id(DEFAULT_SCHOOL_ID).build())
+                        .school(School.builder().id(schoolId).build())
                         .score(saved)
                         .oldScore(previousValue)
                         .newScore(entry.score())
@@ -156,16 +166,16 @@ public class ScoreService {
         }
 
         log.info("Batch saved: assessmentId={}, savedCount={}", assessmentId, responses.size());
-        // TODO(backend-lead): pass real schoolId once school context is wired in services
-        auditService.log("SCORES_BATCH_SAVED", "Score", assessmentId, currentUserId, DEFAULT_SCHOOL_ID);
+        auditService.log("SCORES_BATCH_SAVED", "Score", assessmentId, currentUserId, schoolId);
         return responses;
     }
 
     /** Loads the assessment mark grid for the class-stream. */
     @Transactional(readOnly = true)
-    public MarkGridResponse getGrid(Long assessmentId) {
+    public MarkGridResponse getGrid(Long assessmentId, Long schoolId, Long teacherId) {
         Assessment assessment = assessmentRepository.findById(assessmentId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ASSESSMENT_NOT_FOUND));
+        verifyAssessmentAccess(assessment, schoolId, teacherId);
 
         List<Student> students = studentRepository.findByCurrentClassIdAndIsActiveTrue(
                 assessment.getClassEntity().getId());
@@ -214,6 +224,26 @@ public class ScoreService {
                         .toList());
 
         return new MarkGridResponse(assessmentSummary, studentRows, scoreRows);
+    }
+
+    private void verifyAssessmentAccess(Assessment assessment, Long schoolId, Long teacherId) {
+        if (assessment == null || assessment.getSchool() == null
+                || !schoolId.equals(assessment.getSchool().getId())) {
+            throw new ResourceNotFoundException(ErrorCode.ASSESSMENT_NOT_FOUND);
+        }
+        if (assessment.getTeacher() == null || !teacherId.equals(assessment.getTeacher().getId())) {
+            throw new PermissionDeniedException(ErrorCode.NOT_YOUR_CLASS);
+        }
+    }
+
+    private void verifyStudentRoster(Student student, Assessment assessment, Long schoolId) {
+        if (student.getSchool() == null || !schoolId.equals(student.getSchool().getId())
+                || student.getCurrentClass() == null || assessment.getClassEntity() == null
+                || !assessment.getClassEntity().getId().equals(student.getCurrentClass().getId())
+                || (assessment.getStream() != null && (student.getCurrentStream() == null
+                || !assessment.getStream().getId().equals(student.getCurrentStream().getId())))) {
+            throw new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND);
+        }
     }
 
     private void validateScoreRange(BigDecimal score, BigDecimal maxScore) {

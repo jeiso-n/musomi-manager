@@ -19,7 +19,9 @@ import com.musomi.manager.entity.Subject;
 import com.musomi.manager.entity.Term;
 import com.musomi.manager.entity.Topic;
 import com.musomi.manager.entity.User;
+import com.musomi.manager.exception.AuthenticationException;
 import com.musomi.manager.exception.ErrorCode;
+import com.musomi.manager.exception.PermissionDeniedException;
 import com.musomi.manager.exception.ResourceNotFoundException;
 import com.musomi.manager.exception.ValidationException;
 import com.musomi.manager.mapper.AssessmentMapper;
@@ -31,6 +33,7 @@ import com.musomi.manager.repository.StreamRepository;
 import com.musomi.manager.repository.StudentRepository;
 import com.musomi.manager.repository.SubjectRepository;
 import com.musomi.manager.repository.TermRepository;
+import com.musomi.manager.repository.TeacherAssignmentRepository;
 import com.musomi.manager.repository.TopicRepository;
 import com.musomi.manager.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -44,8 +47,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class AssessmentService {
 
-    private static final long DEFAULT_SCHOOL_ID = 1L;
-
     private final AssessmentRepository assessmentRepository;
     private final AssessmentTopicRepository assessmentTopicRepository;
     private final ScoreRepository scoreRepository;
@@ -53,6 +54,7 @@ public class AssessmentService {
     private final StreamRepository streamRepository;
     private final SubjectRepository subjectRepository;
     private final TermRepository termRepository;
+    private final TeacherAssignmentRepository teacherAssignmentRepository;
     private final TopicRepository topicRepository;
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
@@ -60,14 +62,11 @@ public class AssessmentService {
 
     /** Lists assessments for the teacher with optional filtering. */
     @Transactional(readOnly = true)
-    public List<AssessmentResponse> listAssessments(Long teacherId, Long classId,
+    public List<AssessmentResponse> listAssessments(Long schoolId, Long teacherId, Long classId,
                                                    Long subjectId, Long termId, String status) {
-        List<Assessment> assessments = status == null
-                ? assessmentRepository.findAll().stream()
-                    .filter(assessment -> assessment.getTeacher() != null
-                            && assessment.getTeacher().getId().equals(teacherId))
-                    .toList()
-                : assessmentRepository.findByTeacherIdAndStatus(teacherId, status);
+        List<Assessment> assessments = teacherId == null
+                ? assessmentRepository.findBySchoolId(schoolId)
+                : assessmentRepository.findBySchoolIdAndTeacherId(schoolId, teacherId);
 
         return assessments.stream()
                 .filter(assessment -> classId == null || assessment.getClassEntity() != null
@@ -86,7 +85,10 @@ public class AssessmentService {
     /** Creates a new draft assessment and initializes empty scores for the roster. */
     @Transactional
     public AssessmentResponse createAssessment(Long schoolId, Long teacherId, CreateAssessmentRequest req) {
-        Long resolvedSchoolId = schoolId != null ? schoolId : DEFAULT_SCHOOL_ID;
+        if (schoolId == null || schoolId <= 0 || teacherId == null || teacherId <= 0) {
+            throw new AuthenticationException(ErrorCode.SESSION_EXPIRED);
+        }
+        Long resolvedSchoolId = schoolId;
 
         if (req.topicIds() == null || req.topicIds().isEmpty()) {
             throw new ValidationException(ErrorCode.ASSESSMENT_TOPIC_REQUIRED);
@@ -111,6 +113,20 @@ public class AssessmentService {
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
         if (term.getSchool() == null || !resolvedSchoolId.equals(term.getSchool().getId())) {
             throw new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED);
+        }
+        boolean assigned = teacherAssignmentRepository
+                .findBySchoolIdAndTeacherIdOrderByIdAsc(resolvedSchoolId, teacherId)
+                .stream()
+                .anyMatch(assignment -> assignment.getClassEntity() != null
+                        && classEntity.getId().equals(assignment.getClassEntity().getId())
+                        && assignment.getSubject() != null
+                        && subject.getId().equals(assignment.getSubject().getId())
+                        && (assignment.getStream() == null
+                        || req.streamId() != null && req.streamId().equals(assignment.getStream().getId()))
+                        && (assignment.getAcademicYear() == null || term.getAcademicYear() != null
+                        && assignment.getAcademicYear().getId().equals(term.getAcademicYear().getId())));
+        if (!assigned) {
+            throw new PermissionDeniedException(ErrorCode.NOT_YOUR_CLASS);
         }
 
         Stream stream = null;
@@ -188,17 +204,15 @@ public class AssessmentService {
 
     /** Returns a single assessment by id. */
     @Transactional(readOnly = true)
-    public AssessmentResponse getAssessment(Long id) {
-        Assessment assessment = assessmentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ASSESSMENT_NOT_FOUND));
+    public AssessmentResponse getAssessment(Long id, Long schoolId, Long teacherId) {
+        Assessment assessment = getOwnedAssessment(id, schoolId, teacherId);
         return AssessmentMapper.toResponse(assessment, assessmentTopicRepository.findByAssessmentId(id));
     }
 
     /** Updates a draft assessment and replaces its topics. */
     @Transactional
-    public AssessmentResponse updateAssessment(Long id, UpdateAssessmentRequest req) {
-        Assessment assessment = assessmentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ASSESSMENT_NOT_FOUND));
+    public AssessmentResponse updateAssessment(Long id, Long schoolId, Long teacherId, UpdateAssessmentRequest req) {
+        Assessment assessment = getOwnedAssessment(id, schoolId, teacherId);
 
         if (!"DRAFT".equalsIgnoreCase(assessment.getStatus())) {
             throw new ValidationException(ErrorCode.ASSESSMENT_ALREADY_PUBLISHED);
@@ -254,17 +268,14 @@ public class AssessmentService {
         assessmentTopicRepository.saveAll(topics);
 
         log.info("Assessment updated: assessmentId={}, title={}", saved.getId(), saved.getTitle());
-        // TODO(backend-lead): pass real userId once @CurrentUser is wired in services
-        // TODO(backend-lead): pass real schoolId once school context is wired in services
-        auditService.log("ASSESSMENT_UPDATED", "Assessment", saved.getId(), 1L, 1L);
+        auditService.log("ASSESSMENT_UPDATED", "Assessment", saved.getId(), teacherId, schoolId);
         return AssessmentMapper.toResponse(saved, assessmentTopicRepository.findByAssessmentId(saved.getId()));
     }
 
     /** Deletes a draft assessment after removing associated topics and scores. */
     @Transactional
-    public void deleteAssessment(Long id) {
-        Assessment assessment = assessmentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ASSESSMENT_NOT_FOUND));
+    public void deleteAssessment(Long id, Long schoolId, Long teacherId) {
+        Assessment assessment = getOwnedAssessment(id, schoolId, teacherId);
 
         if (!"DRAFT".equalsIgnoreCase(assessment.getStatus())) {
             throw new ValidationException(ErrorCode.ASSESSMENT_ALREADY_PUBLISHED);
@@ -278,16 +289,13 @@ public class AssessmentService {
         assessmentRepository.deleteById(id);
 
         log.info("Assessment deleted: assessmentId={}", id);
-        // TODO(backend-lead): pass real userId once @CurrentUser is wired in services
-        // TODO(backend-lead): pass real schoolId once school context is wired in services
-        auditService.log("ASSESSMENT_DELETED", "Assessment", id, 1L, 1L);
+        auditService.log("ASSESSMENT_DELETED", "Assessment", id, teacherId, schoolId);
     }
 
     /** Publishes an assessment after verifying every student has a mark. */
     @Transactional
-    public void publishAssessment(Long id, Long teacherId) {
-        Assessment assessment = assessmentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ASSESSMENT_NOT_FOUND));
+    public void publishAssessment(Long id, Long schoolId, Long teacherId) {
+        Assessment assessment = getOwnedAssessment(id, schoolId, teacherId);
 
         if (!"DRAFT".equalsIgnoreCase(assessment.getStatus())) {
             throw new ValidationException(ErrorCode.ASSESSMENT_ALREADY_PUBLISHED);
@@ -310,7 +318,18 @@ public class AssessmentService {
         assessmentRepository.save(assessment);
 
         log.info("Assessment published: assessmentId={}, publishedBy={} ", id, teacherId);
-        // TODO(backend-lead): pass real schoolId once school context is wired in services
-        auditService.log("ASSESSMENT_PUBLISHED", "Assessment", id, teacherId, 1L);
+        auditService.log("ASSESSMENT_PUBLISHED", "Assessment", id, teacherId, schoolId);
+    }
+
+    private Assessment getOwnedAssessment(Long id, Long schoolId, Long teacherId) {
+        Assessment assessment = assessmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ASSESSMENT_NOT_FOUND));
+        if (assessment.getSchool() == null || !schoolId.equals(assessment.getSchool().getId())) {
+            throw new ResourceNotFoundException(ErrorCode.ASSESSMENT_NOT_FOUND);
+        }
+        if (assessment.getTeacher() == null || !teacherId.equals(assessment.getTeacher().getId())) {
+            throw new PermissionDeniedException(ErrorCode.NOT_YOUR_CLASS);
+        }
+        return assessment;
     }
 }

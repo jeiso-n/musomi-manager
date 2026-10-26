@@ -8,6 +8,11 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 
+import com.musomi.desktop.api.AdminAuditApi;
+import com.musomi.desktop.model.AuditLogResponse;
+import com.musomi.desktop.util.TaskRunner;
+import com.musomi.desktop.util.Toast;
+
 public class AuditLogController {
 
     @FXML
@@ -33,6 +38,7 @@ public class AuditLogController {
 
     private final ObservableList<AuditRow> allLogs =
             FXCollections.observableArrayList();
+    private final AdminAuditApi adminAuditApi = AdminAuditApi.getInstance();
 
     @FXML
     private void initialize() {
@@ -57,9 +63,8 @@ public class AuditLogController {
                 data -> data.getValue().descriptionProperty()
         );
 
-        loadSampleLogs();
-
         auditTable.setItems(allLogs);
+        loadLogsFromBackend();
 
         searchField.textProperty().addListener(
                 (observable, oldValue, newValue) ->
@@ -67,50 +72,22 @@ public class AuditLogController {
         );
     }
 
-    private void loadSampleLogs() {
+    private void loadLogsFromBackend() {
+        TaskRunner.run(
+                adminAuditApi::getAuditLogs,
+                logs -> {
+                    allLogs.setAll(logs.stream()
+                            .map(this::toAuditRow)
+                            .toList());
+                    filterLogs(searchField.getText());
+                },
+                error -> Toast.error(error.getMessage() == null
+                        ? "Unable to load audit logs." : error.getMessage()));
+    }
 
-        allLogs.addAll(
-
-                new AuditRow(
-                        "2026-10-01 09:15",
-                        "admin",
-                        "LOGIN",
-                        "Authentication",
-                        "Administrator logged into the system"
-                ),
-
-                new AuditRow(
-                        "2026-10-01 09:20",
-                        "admin",
-                        "CREATE",
-                        "Users",
-                        "Created user account for John Doe"
-                ),
-
-                new AuditRow(
-                        "2026-10-01 09:35",
-                        "admin",
-                        "CREATE",
-                        "Students",
-                        "Created student record STU005"
-                ),
-
-                new AuditRow(
-                        "2026-10-01 10:05",
-                        "admin",
-                        "UPDATE",
-                        "Subjects",
-                        "Updated subject Mathematics"
-                ),
-
-                new AuditRow(
-                        "2026-10-01 10:30",
-                        "admin",
-                        "DEACTIVATE",
-                        "Students",
-                        "Deactivated student STU004"
-                )
-        );
+    private AuditRow toAuditRow(AuditLogResponse log) {
+        return new AuditRow(log.createdAt(), log.userName(), log.action(),
+                log.entityType(), log.details());
     }
 
     private void filterLogs(String searchText) {

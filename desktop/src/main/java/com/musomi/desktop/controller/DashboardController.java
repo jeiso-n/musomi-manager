@@ -10,9 +10,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.musomi.desktop.api.ApiClient;
+import com.musomi.desktop.api.TeacherAssessmentApi;
 import com.musomi.desktop.config.Session;
-import com.musomi.desktop.controller.teacher.AssessmentStore;
 import com.musomi.desktop.controller.teacher.AssessmentStore.Assessment;
+import com.musomi.desktop.model.AssessmentResponse;
 import com.musomi.desktop.model.dto.TeacherClassResponse;
 import com.musomi.desktop.model.dto.UserResponse;
 import com.musomi.desktop.util.TaskRunner;
@@ -65,15 +66,16 @@ public class DashboardController {
         hideCard(root, "Users");
 
         TaskRunner.run(
-                () -> ApiClient.getInstance().get(
-                        "/teacher/classes", TeacherClassResponse[].class),
-                response -> showTeacherStats(root, response),
+                () -> new TeacherAssessmentApi().getMyAssessments(),
+                response -> showTeacherAssessmentStats(root, response),
                 error -> {
-                    log.error("Unable to load teacher dashboard classes", error);
+                    log.error("Unable to load teacher dashboard assessments", error);
                     updateCard(root, "My Students", "My Students", "—",
-                            "Unable to load class data");
+                            "Unable to load assessment data");
                     updateCard(root, "My Classes", "My Classes", "—",
-                            "Unable to load class data");
+                            "Unable to load assessment data");
+                    updateCard(root, "Total Assessments", "Total Assessments", "—",
+                            "Unable to load assessment data");
                 });
     }
 
@@ -164,6 +166,23 @@ public class DashboardController {
                 "Classes you teach");
     }
 
+    private void showTeacherAssessmentStats(
+            Parent root, List<AssessmentResponse> assessments) {
+        List<AssessmentResponse> data = assessments == null ? List.of() : assessments;
+        long pending = data.stream()
+                .filter(item -> item != null && "DRAFT".equalsIgnoreCase(item.status()))
+                .count();
+        long published = data.stream()
+                .filter(item -> item != null && "PUBLISHED".equalsIgnoreCase(item.status()))
+                .count();
+        updateCard(root, "Total Assessments", "Total Assessments",
+                String.valueOf(data.size()), "All your assessments");
+        updateCard(root, "Pending Assessments", "Pending Assessments",
+                String.valueOf(pending), "Draft assessments");
+        updateCard(root, "Published Assessments", "Published Assessments",
+                String.valueOf(published), "Published assessments");
+    }
+
     private void replaceTeacherQuickActions(Parent root) {
         Label heading = findLabel(root, "Quick Actions");
         if (heading == null || !(heading.getParent() instanceof VBox panel)) {
@@ -173,9 +192,8 @@ public class DashboardController {
         Button markEntry = new Button("Go to Mark Entry");
         markEntry.setMaxWidth(Double.MAX_VALUE);
         markEntry.setOnAction(event -> {
-            List<Assessment> pending = AssessmentStore.getPendingAssessments();
             if (onOpenMarkEntry != null) {
-                onOpenMarkEntry.accept(pending.isEmpty() ? null : pending.get(0));
+                onOpenMarkEntry.accept(null);
             }
         });
         panel.getChildren().setAll(heading, markEntry);

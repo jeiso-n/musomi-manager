@@ -14,6 +14,7 @@ import com.musomi.manager.exception.ValidationException;
 import com.musomi.manager.mapper.TermMapper;
 import com.musomi.manager.repository.AcademicYearRepository;
 import com.musomi.manager.repository.TermRepository;
+import com.musomi.manager.util.SchoolScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,8 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class TermService {
-
-    private static final long DEFAULT_SCHOOL_ID = 1L;
 
     private final TermRepository termRepository;
     private final AcademicYearRepository academicYearRepository;
@@ -90,6 +89,6 @@ public class TermService {
     }
 
     private Long resolveSchoolId(Long schoolId) {
-        return schoolId != null ? schoolId : DEFAULT_SCHOOL_ID;
+        return SchoolScope.require(schoolId);
     }
 }

@@ -41,9 +41,11 @@ class StreamServiceTest {
     @Test
     @DisplayName("should return streams when listed")
     void shouldReturnStreamsWhenListed() {
-        when(streamRepository.findByClassEntityIdAndIsActiveTrue(5L)).thenReturn(List.of(stream()));
+        when(classRepository.findById(5L)).thenReturn(Optional.of(classEntity()));
+        when(streamRepository.findByClassEntityIdAndSchoolIdAndIsActiveTrue(5L, 1L))
+                .thenReturn(List.of(stream()));
 
-        List<StreamResponse> streams = streamService.listStreams(5L);
+        List<StreamResponse> streams = streamService.listStreams(1L, 5L);
 
         assertThat(streams).hasSize(1);
         assertThat(streams.getFirst().name()).isEqualTo("Blue");

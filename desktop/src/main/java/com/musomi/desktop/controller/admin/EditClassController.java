@@ -4,6 +4,10 @@ import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 
+import com.musomi.desktop.api.AdminClassApi;
+import com.musomi.desktop.util.TaskRunner;
+import com.musomi.desktop.util.Toast;
+
 public class EditClassController {
 
     @FXML
@@ -16,6 +20,8 @@ public class EditClassController {
     private ComboBox<String> statusComboBox;
 
     private ClassesController.ClassRow classRow;
+    private boolean saved;
+    private final AdminClassApi adminClassApi = new AdminClassApi();
 
     @FXML
     private void initialize() {
@@ -80,14 +86,20 @@ public class EditClassController {
             return;
         }
 
-        classRow.setName(name);
-
-        classRow.setLevel(level);
-
-        classRow.setStatus(status);
-
-        statusComboBox.getScene()
-                .getWindow()
-                .hide();
+        AdminClassApi.UpdateClassRequest request = new AdminClassApi.UpdateClassRequest(
+                name, classRow.getClassLevelId(), classRow.getAcademicYearId(), null);
+        TaskRunner.run(
+                () -> adminClassApi.updateClass(classRow.getId(), request),
+                ignored -> {
+                    saved = true;
+                    Toast.success("Class updated");
+                    statusComboBox.getScene().getWindow().hide();
+                },
+                error -> Toast.error(error.getMessage() == null
+                        ? "Unable to update class." : error.getMessage()));
     }
+
+    public boolean isSaved() { return saved; }
+    public String getName() { return nameField.getText().trim(); }
+    public String getLevel() { return levelComboBox.getValue(); }
 }

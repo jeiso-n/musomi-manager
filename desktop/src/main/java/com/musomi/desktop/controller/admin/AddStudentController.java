@@ -5,6 +5,14 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 
+import java.util.List;
+
+import com.musomi.desktop.api.AdminClassApi;
+import com.musomi.desktop.api.AdminStudentApi;
+import com.musomi.desktop.model.ClassResponse;
+import com.musomi.desktop.util.TaskRunner;
+import com.musomi.desktop.util.Toast;
+
 public class AddStudentController {
 
     @FXML
@@ -16,20 +24,23 @@ public class AddStudentController {
     @FXML
     private ComboBox<String> classComboBox;
 
-    private String createdName;
-
-    private String createdAdmissionNumber;
-
-    private String createdClass;
+    private final AdminClassApi adminClassApi = new AdminClassApi();
+    private final AdminStudentApi adminStudentApi = new AdminStudentApi();
+    private List<ClassResponse> classes = List.of();
+    private boolean studentCreated;
 
     @FXML
     private void initialize() {
 
-        classComboBox.getItems().addAll(
-                "Senior One",
-                "Senior Two",
-                "Senior Three",
-                "Senior Four"
+        TaskRunner.run(
+                adminClassApi::getClasses,
+                loadedClasses -> {
+                    classes = loadedClasses;
+                    classComboBox.getItems().setAll(
+                            loadedClasses.stream().map(ClassResponse::name).toList());
+                },
+                error -> Toast.error(error.getMessage() == null
+                        ? "Unable to load classes." : error.getMessage())
         );
     }
 
@@ -67,16 +78,28 @@ public class AddStudentController {
             return;
         }
 
-        createdName = name;
+        Long classId = classes.stream()
+                .filter(item -> item.name().equals(className))
+                .map(ClassResponse::id)
+                .findFirst()
+                .orElse(null);
+        if (classId == null) {
+            showAlert("Invalid Class", "The selected class is no longer available.");
+            return;
+        }
 
-        createdAdmissionNumber =
-                admissionNumber;
-
-        createdClass = className;
-
-        classComboBox.getScene()
-                .getWindow()
-                .hide();
+        AdminStudentApi.CreateStudentRequest request =
+                new AdminStudentApi.CreateStudentRequest(
+                        admissionNumber, name, null, null, classId, null, null);
+        TaskRunner.run(
+                () -> adminStudentApi.createStudent(request),
+                ignored -> {
+                    studentCreated = true;
+                    Toast.success("Student created");
+                    classComboBox.getScene().getWindow().hide();
+                },
+                error -> Toast.error(error.getMessage() == null
+                        ? "Unable to create student." : error.getMessage()));
     }
 
     private void showAlert(
@@ -96,15 +119,7 @@ public class AddStudentController {
         alert.showAndWait();
     }
 
-    public String getCreatedName() {
-        return createdName;
-    }
-
-    public String getCreatedAdmissionNumber() {
-        return createdAdmissionNumber;
-    }
-
-    public String getCreatedClass() {
-        return createdClass;
+    public boolean isStudentCreated() {
+        return studentCreated;
     }
 }

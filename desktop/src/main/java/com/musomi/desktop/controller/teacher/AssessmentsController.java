@@ -15,6 +15,12 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.musomi.desktop.api.ApiClient;
+import com.musomi.desktop.api.TeacherAssessmentApi;
+import com.musomi.desktop.model.ClassResponse;
+import com.musomi.desktop.model.CreateAssessmentRequest;
+import com.musomi.desktop.model.SubjectResponse;
+import com.musomi.desktop.model.TermResponse;
+import com.musomi.desktop.model.TopicResponse;
 import com.musomi.desktop.util.TaskRunner;
 import com.musomi.desktop.util.Toast;
 
@@ -88,9 +94,10 @@ public class AssessmentsController {
     @FXML private Label      errorLabel;
     @FXML private Label      successLabel;
     @FXML private TextField  nameField;
-    @FXML private ComboBox<String> classCombo;
-    @FXML private ComboBox<String> subjectCombo;
-    @FXML private ComboBox<String> topicCombo;
+    @FXML private ComboBox<ClassResponse> classCombo;
+    @FXML private ComboBox<SubjectResponse> subjectCombo;
+    @FXML private ComboBox<TermResponse> termCombo;
+    @FXML private ComboBox<TopicResponse> topicCombo;
     @FXML private DatePicker datePicker;
     @FXML private TextField  marksField;
     @FXML private Button     saveDraftBtn;
@@ -135,6 +142,7 @@ public class AssessmentsController {
     private AssessmentData reviewingAssessment = null;
     private boolean reviewComplete;
     private final List<AssessmentData> assessments = new ArrayList<>();
+    private final TeacherAssessmentApi teacherAssessmentApi = new TeacherAssessmentApi();
 
     // =========================================================================
     // Lifecycle
@@ -143,8 +151,70 @@ public class AssessmentsController {
     @FXML
     private void initialize() {
         setupAssessmentTable();
+        setupReferenceSelectors();
         assessmentTable.setPlaceholder(new Label("Loading assessments..."));
         refreshList();
+    }
+
+    private void setupReferenceSelectors() {
+        classCombo.setConverter(new javafx.util.StringConverter<>() {
+            @Override public String toString(ClassResponse value) {
+                return value == null ? "" : value.name();
+            }
+            @Override public ClassResponse fromString(String value) { return null; }
+        });
+        subjectCombo.setConverter(new javafx.util.StringConverter<>() {
+            @Override public String toString(SubjectResponse value) {
+                return value == null ? "" : value.name();
+            }
+            @Override public SubjectResponse fromString(String value) { return null; }
+        });
+        termCombo.setConverter(new javafx.util.StringConverter<>() {
+            @Override public String toString(TermResponse value) {
+                return value == null ? "" : value.name();
+            }
+            @Override public TermResponse fromString(String value) { return null; }
+        });
+        topicCombo.setConverter(new javafx.util.StringConverter<>() {
+            @Override public String toString(TopicResponse value) {
+                return value == null ? "" : value.name();
+            }
+            @Override public TopicResponse fromString(String value) { return null; }
+        });
+        subjectCombo.valueProperty().addListener(
+                (observable, oldValue, newValue) -> loadTopics(newValue));
+        loadReferenceData();
+    }
+
+    private void loadReferenceData() {
+        TaskRunner.run(
+                () -> new ReferenceData(
+                        teacherAssessmentApi.getMyClasses(),
+                        teacherAssessmentApi.getSubjects(),
+                        teacherAssessmentApi.getTerms()),
+                data -> {
+                    classCombo.getItems().setAll(data.classes());
+                    subjectCombo.getItems().setAll(data.subjects());
+                    termCombo.getItems().setAll(data.terms());
+                },
+                error -> {
+                    log.error("Unable to load assessment reference data", error);
+                    Toast.error("Unable to load assessment options: " + error.getMessage());
+                });
+    }
+
+    private void loadTopics(SubjectResponse subject) {
+        topicCombo.getItems().clear();
+        if (subject == null || subject.id() == null) {
+            return;
+        }
+        TaskRunner.run(
+                () -> teacherAssessmentApi.getTopics(subject.id()),
+                topicCombo.getItems()::setAll,
+                error -> {
+                    log.error("Unable to load topics for subject {}", subject.id(), error);
+                    Toast.error("Unable to load topics: " + error.getMessage());
+                });
     }
 
     private void setupAssessmentTable() {
@@ -230,14 +300,6 @@ public class AssessmentsController {
                 assessments.clear();
                 assessments.addAll(items);
                 assessmentTable.getItems().setAll(items);
-                classCombo.getItems().setAll(items.stream()
-                        .map(AssessmentData::displayClass).distinct().sorted().toList());
-                subjectCombo.getItems().setAll(items.stream()
-                        .map(AssessmentData::subjectName).distinct().sorted().toList());
-                topicCombo.getItems().setAll(items.stream()
-                        .flatMap(item -> item.topics().stream())
-                        .map(TopicData::name).filter(name -> name != null)
-                        .distinct().sorted().toList());
                 assessmentTable.setPlaceholder(new Label(
                         items.isEmpty() ? "No assessments yet." : "No assessments match."));
             },
@@ -248,6 +310,30 @@ public class AssessmentsController {
                 Toast.error("Unable to load assessments.");
             }
         );
+    }
+
+    private static <T> void selectById(ComboBox<T> comboBox, Long id) {
+        if (id == null) {
+            comboBox.getSelectionModel().clearSelection();
+            return;
+        }
+        for (T item : comboBox.getItems()) {
+            Long itemId = null;
+            if (item instanceof ClassResponse value) {
+                itemId = value.id();
+            } else if (item instanceof SubjectResponse value) {
+                itemId = value.id();
+            } else if (item instanceof TermResponse value) {
+                itemId = value.id();
+            } else if (item instanceof TopicResponse value) {
+                itemId = value.id();
+            }
+            if (id.equals(itemId)) {
+                comboBox.setValue(item);
+                return;
+            }
+        }
+        comboBox.getSelectionModel().clearSelection();
     }
 
     private Button actionButton(String text, String styleClass) {
@@ -312,9 +398,11 @@ public class AssessmentsController {
 
     private void clearForm() {
         nameField.clear();
-        classCombo.setValue(null);
-        subjectCombo.setValue(null);
-        topicCombo.setValue(null);
+        classCombo.getSelectionModel().clearSelection();
+        subjectCombo.getSelectionModel().clearSelection();
+        termCombo.getSelectionModel().clearSelection();
+        topicCombo.getSelectionModel().clearSelection();
+        topicCombo.getItems().clear();
         datePicker.setValue(null);
         marksField.clear();
         hideMessages();
@@ -322,9 +410,12 @@ public class AssessmentsController {
 
     private void populateForm(AssessmentData a) {
         nameField.setText(a.title());
-        classCombo.setValue(a.displayClass());
-        subjectCombo.setValue(a.subjectName());
-        topicCombo.setValue(a.topicNames());
+        selectById(classCombo, a.classId());
+        selectById(subjectCombo, a.subjectId());
+        selectById(termCombo, a.termId());
+        if (a.topics() != null && !a.topics().isEmpty()) {
+            selectById(topicCombo, a.topics().get(0).id());
+        }
         marksField.setText(a.maxScore().stripTrailingZeros().toPlainString());
         datePicker.setValue(a.assessmentDate());
         hideMessages();
@@ -335,16 +426,18 @@ public class AssessmentsController {
         hideMessages();
 
         String name     = nameField.getText()    == null ? "" : nameField.getText().trim();
-        String cls      = classCombo.getValue()  == null ? "" : classCombo.getValue().trim();
-        String subject  = subjectCombo.getValue()== null ? "" : subjectCombo.getValue().trim();
-        String topic    = topicCombo.getValue()  == null ? "" : topicCombo.getValue().trim();
+        ClassResponse selectedClass = classCombo.getValue();
+        SubjectResponse selectedSubject = subjectCombo.getValue();
+        TermResponse selectedTerm = termCombo.getValue();
+        TopicResponse selectedTopic = topicCombo.getValue();
         LocalDate date  = datePicker.getValue();
         String marksStr = marksField.getText()   == null ? "" : marksField.getText().trim();
 
         if (name.isEmpty())    { showError("Assessment Name is required."); return; }
-        if (cls.isEmpty())     { showError("Class is required."); return; }
-        if (subject.isEmpty()) { showError("Subject is required."); return; }
-        if (topic.isEmpty())   { showError("Topic is required."); return; }
+        if (selectedClass == null) { showError("Class is required."); return; }
+        if (selectedSubject == null) { showError("Subject is required."); return; }
+        if (selectedTerm == null) { showError("Term is required."); return; }
+        if (selectedTopic == null) { showError("Topic is required."); return; }
         if (date == null)      { showError("Assessment Date is required."); return; }
         if (marksStr.isEmpty()){ showError("Maximum Marks is required."); return; }
 
@@ -359,17 +452,34 @@ public class AssessmentsController {
         if (maxMarks > 1000)  { showError("Maximum Marks cannot exceed 1000."); return; }
 
         if (editingAssessment == null) {
-            showError("Creating an assessment requires backend class, subject, term, and topic IDs, which this form does not collect.");
-            return;
-        }
-        if (!cls.equals(editingAssessment.displayClass())
-                || !subject.equals(editingAssessment.subjectName())
-                || !topic.equals(editingAssessment.topicNames())) {
-            showError("Changing class, subject, or topics requires backend IDs not available in this form.");
+            CreateAssessmentRequest request = new CreateAssessmentRequest(
+                    selectedClass.id(), null, selectedSubject.id(), selectedTerm.id(),
+                    name, "EXAM", date, BigDecimal.valueOf(maxMarks),
+                    List.of(selectedTopic.id()));
+            saveDraftBtn.setDisable(true);
+            TaskRunner.run(
+                    () -> teacherAssessmentApi.createAssessment(request),
+                    response -> {
+                        saveDraftBtn.setDisable(false);
+                        Toast.success("Assessment created");
+                        refreshList();
+                        showPanel(ActivePanel.LIST);
+                    },
+                    error -> {
+                        saveDraftBtn.setDisable(false);
+                        log.error("Unable to create assessment", error);
+                        showError("Unable to create assessment: " + error.getMessage());
+                    });
             return;
         }
         if (editingAssessment.termId() == null || editingAssessment.topics().isEmpty()) {
             showError("This assessment is missing the term or topic IDs required by the backend.");
+            return;
+        }
+        if (!selectedClass.id().equals(editingAssessment.classId())
+                || !selectedSubject.id().equals(editingAssessment.subjectId())
+                || !selectedTopic.id().equals(editingAssessment.topics().get(0).id())) {
+            showError("Changing class, subject, or topics is not supported while editing.");
             return;
         }
 
@@ -827,6 +937,11 @@ public class AssessmentsController {
             String assessmentDate,
             BigDecimal maxScore,
             List<Long> topicIds) {}
+
+    private record ReferenceData(
+            List<ClassResponse> classes,
+            List<SubjectResponse> subjects,
+            List<TermResponse> terms) {}
 
     private Label colHeader(String text, double width) {
         Label l = new Label(text);

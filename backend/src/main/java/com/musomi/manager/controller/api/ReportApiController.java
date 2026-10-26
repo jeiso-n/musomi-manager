@@ -52,18 +52,21 @@ public class ReportApiController {
     public ApiResponse<List<ReportResponse>> listByStudent(
             @PathVariable Long studentId,
             @RequestParam(required = false) Long termId) {
-        return ApiResponse.success(reportService.listByStudent(studentId));
+        return ApiResponse.success(reportService.listByStudent(CurrentUser.getSchoolId(), studentId));
     }
 
     /** Downloads a generated PDF report. */
     @GetMapping("/download/{reportId}")
     public ResponseEntity<byte[]> downloadReport(@PathVariable Long reportId) {
-        GeneratedReport report = reportService.getGeneratedReport(reportId);
+        GeneratedReport report = reportService.getGeneratedReport(reportId, CurrentUser.getSchoolId());
         if (report.getFilePath() == null || report.getFilePath().isBlank()) {
             throw new ResourceNotFoundException(ErrorCode.REPORT_NOT_FOUND);
         }
         try {
-            Path filePath = Path.of(report.getFilePath().replace('\\', '/'));
+            Path filePath = Path.of(report.getFilePath().replace('\\', '/')).toAbsolutePath().normalize();
+            if (!filePath.startsWith(Path.of(System.getProperty("user.dir")).toAbsolutePath().normalize())) {
+                throw new ResourceNotFoundException(ErrorCode.REPORT_NOT_FOUND);
+            }
             byte[] file = Files.readAllBytes(filePath);
             String studentId = report.getStudent() == null || report.getStudent().getId() == null
                     ? "unknown"

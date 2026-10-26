@@ -16,17 +16,25 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findBySchoolIdAndUsername(1L, username)
+        return loadUserByUsername(username, null);
+    }
+
+    /**
+     * Resolves a login within the selected school.
+     */
+    public UserDetails loadUserByUsername(String username, Long schoolId)
+            throws UsernameNotFoundException {
+        User user = (schoolId == null
+                ? userRepository.findByUsername(username)
+                : userRepository.findBySchoolIdAndUsername(schoolId, username))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
         if (Boolean.FALSE.equals(user.getIsActive())) {
             throw new UsernameNotFoundException("Account is inactive");
         }
 
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getUsername())
-                .password(user.getPasswordHash())
-                .authorities("ROLE_" + user.getRole().name())
-                .build();
+        return new WebUserPrincipal(user.getUsername(), user.getPasswordHash(),
+                true, java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority(
+                        "ROLE_" + user.getRole().name())), user.getSchool().getId());
     }
 }

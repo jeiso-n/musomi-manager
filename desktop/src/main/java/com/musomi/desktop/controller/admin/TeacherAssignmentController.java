@@ -149,7 +149,7 @@ public class TeacherAssignmentController {
 
         TaskRunner.run(
                 () -> apiClient.post(
-                        "/api/v1/admin/assignments",
+                        "/admin/assignments",
                         request,
                         AssignmentResponse.class
                 ),
@@ -203,11 +203,11 @@ public class TeacherAssignmentController {
                 () -> {
                     List<UserResponse> teachers = fetchTeachers();
                     ClassResponse[] classes = apiClient.get(
-                            "/api/v1/admin/classes",
+                            "/admin/classes",
                             ClassResponse[].class
                     );
                     SubjectResponse[] subjects = apiClient.get(
-                            "/api/v1/admin/subjects",
+                            "/admin/subjects",
                             SubjectResponse[].class
                     );
                     return new DropdownData(
@@ -227,27 +227,12 @@ public class TeacherAssignmentController {
 
     private List<UserResponse> fetchTeachers() {
         List<UserResponse> teachers = new ArrayList<>();
-        UserPageResponse firstPage = apiClient.get(
-                "/api/v1/admin/users?role=TEACHER",
-                UserPageResponse.class
-        );
-        if (firstPage == null) {
+        UserResponse[] response = apiClient.get(
+                "/teacher/teachers", UserResponse[].class);
+        if (response == null) {
             return teachers;
         }
-
-        if (firstPage.data() != null) {
-            teachers.addAll(firstPage.data());
-        }
-
-        for (int page = firstPage.page() + 1; page < firstPage.totalPages(); page++) {
-            UserPageResponse nextPage = apiClient.get(
-                    "/api/v1/admin/users?role=TEACHER&page=" + page,
-                    UserPageResponse.class
-            );
-            if (nextPage != null && nextPage.data() != null) {
-                teachers.addAll(nextPage.data());
-            }
-        }
+        teachers.addAll(List.of(response));
         return teachers;
     }
 
@@ -255,7 +240,7 @@ public class TeacherAssignmentController {
         TaskRunner.run(
                 () -> {
                     AssignmentResponse[] result = apiClient.get(
-                            "/api/v1/admin/assignments",
+                            "/admin/assignments",
                             AssignmentResponse[].class
                     );
                     if (result == null) {
@@ -305,7 +290,7 @@ public class TeacherAssignmentController {
 
         TaskRunner.run(
                 () -> {
-                    apiClient.delete("/api/v1/admin/assignments/" + selected.getId());
+                    apiClient.delete("/admin/assignments/" + selected.getId());
                     return null;
                 },
                 result -> {

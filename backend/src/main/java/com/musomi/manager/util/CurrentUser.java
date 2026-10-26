@@ -5,7 +5,6 @@ import com.musomi.manager.exception.ErrorCode;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 
 public final class CurrentUser {
 
@@ -18,19 +17,15 @@ public final class CurrentUser {
         if (principal instanceof Long userId) {
             return userId;
         }
-        if (principal instanceof UserDetails && authentication.getDetails() == null) {
-            // Test fallback for @WithMockUser, which has no JWT user ID in its principal.
-            return 1L;
-        }
         throw new AuthenticationException(ErrorCode.SESSION_EXPIRED);
     }
 
     public static Long getSchoolId() {
         Object details = getAuthentication().getDetails();
-        if (details instanceof Long schoolId) {
+        if (details instanceof Long schoolId && schoolId > 0) {
             return schoolId;
         }
-        return 1L;
+        throw new AuthenticationException(ErrorCode.SESSION_EXPIRED);
     }
 
     public static String getRole() {

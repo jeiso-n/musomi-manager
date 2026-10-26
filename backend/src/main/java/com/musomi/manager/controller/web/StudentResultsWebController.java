@@ -20,6 +20,7 @@ import com.musomi.manager.repository.StudentRepository;
 import com.musomi.manager.repository.TermRepository;
 import com.musomi.manager.repository.UserRepository;
 import com.musomi.manager.util.GradeCalculator;
+import com.musomi.manager.util.WebCurrentUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -154,7 +155,7 @@ public class StudentResultsWebController {
         if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
             return Optional.empty();
         }
-        Optional<User> user = userRepository.findBySchoolIdAndUsername(1L, auth.getName());
+        Optional<User> user = userRepository.findBySchoolIdAndUsername(WebCurrentUser.getSchoolId(), auth.getName());
         if (user.isEmpty()) {
             return Optional.empty();
         }

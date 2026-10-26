@@ -19,6 +19,7 @@ public class EditUserController {
     private ComboBox<String> statusComboBox;
 
     private UsersController.UserRow user;
+    private boolean saved;
 
     @FXML
     private void initialize() {
@@ -62,16 +63,15 @@ public class EditUserController {
             return;
         }
 
+        if (fullNameField.getText().trim().isEmpty()) return;
         user.setName(fullNameField.getText().trim());
-
-        user.setUsername(usernameField.getText().trim());
-
-        user.setRole(roleComboBox.getValue());
-
-        user.setStatus(statusComboBox.getValue());
+        saved = true;
 
         statusComboBox.getScene()
                 .getWindow()
                 .hide();
     }
+
+    public boolean isSaved() { return saved; }
+    public String getFullName() { return fullNameField.getText().trim(); }
 }

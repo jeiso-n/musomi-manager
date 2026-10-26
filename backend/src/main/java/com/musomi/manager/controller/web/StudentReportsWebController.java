@@ -16,6 +16,7 @@ import com.musomi.manager.entity.User;
 import com.musomi.manager.repository.GeneratedReportRepository;
 import com.musomi.manager.repository.StudentRepository;
 import com.musomi.manager.repository.UserRepository;
+import com.musomi.manager.util.WebCurrentUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -108,7 +109,7 @@ public class StudentReportsWebController {
         if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
             return Optional.empty();
         }
-        Optional<User> user = userRepository.findBySchoolIdAndUsername(1L, auth.getName());
+        Optional<User> user = userRepository.findBySchoolIdAndUsername(WebCurrentUser.getSchoolId(), auth.getName());
         if (user.isEmpty()) {
             return Optional.empty();
         }

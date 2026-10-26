@@ -6,11 +6,14 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 
+import com.musomi.desktop.api.AdminUserApi;
+import com.musomi.desktop.util.TaskRunner;
+import com.musomi.desktop.util.Toast;
+
 public class AddUserController {
 
-    private String createdName;
-    private String createdUsername;
-    private String createdRole;
+    private final AdminUserApi api = new AdminUserApi();
+    private boolean userCreated;
 
 
     @FXML
@@ -29,8 +32,9 @@ public class AddUserController {
     private void initialize() {
 
         roleComboBox.getItems().addAll(
-                "Administrator",
-                "Teacher"
+                "ADMIN",
+                "TEACHER",
+                "STUDENT"
         );
     }
 
@@ -52,24 +56,33 @@ public class AddUserController {
 
         if (fullName.isEmpty()
                 || username.isEmpty()
-                || password.isEmpty()
+                || password.length() < 8
                 || role == null) {
 
             showAlert(
                     "Missing Information",
-                    "Please fill in all fields."
+                    password.length() < 8
+                            ? "Password must be at least 8 characters."
+                            : "Please fill in all fields."
             );
 
             return;
         }
 
-        createdName = fullName;
-        createdUsername = username;
-        createdRole = role;
-
-        roleComboBox.getScene()
-                .getWindow()
-                .hide();
+        AdminUserApi.CreateUserRequest request = new AdminUserApi.CreateUserRequest(
+                username, password, fullName, null, null, role);
+        TaskRunner.run(
+                () -> {
+                    api.createUser(request);
+                    return null;
+                },
+                ignored -> {
+                    userCreated = true;
+                    Toast.success("User created");
+                    roleComboBox.getScene().getWindow().hide();
+                },
+                error -> Toast.error(error.getMessage() == null
+                        ? "Unable to create user." : error.getMessage()));
     }
 
     private void showAlert(String title, String message) {
@@ -83,16 +96,8 @@ public class AddUserController {
         alert.showAndWait();
     }
 
-    public String getCreatedName() {
-        return createdName;
-    }
-
-    public String getCreatedUsername() {
-        return createdUsername;
-    }
-
-    public String getCreatedRole() {
-        return createdRole;
+    public boolean isUserCreated() {
+        return userCreated;
     }
 
 }

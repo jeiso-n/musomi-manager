@@ -15,6 +15,7 @@ import com.musomi.manager.exception.ErrorCode;
 import com.musomi.manager.exception.ResourceNotFoundException;
 import com.musomi.manager.exception.ValidationException;
 import com.musomi.manager.repository.GeneratedReportRepository;
+import com.musomi.manager.repository.ClassRepository;
 import com.musomi.manager.repository.ReportRequestRepository;
 import com.musomi.manager.repository.StudentRepository;
 import com.musomi.manager.repository.TermRepository;
@@ -51,16 +52,20 @@ class ReportServiceTest {
     @Mock
     private TermRepository termRepository;
 
+    @Mock
+    private ClassRepository classRepository;
+
     @InjectMocks
     private ReportService reportService;
 
     @Test
     @DisplayName("should list reports by student")
     void shouldListReportsByStudent() {
-        when(generatedReportRepository.findByStudentIdOrderByGeneratedAtDesc(STUDENT_ID))
+        when(studentRepository.findByIdAndSchoolId(STUDENT_ID, SCHOOL_ID)).thenReturn(Optional.of(student()));
+        when(generatedReportRepository.findBySchoolIdAndStudentIdOrderByGeneratedAtDesc(SCHOOL_ID, STUDENT_ID))
                 .thenReturn(List.of(report()));
 
-        List<ReportResponse> response = reportService.listByStudent(STUDENT_ID);
+        List<ReportResponse> response = reportService.listByStudent(SCHOOL_ID, STUDENT_ID);
 
         assertThat(response).hasSize(1);
         assertThat(response.get(0).studentName()).isEqualTo("Alex Student");
@@ -70,9 +75,9 @@ class ReportServiceTest {
     @Test
     @DisplayName("should get report when it exists")
     void shouldGetReportWhenExists() {
-        when(generatedReportRepository.findById(5L)).thenReturn(Optional.of(report()));
+        when(generatedReportRepository.findByIdAndSchoolId(5L, SCHOOL_ID)).thenReturn(Optional.of(report()));
 
-        ReportResponse response = reportService.getReport(5L);
+        ReportResponse response = reportService.getReport(5L, SCHOOL_ID);
 
         assertThat(response.id()).isEqualTo(5L);
         assertThat(response.downloadUrl()).isEqualTo("/reports/download/5");
@@ -81,9 +86,9 @@ class ReportServiceTest {
     @Test
     @DisplayName("should throw when report not found")
     void shouldThrowWhenReportNotFound() {
-        when(generatedReportRepository.findById(99L)).thenReturn(Optional.empty());
+        when(generatedReportRepository.findByIdAndSchoolId(99L, SCHOOL_ID)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> reportService.getReport(99L))
+        assertThatThrownBy(() -> reportService.getReport(99L, SCHOOL_ID))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.REPORT_NOT_FOUND);
     }
@@ -120,12 +125,15 @@ class ReportServiceTest {
     @DisplayName("should mark generated and update status")
     void shouldMarkGeneratedAndUpdateStatus() {
         ReportRequest request = ReportRequest.builder().id(8L).status("PENDING").build();
-        when(reportRequestRepository.findById(8L)).thenReturn(Optional.of(request));
-        when(generatedReportRepository.findById(5L)).thenReturn(Optional.of(report()));
+        request.setSchool(school());
+        request.setStudent(Student.builder().id(STUDENT_ID).school(school()).build());
+        request.setTerm(term());
+        when(reportRequestRepository.findByIdAndSchoolId(8L, SCHOOL_ID)).thenReturn(Optional.of(request));
+        when(generatedReportRepository.findByIdAndSchoolId(5L, SCHOOL_ID)).thenReturn(Optional.of(report()));
         when(reportRequestRepository.save(any(ReportRequest.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        reportService.markGenerated(8L, 5L);
+        reportService.markGenerated(8L, 5L, SCHOOL_ID);
 
         assertThat(request.getStatus()).isEqualTo("GENERATED");
         assertThat(request.getProcessedAt()).isNotNull();
@@ -149,7 +157,7 @@ class ReportServiceTest {
     }
 
     private void stubRequestParents() {
-        when(studentRepository.findById(STUDENT_ID)).thenReturn(Optional.of(
+        when(studentRepository.findByIdAndSchoolId(STUDENT_ID, SCHOOL_ID)).thenReturn(Optional.of(
                 Student.builder().id(STUDENT_ID).school(school()).fullName("Alex Student").build()));
         when(termRepository.findById(TERM_ID)).thenReturn(Optional.of(term()));
     }
@@ -164,6 +172,10 @@ class ReportServiceTest {
                 .fileSizeBytes(1024L)
                 .generatedAt(LocalDateTime.of(2026, 4, 20, 15, 0))
                 .build();
+    }
+
+    private Student student() {
+        return Student.builder().id(STUDENT_ID).school(school()).fullName("Alex Student").build();
     }
 
     private Term term() {

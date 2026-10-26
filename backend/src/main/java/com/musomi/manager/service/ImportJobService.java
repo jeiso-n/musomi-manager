@@ -11,6 +11,7 @@ import com.musomi.manager.exception.ErrorCode;
 import com.musomi.manager.exception.ResourceNotFoundException;
 import com.musomi.manager.mapper.ImportJobMapper;
 import com.musomi.manager.repository.ImportJobRepository;
+import com.musomi.manager.util.SchoolScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,32 +23,30 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class ImportJobService {
 
-    private static final Long DEFAULT_SCHOOL_ID = 1L;
-
     private final ImportJobRepository importJobRepository;
 
     /** Lists import jobs for a school. */
     @Transactional(readOnly = true)
     public List<ImportJobResponse> listBySchool(Long schoolId) {
-        Long resolvedSchoolId = schoolId != null ? schoolId : DEFAULT_SCHOOL_ID;
         return ImportJobMapper.toResponseList(
-                importJobRepository.findBySchoolIdOrderByCreatedAtDesc(resolvedSchoolId));
+                importJobRepository.findBySchoolIdOrderByCreatedAtDesc(SchoolScope.require(schoolId)));
     }
 
     /** Returns the import job with the specified reference. */
     @Transactional(readOnly = true)
-    public ImportJobResponse getByReference(String reference) {
-        ImportJob job = importJobRepository.findByJobReference(reference)
+    public ImportJobResponse getByReference(String reference, Long schoolId) {
+        ImportJob job = importJobRepository.findByJobReferenceAndSchoolId(
+                        reference, SchoolScope.require(schoolId))
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
         return ImportJobMapper.toResponse(job);
     }
 
     /** Creates a pending import job with empty validation counts. */
     @Transactional
-    public ImportJobResponse create(String jobReference, String importType, Integer totalRows,
+    public ImportJobResponse create(Long schoolId, String jobReference, String importType, Integer totalRows,
                                    String originalFilename, Long createdBy) {
         ImportJob job = ImportJob.builder()
-                .school(School.builder().id(DEFAULT_SCHOOL_ID).build())
+                .school(School.builder().id(SchoolScope.require(schoolId)).build())
                 .jobReference(jobReference)
                 .importType(importType)
                 .status("PENDING")
@@ -59,7 +58,7 @@ public class ImportJobService {
                 .createdAt(LocalDateTime.now())
                 .build();
         ImportJob saved = importJobRepository.save(job);
-        log.info("Import job created: reference={}, schoolId={}", jobReference, DEFAULT_SCHOOL_ID);
+        log.info("Import job created: reference={}, schoolId={}", jobReference, schoolId);
         return ImportJobMapper.toResponse(saved);
     }
 }

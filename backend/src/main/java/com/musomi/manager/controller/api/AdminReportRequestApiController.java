@@ -42,7 +42,7 @@ public class AdminReportRequestApiController {
     public ResponseEntity<Void> markGenerated(
             @PathVariable Long requestId,
             @RequestParam Long reportId) {
-        reportService.markGenerated(requestId, reportId);
+        reportService.markGenerated(requestId, reportId, CurrentUser.getSchoolId());
         return ResponseEntity.noContent().build();
     }
 

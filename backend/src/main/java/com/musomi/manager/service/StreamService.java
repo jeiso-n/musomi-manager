@@ -14,6 +14,7 @@ import com.musomi.manager.exception.ValidationException;
 import com.musomi.manager.mapper.StreamMapper;
 import com.musomi.manager.repository.ClassRepository;
 import com.musomi.manager.repository.StreamRepository;
+import com.musomi.manager.util.SchoolScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,21 +26,26 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class StreamService {
 
-    private static final long DEFAULT_SCHOOL_ID = 1L;
-
     private final StreamRepository streamRepository;
     private final ClassRepository classRepository;
 
     /** Lists active streams within a class. */
     @Transactional(readOnly = true)
-    public List<StreamResponse> listStreams(Long classId) {
-        return StreamMapper.toResponseList(streamRepository.findByClassEntityIdAndIsActiveTrue(classId));
+    public List<StreamResponse> listStreams(Long schoolId, Long classId) {
+        Long resolvedSchoolId = SchoolScope.require(schoolId);
+        ClassEntity classEntity = classRepository.findById(classId)
+                .filter(found -> found.getSchool() != null
+                        && resolvedSchoolId.equals(found.getSchool().getId()))
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
+        return StreamMapper.toResponseList(
+                streamRepository.findByClassEntityIdAndSchoolIdAndIsActiveTrue(
+                        classEntity.getId(), resolvedSchoolId));
     }
 
     /** Creates a stream within a school's class. */
     @Transactional
     public StreamResponse createStream(Long schoolId, CreateStreamRequest request) {
-        Long resolvedSchoolId = schoolId != null ? schoolId : DEFAULT_SCHOOL_ID;
+        Long resolvedSchoolId = SchoolScope.require(schoolId);
         ClassEntity classEntity = classRepository.findById(request.classId())
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
         if (classEntity.getSchool() == null

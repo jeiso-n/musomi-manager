@@ -5,18 +5,22 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.awt.Color;
 
 import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.Font;
 import com.lowagie.text.FontFactory;
+import com.lowagie.text.Element;
 import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.Phrase;
+import com.lowagie.text.Rectangle;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import com.musomi.manager.entity.Comment;
+import com.musomi.manager.entity.School;
 import com.musomi.manager.entity.SchoolSettings;
 import com.musomi.manager.entity.Student;
 import com.musomi.manager.entity.Term;
@@ -30,19 +34,24 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class PdfService {
 
+    private static final Color PRIMARY = new Color(0x4F, 0x46, 0xE5);
+    private static final Color SLATE_50 = new Color(0xF8, 0xFA, 0xFC);
+    private static final Color SLATE_200 = new Color(0xE2, 0xE8, 0xF0);
+    private static final Color SLATE_500 = new Color(0x64, 0x74, 0x8B);
+
     /** PDF subject summary data. */
     public record SubjectAverage(String subjectName, BigDecimal average, String grade, int assessmentCount) {
     }
 
     /** Generates a one-page A4 report card PDF for a student and term. */
-    public byte[] generateReportCard(Student student, Term term, SchoolSettings settings,
+    public byte[] generateReportCard(Student student, Term term, School school, SchoolSettings settings,
                                      List<SubjectAverage> subjects, BigDecimal overallAverage,
                                      String overallGrade, int position, int classSize, List<Comment> comments) {
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             Document document = new Document(PageSize.A4);
             PdfWriter.getInstance(document, output);
             document.open();
-            addReportContents(document, student, term, settings, subjects, overallAverage, overallGrade,
+            addReportContents(document, student, term, school, settings, subjects, overallAverage, overallGrade,
                     position, classSize, comments);
             document.close();
             log.info("Generated report card for student {} in term {}",
@@ -54,18 +63,24 @@ public class PdfService {
         }
     }
 
-    private void addReportContents(Document document, Student student, Term term, SchoolSettings settings,
+    private void addReportContents(Document document, Student student, Term term, School school,
+                                   SchoolSettings settings,
                                    List<SubjectAverage> subjects, BigDecimal overallAverage,
                                    String overallGrade, int position, int classSize, List<Comment> comments)
             throws DocumentException {
-        Font schoolFont = FontFactory.getFont(FontFactory.HELVETICA, 17, Font.BOLD);
-        Font titleFont = FontFactory.getFont(FontFactory.HELVETICA, 14, Font.BOLD);
-        String schoolName = settings == null || settings.getSchool() == null
-                ? "Musomi Manager"
-                : value(settings.getSchool().getName(), "Musomi Manager");
-        document.add(new Paragraph(schoolName, schoolFont));
+        Font schoolFont = FontFactory.getFont(FontFactory.HELVETICA, 17, Font.BOLD, PRIMARY);
+        Font titleFont = FontFactory.getFont(FontFactory.HELVETICA, 14, Font.BOLD, Color.BLACK);
+        Font bodyFont = FontFactory.getFont(FontFactory.HELVETICA, 10, Font.NORMAL, Color.BLACK);
+        Font mutedFont = FontFactory.getFont(FontFactory.HELVETICA, 9, Font.NORMAL, SLATE_500);
+        String schoolName = value(school == null ? null : school.getName(), "School");
+        Paragraph schoolHeading = new Paragraph(schoolName, schoolFont);
+        schoolHeading.setAlignment(Element.ALIGN_CENTER);
+        document.add(schoolHeading);
+        addBrandDivider(document);
         if (settings != null && hasText(settings.getReportHeader())) {
-            document.add(new Paragraph(settings.getReportHeader()));
+            Paragraph header = new Paragraph(settings.getReportHeader(), mutedFont);
+            header.setAlignment(Element.ALIGN_CENTER);
+            document.add(header);
         }
         document.add(new Paragraph(" "));
         String termName = value(term == null ? null : term.getName(), "Term");
@@ -74,11 +89,11 @@ public class PdfService {
                 : term.getAcademicYear().getYear();
         document.add(new Paragraph("Report Card — " + termName
                 + (academicYear == null ? "" : " " + academicYear), titleFont));
-        document.add(new Paragraph("Student: " + value(student == null ? null : student.getFullName(), "")));
+        document.add(new Paragraph("Student: " + value(student == null ? null : student.getFullName(), ""), bodyFont));
         document.add(new Paragraph("Admission Number: "
-                + value(student == null ? null : student.getAdmissionNumber(), "")));
-        document.add(new Paragraph("Class: " + className(student)));
-        document.add(new Paragraph("Stream: " + streamName(student)));
+                + value(student == null ? null : student.getAdmissionNumber(), ""), bodyFont));
+        document.add(new Paragraph("Class: " + className(student), bodyFont));
+        document.add(new Paragraph("Stream: " + streamName(student), bodyFont));
         document.add(new Paragraph(" "));
         addSubjectTable(document, subjects);
 
@@ -87,32 +102,47 @@ public class PdfService {
                 + "   Position: " + position + "/" + classSize));
         addComments(document, comments);
         if (settings != null && hasText(settings.getReportFooter())) {
-            document.add(new Paragraph(settings.getReportFooter()));
+            document.add(new Paragraph(settings.getReportFooter(), mutedFont));
         }
-        document.add(new Paragraph("Generated by Musomi Manager on " + LocalDate.now()));
+        document.add(new Paragraph("Generated by Musomi Manager on " + LocalDate.now(), mutedFont));
     }
 
     private void addSubjectTable(Document document, List<SubjectAverage> subjects) throws DocumentException {
         PdfPTable table = new PdfPTable(4);
         table.setWidthPercentage(100);
         table.setWidths(new float[] {4, 2, 1, 2});
-        addCell(table, "Subject");
-        addCell(table, "Average");
-        addCell(table, "Grade");
-        addCell(table, "#Assessments");
+        addHeaderCell(table, "Subject");
+        addHeaderCell(table, "Average");
+        addHeaderCell(table, "Grade");
+        addHeaderCell(table, "#Assessments");
+        boolean alternate = false;
         if (subjects != null) {
             for (SubjectAverage subject : subjects) {
                 if (subject == null) {
                     continue;
                 }
-                addCell(table, value(subject.subjectName(), ""));
-                addCell(table, format(subject.average()));
-                addCell(table, value(subject.grade(), "N/A"));
-                addCell(table, Integer.toString(subject.assessmentCount()));
+
+                Color rowColor = alternate ? SLATE_50 : Color.WHITE;
+                addCell(table, value(subject.subjectName(), ""), rowColor, Element.ALIGN_LEFT);
+                addCell(table, format(subject.average()), rowColor, Element.ALIGN_RIGHT);
+                addGradeCell(table, value(subject.grade(), "N/A"), rowColor);
+                addCell(table, Integer.toString(subject.assessmentCount()), rowColor, Element.ALIGN_RIGHT);
+                alternate = !alternate;
             }
         }
         document.add(table);
         document.add(new Paragraph(" "));
+    }
+
+    private void addBrandDivider(Document document) throws DocumentException {
+        PdfPTable divider = new PdfPTable(1);
+        divider.setWidthPercentage(100);
+        PdfPCell cell = new PdfPCell();
+        cell.setBackgroundColor(PRIMARY);
+        cell.setBorder(Rectangle.NO_BORDER);
+        cell.setFixedHeight(3);
+        divider.addCell(cell);
+        document.add(divider);
     }
 
     private void addComments(Document document, List<Comment> comments) throws DocumentException {
@@ -153,7 +183,45 @@ public class PdfService {
     }
 
     private void addCell(PdfPTable table, String text) {
-        PdfPCell cell = new PdfPCell(new Phrase(text));
+        addCell(table, text, Color.WHITE, Element.ALIGN_LEFT);
+    }
+
+    private void addCell(PdfPTable table, String text, Color background, int alignment) {
+        Font font = FontFactory.getFont(FontFactory.HELVETICA, 9, Font.NORMAL, Color.BLACK);
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        cell.setBackgroundColor(background);
+        cell.setBorderColor(SLATE_200);
+        cell.setPadding(6);
+        cell.setHorizontalAlignment(alignment);
+        table.addCell(cell);
+    }
+
+    private void addHeaderCell(PdfPTable table, String text) {
+        Font font = FontFactory.getFont(FontFactory.HELVETICA, 9, Font.BOLD, Color.WHITE);
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        cell.setBackgroundColor(PRIMARY);
+        cell.setBorderColor(SLATE_200);
+        cell.setPadding(6);
+        cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+        table.addCell(cell);
+    }
+
+    private void addGradeCell(PdfPTable table, String grade, Color background) {
+        Color gradeColor = switch (grade.toUpperCase()) {
+            case "A" -> new Color(0x04, 0x78, 0x57);
+            case "B" -> new Color(0x1D, 0x4E, 0xD8);
+            case "C" -> new Color(0xB4, 0x53, 0x09);
+            case "D" -> new Color(0xC2, 0x41, 0x0C);
+            case "E" -> new Color(0xB9, 0x1C, 0x1C);
+            case "F" -> new Color(0x99, 0x1B, 0x1B);
+            default -> Color.BLACK;
+        };
+        Font font = FontFactory.getFont(FontFactory.HELVETICA, 9, Font.BOLD, gradeColor);
+        PdfPCell cell = new PdfPCell(new Phrase(grade, font));
+        cell.setBackgroundColor(background);
+        cell.setBorderColor(SLATE_200);
+        cell.setPadding(6);
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
         table.addCell(cell);
     }
 
