@@ -1,8 +1,10 @@
-
 package com.musomi.desktop.controller;
 
 import com.musomi.desktop.config.SceneManager;
 import com.musomi.desktop.config.Session;
+import com.musomi.desktop.controller.teacher.AssessmentStore;
+import com.musomi.desktop.controller.teacher.AssessmentStore.Assessment;
+import com.musomi.desktop.controller.teacher.MarkEntryController;
 import com.musomi.desktop.service.AuthService;
 
 import javafx.fxml.FXML;
@@ -27,7 +29,6 @@ import org.slf4j.LoggerFactory;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public class MainLayoutController {
 
@@ -36,17 +37,16 @@ public class MainLayoutController {
 
     private static final String ROLE_TEACHER = "TEACHER";
 
-    @FXML
-    private StackPane contentArea;
+    @FXML private StackPane contentArea;
+    @FXML private VBox adminNavSection;
+    @FXML private VBox teacherNavSection;
+    @FXML private TextField globalSearchField;
 
-    @FXML
-    private VBox adminNavSection;
-
-    @FXML
-    private VBox teacherNavSection;
-
-    @FXML
-    private TextField globalSearchField;
+    @FXML private Button dashboardNavButton;
+    @FXML private Button markEntryButton;
+    @FXML private Button myClassesButton;
+    @FXML private Button assessmentsButton;
+    @FXML private Button reportsButton;
 
     private final AuthService authService = new AuthService();
     private final Popup searchPopup = new Popup();
@@ -55,33 +55,25 @@ public class MainLayoutController {
 
     @FXML
     private void initialize() {
-        applyRoleNavigation();
         setupGlobalSearch();
+        applyRoleNavigation();
         navigateToDefaultScreen();
     }
-
-    @FXML
-    private void showTeacherAssignments() {
-        loadView("/fxml/admin/teacher-assignments.fxml");
-    }
-
-
-
 
     // ---------------------------------------------------------
     // ROLE-BASED NAVIGATION
     // ---------------------------------------------------------
 
     private void applyRoleNavigation() {
-        /*
-         * UI-development mode:
-         * Keep the Admin navigation visible until backend
-         * authentication and role handling are connected.
-         */
-        setNavSectionVisible(adminNavSection, true);
-        setNavSectionVisible(teacherNavSection, false);
+        String role = Session.getInstance().getRole();
+        boolean isTeacher =
+                role != null && ROLE_TEACHER.equalsIgnoreCase(role);
 
-        log.debug("Admin navigation enabled for UI development");
+        setNavSectionVisible(adminNavSection, !isTeacher);
+        setNavSectionVisible(teacherNavSection, isTeacher);
+
+        log.debug("Navigation configured for role: {}",
+                isTeacher ? "TEACHER" : "ADMIN");
     }
 
     private void setNavSectionVisible(VBox section, boolean visible) {
@@ -92,13 +84,173 @@ public class MainLayoutController {
     }
 
     private void navigateToDefaultScreen() {
-        String role = Session.getInstance().getRole();
+        showDashboard();
+    }
 
-        if (role != null && ROLE_TEACHER.equalsIgnoreCase(role)) {
-            showMyClasses();
-        } else {
-            showDashboard();
+    // ---------------------------------------------------------
+    // DASHBOARD
+    // ---------------------------------------------------------
+
+    @FXML
+    private void showDashboard() {
+        loadView("/fxml/dashboard.fxml");
+        setActiveNavigation("Dashboard");
+    }
+
+    // ---------------------------------------------------------
+    // ADMIN NAVIGATION
+    // ---------------------------------------------------------
+
+    @FXML
+    private void showUsers() {
+        navigate("/fxml/admin/users.fxml", "Users");
+    }
+
+    @FXML
+    private void showClasses() {
+        navigate("/fxml/admin/classes.fxml", "Classes");
+    }
+
+    @FXML
+    private void showSubjects() {
+        navigate("/fxml/admin/subjects.fxml", "Subjects");
+    }
+
+    @FXML
+    private void showTopics() {
+        navigate("/fxml/admin/topics.fxml", "Topics");
+    }
+
+    @FXML
+    private void showStudents() {
+        navigate("/fxml/admin/students.fxml", "Students");
+    }
+
+    @FXML
+    private void showSettings() {
+        navigate("/fxml/admin/settings.fxml", "Settings");
+    }
+
+    @FXML
+    private void showAuditLog() {
+        navigate("/fxml/admin/audit-log.fxml", "Audit Log");
+    }
+
+    @FXML
+    private void showTeacherAssignments() {
+        navigate("/fxml/admin/teacher-assignments.fxml",
+                "Teacher Assignments");
+    }
+
+    // ---------------------------------------------------------
+    // TEACHER NAVIGATION
+    // ---------------------------------------------------------
+
+    @FXML
+    private void showMarkEntry() {
+        openMarkEntry(null);
+    }
+
+    private void openMarkEntry(Assessment assessment) {
+        loadView("/fxml/teacher/mark-entry.fxml", assessment);
+        setActiveNavigation("Mark Entry");
+    }
+
+    @FXML
+    private void showMyClasses() {
+        navigate("/fxml/teacher/my-classes.fxml", "My Classes");
+    }
+
+    @FXML
+    private void showAssessments() {
+        navigate("/fxml/teacher/assessments.fxml", "Assessments");
+    }
+
+    @FXML
+    private void onReportsClicked() {
+        navigate("/fxml/report/reports.fxml", "Reports");
+    }
+
+    // ---------------------------------------------------------
+    // NAVIGATION HELPERS
+    // ---------------------------------------------------------
+
+    private void navigate(String fxmlPath, String pageName) {
+        loadView(fxmlPath);
+
+        if (contentArea != null && !contentArea.getChildren().isEmpty()) {
+            setActiveNavigation(pageName);
         }
+    }
+
+    // ---------------------------------------------------------
+    // ACTIVE SIDEBAR HIGHLIGHT
+    // ---------------------------------------------------------
+
+    private void setActiveNavigation(String pageName) {
+        if (contentArea == null || contentArea.getScene() == null) {
+            return;
+        }
+
+        Parent root = contentArea.getScene().getRoot();
+        List<Button> navigationButtons = new ArrayList<>();
+        collectNavigationButtons(root, navigationButtons);
+
+        activeNavigationButton = null;
+
+        for (Button button : navigationButtons) {
+            button.getStyleClass().remove("nav-button-active");
+
+            if (button.getText() != null
+                    && pageName.equalsIgnoreCase(button.getText())) {
+                activeNavigationButton = button;
+            }
+        }
+
+        if (activeNavigationButton != null
+                && !activeNavigationButton.getStyleClass()
+                .contains("nav-button-active")) {
+            activeNavigationButton.getStyleClass()
+                    .add("nav-button-active");
+        }
+    }
+
+    private void collectNavigationButtons(
+            Parent parent,
+            List<Button> buttons) {
+
+        for (Node node : parent.getChildrenUnmodifiable()) {
+            if (node instanceof Button button
+                    && isNavigationButton(button)) {
+                buttons.add(button);
+            }
+
+            if (node instanceof Parent child) {
+                collectNavigationButtons(child, buttons);
+            }
+        }
+    }
+
+    private boolean isNavigationButton(Button button) {
+        if (button.getText() == null) {
+            return false;
+        }
+
+        return List.of(
+                "Dashboard",
+                "Users",
+                "Classes",
+                "Subjects",
+                "Topics",
+                "Students",
+                "Settings",
+                "Audit Log",
+                "Teacher Assignments",
+                "Mark Entry",
+                "My Classes",
+                "Assessments",
+                "Reports"
+        ).contains(button.getText());
     }
 
     // ---------------------------------------------------------
@@ -107,7 +259,7 @@ public class MainLayoutController {
 
     private void setupGlobalSearch() {
         if (globalSearchField == null) {
-            log.warn("Global search field is missing from main-layout.fxml");
+            log.debug("Global search is not available in this layout.");
             return;
         }
 
@@ -150,8 +302,8 @@ public class MainLayoutController {
                 "Manage school subjects", this::showSubjects);
 
         addNavigationResult(results, search, "Teacher Assignments",
-                "Assign teachers to classes and subjects", this::showTeacherAssignments);
-
+                "Assign teachers to classes and subjects",
+                this::showTeacherAssignments);
 
         addNavigationResult(results, search, "Topics",
                 "Manage subject topics", this::showTopics);
@@ -167,6 +319,15 @@ public class MainLayoutController {
 
         addNavigationResult(results, search, "My Classes",
                 "View your classes", this::showMyClasses);
+
+        addNavigationResult(results, search, "Mark Entry",
+                "Enter assessment marks", this::showMarkEntry);
+
+        addNavigationResult(results, search, "Assessments",
+                "View assessments", this::showAssessments);
+
+        addNavigationResult(results, search, "Reports",
+                "View reports", this::onReportsClicked);
 
         // Temporary sample student records until API integration.
         addStudentResult(results, search,
@@ -193,12 +354,8 @@ public class MainLayoutController {
 
         if (title.toLowerCase().contains(search)
                 || description.toLowerCase().contains(search)) {
-
             results.add(new SearchResult(
-                    "PAGE",
-                    title,
-                    description,
-                    action
+                    "PAGE", title, description, action
             ));
         }
     }
@@ -213,7 +370,6 @@ public class MainLayoutController {
         if (name.toLowerCase().contains(search)
                 || admissionNumber.toLowerCase().contains(search)
                 || className.toLowerCase().contains(search)) {
-
             results.add(new SearchResult(
                     "STUDENT",
                     name,
@@ -304,134 +460,19 @@ public class MainLayoutController {
     }
 
     // ---------------------------------------------------------
-    // NAVIGATION HANDLERS
-    // ---------------------------------------------------------
-
-    @FXML
-    private void showDashboard() {
-        navigate("/fxml/dashboard.fxml", "Dashboard");
-    }
-
-    @FXML
-    private void showUsers() {
-        navigate("/fxml/admin/users.fxml", "Users");
-    }
-
-    @FXML
-    private void showClasses() {
-        navigate("/fxml/admin/classes.fxml", "Classes");
-    }
-
-    @FXML
-    private void showSubjects() {
-        navigate("/fxml/admin/subjects.fxml", "Subjects");
-    }
-
-    @FXML
-    private void showTopics() {
-        navigate("/fxml/admin/topics.fxml", "Topics");
-    }
-
-    @FXML
-    private void showStudents() {
-        navigate("/fxml/admin/students.fxml", "Students");
-    }
-
-    @FXML
-    private void showSettings() {
-        navigate("/fxml/admin/settings.fxml", "Settings");
-    }
-
-    @FXML
-    private void showAuditLog() {
-        navigate("/fxml/admin/audit-log.fxml", "Audit Log");
-    }
-
-    @FXML
-    private void showMyClasses() {
-        navigate("/fxml/teacher/my-classes.fxml", "My Classes");
-    }
-
-    private void navigate(String fxmlPath, String pageName) {
-        loadView(fxmlPath);
-
-        /*
-         * Only update the selected navigation item if the page
-         * loaded successfully.
-         */
-        if (contentArea != null && !contentArea.getChildren().isEmpty()) {
-            setActiveNavigation(pageName);
-        }
-    }
-
-    // ---------------------------------------------------------
-    // ACTIVE SIDEBAR HIGHLIGHT
-    // ---------------------------------------------------------
-
-    private void setActiveNavigation(String pageName) {
-        if (contentArea == null || contentArea.getScene() == null) {
-            return;
-        }
-
-        Scene scene = contentArea.getScene();
-        Parent root = scene.getRoot();
-
-        List<Button> navigationButtons = new ArrayList<>();
-        collectNavigationButtons(root, navigationButtons);
-
-        activeNavigationButton = null;
-
-        for (Button button : navigationButtons) {
-            button.getStyleClass().remove("nav-button-active");
-
-            if (pageName.equalsIgnoreCase(button.getText())) {
-                activeNavigationButton = button;
-            }
-        }
-
-        if (activeNavigationButton != null
-                && !activeNavigationButton.getStyleClass()
-                .contains("nav-button-active")) {
-            activeNavigationButton.getStyleClass().add("nav-button-active");
-        }
-    }
-
-    private void collectNavigationButtons(
-            Parent parent,
-            List<Button> buttons) {
-
-        for (Node node : parent.getChildrenUnmodifiable()) {
-            if (node instanceof Button button
-                    && button.getParent() != null
-                    && isNavigationButton(button)) {
-                buttons.add(button);
-            }
-
-            if (node instanceof Parent child) {
-                collectNavigationButtons(child, buttons);
-            }
-        }
-    }
-
-    private boolean isNavigationButton(Button button) {
-        if (button.getText() == null) {
-            return false;
-        }
-
-        String text = button.getText();
-
-        return List.of(
-                "Dashboard", "Users", "Classes", "Subjects",
-                "Topics", "Students", "Settings", "Audit Log",
-                "My Classes"
-        ).contains(text);
-    }
-
-    // ---------------------------------------------------------
-    // LOAD VIEW
+    // VIEW LOADING
     // ---------------------------------------------------------
 
     private void loadView(String fxmlPath) {
+        loadView(fxmlPath, null);
+    }
+
+    private void loadView(String fxmlPath, Assessment assessment) {
+        if (!Session.getInstance().isAuthenticated()) {
+            SceneManager.getInstance().switchTo("/fxml/login.fxml");
+            return;
+        }
+
         try {
             URL resource = getClass().getResource(fxmlPath);
 
@@ -440,10 +481,21 @@ public class MainLayoutController {
                 return;
             }
 
-            Node view = FXMLLoader.load(resource);
-            contentArea.getChildren().setAll(view);
+            FXMLLoader loader = new FXMLLoader(resource);
+            Node view = loader.load();
 
+            if (loader.getController()
+                    instanceof DashboardController dashboardController) {
+                dashboardController.setOnOpenMarkEntry(this::openMarkEntry);
+            } else if (loader.getController()
+                    instanceof MarkEntryController markEntryController
+                    && assessment != null) {
+                markEntryController.setData(assessment);
+            }
+
+            contentArea.getChildren().setAll(view);
             log.debug("Loaded view: {}", fxmlPath);
+
         } catch (Exception e) {
             log.error("Failed to load view: {}", fxmlPath, e);
         }
@@ -480,7 +532,6 @@ public class MainLayoutController {
                 String title,
                 String description,
                 Runnable action) {
-
             this.type = type;
             this.title = title;
             this.description = description;

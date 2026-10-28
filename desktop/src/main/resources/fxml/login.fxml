@@ -20,153 +20,148 @@
     <!-- LEFT: BRAND PANEL -->
     <VBox fx:id="leftPanel"
           styleClass="login-left-panel"
+          prefWidth="704.0"
           HBox.hgrow="ALWAYS">
 
         <VBox spacing="0.0"
               styleClass="login-brand">
-
             <HBox spacing="12.0"
                   alignment="CENTER_LEFT">
-
                 <Label text="MM"
                        styleClass="login-logo-mark"/>
-
                 <VBox spacing="0.0">
-
                     <Label text="Musomi"
                            styleClass="login-brand-name"/>
-
                     <Label text="Manager"
                            styleClass="login-brand-subtitle"/>
-
                 </VBox>
-
             </HBox>
 
             <Label fx:id="schoolNameLabel"
                    styleClass="login-school-name"
                    wrapText="true"/>
-
         </VBox>
 
         <Region VBox.vgrow="ALWAYS"/>
 
         <VBox spacing="18.0"
               styleClass="login-hero">
-
             <Label text="Better Education Management"
                    styleClass="login-hero-title"
                    wrapText="true"/>
-
             <Label text="Track performance. Empower teachers. Support every student."
                    styleClass="login-hero-description"
                    wrapText="true"/>
-
         </VBox>
 
         <Region VBox.vgrow="ALWAYS"/>
 
         <Label text="Learning Record System"
                styleClass="login-footer-text"/>
-
     </VBox>
-
 
     <!-- RIGHT: LOGIN PANEL -->
     <VBox fx:id="rightPanel"
           styleClass="login-right-panel"
+          prefWidth="576.0"
+          HBox.hgrow="ALWAYS"
           alignment="CENTER"
-          HBox.hgrow="ALWAYS">
+          spacing="0.0">
 
-        <VBox spacing="28.0"
-              styleClass="login-card">
+        <Region VBox.vgrow="ALWAYS"/>
 
-            <!-- HEADER -->
-            <VBox spacing="7.0">
+        <StackPane alignment="CENTER"
+                   maxWidth="460.0">
+            <padding>
+                <Insets top="0.0" right="40.0"
+                        bottom="0.0" left="40.0"/>
+            </padding>
 
-                <Label text="Welcome back"
-                       styleClass="login-title"/>
-
-                <Label text="Sign in to your Musomi Manager account"
-                       styleClass="login-subtitle"
-                       wrapText="true"/>
-
-            </VBox>
-
-
-            <!-- FORM -->
-            <VBox spacing="18.0">
+            <VBox styleClass="login-card"
+                  spacing="24.0">
 
                 <VBox spacing="7.0">
+                    <Label text="Welcome back"
+                           styleClass="login-title"/>
+                    <Label text="Sign in to your Musomi Manager account"
+                           styleClass="login-subtitle"
+                           wrapText="true"/>
+                </VBox>
 
+                <!-- USERNAME -->
+                <VBox spacing="7.0">
                     <Label text="Username or Email"
                            styleClass="form-label"/>
-
                     <TextField fx:id="usernameField"
                                promptText="Enter your username or email"
                                styleClass="login-input"
                                onAction="#handleLogin"/>
-
                 </VBox>
 
-
+                <!-- PASSWORD WITH VISIBILITY TOGGLE -->
                 <VBox spacing="7.0">
-
                     <Label text="Password"
                            styleClass="form-label"/>
 
-                    <PasswordField fx:id="passwordField"
+                    <StackPane alignment="CENTER_LEFT">
+                        <PasswordField fx:id="passwordField"
+                                       promptText="Enter your password"
+                                       styleClass="login-input"
+                                       onAction="#handleLogin"/>
+
+                        <TextField fx:id="visiblePasswordField"
                                    promptText="Enter your password"
                                    styleClass="login-input"
+                                   visible="false"
+                                   managed="false"
                                    onAction="#handleLogin"/>
 
+                        <Button fx:id="togglePasswordButton"
+                                text="Show"
+                                onAction="#togglePasswordVisibility"
+                                StackPane.alignment="CENTER_RIGHT"
+                                style="-fx-background-color: transparent;
+                                       -fx-cursor: hand;
+                                       -fx-padding: 6 10 6 10;"/>
+                    </StackPane>
                 </VBox>
 
-            </VBox>
+                <!-- ERROR MESSAGE -->
+                <Label fx:id="errorLabel"
+                       styleClass="error-label"
+                       wrapText="true"
+                       visible="false"
+                       managed="false"/>
 
+                <!-- LOGIN BUTTON AND LOADING INDICATOR -->
+                <StackPane>
+                    <Button fx:id="loginButton"
+                            text="Sign In"
+                            styleClass="login-button"
+                            maxWidth="Infinity"
+                            defaultButton="true"
+                            onAction="#handleLogin"/>
 
-            <!-- ERROR -->
-            <Label fx:id="errorLabel"
-                   styleClass="error-label"
-                   wrapText="true"
-                   visible="false"
-                   managed="false"/>
-
-
-            <!-- LOGIN BUTTON -->
-            <StackPane>
-
-                <Button fx:id="loginButton"
-                        text="Sign In"
-                        styleClass="login-button"
-                        maxWidth="Infinity"
-                        defaultButton="true"
-                        onAction="#handleLogin"/>
-
-                <ProgressIndicator fx:id="spinner"
-                                   maxWidth="22.0"
-                                   maxHeight="22.0"
-                                   visible="false"
-                                   managed="false"/>
-
-            </StackPane>
-
-
-            <!-- VERSION -->
-            <VBox spacing="6.0"
-                  alignment="CENTER">
-
-                <Region prefHeight="1.0"/>
-
-                <Label fx:id="versionLabel"
-                       styleClass="login-version"
-                       maxWidth="Infinity"
-                       alignment="CENTER"/>
+                    <ProgressIndicator fx:id="spinner"
+                                       maxWidth="22.0"
+                                       maxHeight="22.0"
+                                       visible="false"
+                                       managed="false"
+                                       mouseTransparent="true"/>
+                </StackPane>
 
             </VBox>
+        </StackPane>
 
-        </VBox>
+        <Region VBox.vgrow="ALWAYS"/>
 
+        <Label fx:id="versionLabel"
+               styleClass="login-version"
+               maxWidth="Infinity"
+               alignment="CENTER">
+            <VBox.margin>
+                <Insets bottom="24.0"/>
+            </VBox.margin>
+        </Label>
     </VBox>
-
 </HBox>

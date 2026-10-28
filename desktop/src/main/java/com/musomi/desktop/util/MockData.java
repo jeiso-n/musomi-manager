@@ -24,7 +24,7 @@ public final class MockData {
     private static final UserResponse TEACHER_USER = new UserResponse(
             5L,
             "teacher1",
-            "Mr. Okello",
+            "John Okello",
             "okello@school.ug",
             "+256700000000",
             "TEACHER",

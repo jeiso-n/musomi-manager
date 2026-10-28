@@ -1,279 +1,319 @@
 package com.musomi.desktop.controller.teacher;
 
-import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.ResourceBundle;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
+import com.musomi.desktop.api.ApiClient;
+import com.musomi.desktop.model.dto.TeacherClassResponse;
+import com.musomi.desktop.util.TaskRunner;
+
 import javafx.fxml.FXML;
-import javafx.fxml.Initializable;
+import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ProgressIndicator;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
-import com.musomi.desktop.api.ApiException;
-import com.musomi.desktop.config.SceneManager;
-import com.musomi.desktop.config.Session;
-import com.musomi.desktop.model.dto.TeacherClassResponse;
-import com.musomi.desktop.service.TeacherClassService;
-import com.musomi.desktop.util.TaskRunner;
-import com.musomi.desktop.util.Toast;
-
 /**
- * Controller for the My Classes screen ({@code /fxml/teacher/my-classes.fxml}).
- *
- * <p>Loads the authenticated teacher's assigned classes via {@link TeacherClassService}
- * on a background thread and populates a {@link TableView} on success.
- *
- * <p>Architecture rule: this controller never calls {@link com.musomi.desktop.api.TeacherClassApi}
- * directly — it always goes through {@link TeacherClassService}.
- *
- * <p>Error codes handled per {@code ERROR_CODES.md}:
- * <ul>
- *   <li>{@code SESSION_EXPIRED} / {@code HTTP_401} — session expired; redirect to login</li>
- *   <li>{@code PERMISSION_DENIED} / {@code ADMIN_ONLY} — wrong role; redirect to login</li>
- *   <li>{@code NETWORK_ERROR} — connectivity failure; show inline error + toast</li>
- *   <li>Default — surface server message via Toast and inline error label</li>
- * </ul>
+ * Controller for the My Classes screen (/fxml/teacher/my-classes.fxml).
  */
-public class MyClassesController implements Initializable {
+public class MyClassesController {
 
     private static final Logger log = LoggerFactory.getLogger(MyClassesController.class);
 
-    private static final String LOGIN_FXML = "/fxml/login.fxml";
-
     // -------------------------------------------------------------------------
-    // FXML bindings — must match fx:id in my-classes.fxml
+    // Inner model
     // -------------------------------------------------------------------------
 
-    @FXML private TableView<TeacherClassResponse> classesTable;
-    @FXML private TableColumn<TeacherClassResponse, String>  classColumn;
-    @FXML private TableColumn<TeacherClassResponse, String>  streamColumn;
-    @FXML private TableColumn<TeacherClassResponse, String>  subjectColumn;
-    @FXML private TableColumn<TeacherClassResponse, Number>  studentsColumn;
-    @FXML private TableColumn<TeacherClassResponse, Number>  assessmentsColumn;
-    @FXML private TableColumn<TeacherClassResponse, Number>  draftsColumn;
+    public static class ClassCard {
+        private final String  className;
+        private final String  subject;
+        private final int     students;
+        private final int     assessments;
+        private final int     draftAssessments;
 
-    @FXML private ProgressIndicator loadingSpinner;
-    @FXML private VBox              loadingPane;
-    @FXML private VBox              emptyPane;
-    @FXML private VBox              errorPane;
-    @FXML private Label             errorMessageLabel;
-    @FXML private Button            refreshButton;
+        public ClassCard(String className, String subject,
+                         int students, int assessments, int draftAssessments) {
+            this.className    = className;
+            this.subject      = subject;
+            this.students     = students;
+            this.assessments  = assessments;
+            this.draftAssessments = draftAssessments;
+        }
+
+        public String getClassName()   { return className;    }
+        public String getSubject()     { return subject;      }
+        public int    getStudents()    { return students;     }
+        public int    getAssessments() { return assessments;  }
+        public int    getDraftAssessments() { return draftAssessments; }
+    }
 
     // -------------------------------------------------------------------------
-    // Collaborators
+    // FXML bindings
     // -------------------------------------------------------------------------
 
-    private final TeacherClassService classService = new TeacherClassService();
-    private final Session             session      = Session.getInstance();
-
-    private final ObservableList<TeacherClassResponse> classes =
-            FXCollections.observableArrayList();
+    @FXML
+    private FlowPane cardsPane;
 
     // -------------------------------------------------------------------------
     // Lifecycle
     // -------------------------------------------------------------------------
 
-    @Override
-    public void initialize(URL url, ResourceBundle rb) {
-        // Role guard: this screen must not be reachable by non-teachers
-        if (!isTeacher()) {
-            log.warn("Non-teacher attempted to access My Classes — role={}", session.getRole());
-            redirectToLogin();
-            return;
-        }
-
-        setupTableColumns();
-        classesTable.setItems(classes);
-
-        // Collapse hidden panes from layout flow
-        loadingPane.managedProperty().bind(loadingPane.visibleProperty());
-        emptyPane.managedProperty().bind(emptyPane.visibleProperty());
-        errorPane.managedProperty().bind(errorPane.visibleProperty());
-
-        loadClasses();
-    }
-
-    // -------------------------------------------------------------------------
-    // Event handlers
-    // -------------------------------------------------------------------------
-
-    /**
-     * Handles the Refresh button click. Re-fetches classes from the backend.
-     */
     @FXML
-    private void handleRefresh() {
-        loadClasses();
-    }
-
-    // -------------------------------------------------------------------------
-    // Private helpers
-    // -------------------------------------------------------------------------
-
-    /**
-     * Configures cell-value factories for each table column.
-     * Uses property wrappers so JavaFX observability is respected.
-     */
-    private void setupTableColumns() {
-        classColumn.setCellValueFactory(
-                data -> new SimpleStringProperty(data.getValue().getClassName())
-        );
-        streamColumn.setCellValueFactory(
-                data -> new SimpleStringProperty(data.getValue().getStreamName())
-        );
-        subjectColumn.setCellValueFactory(
-                data -> new SimpleStringProperty(data.getValue().getSubjectName())
-        );
-        studentsColumn.setCellValueFactory(
-                data -> new SimpleIntegerProperty(data.getValue().getStudentCount())
-        );
-        assessmentsColumn.setCellValueFactory(
-                data -> new SimpleIntegerProperty(data.getValue().getAssessmentCount())
-        );
-        draftsColumn.setCellValueFactory(
-                data -> new SimpleIntegerProperty(data.getValue().getDraftCount())
-        );
-    }
-
-    /**
-     * Triggers the background load of teacher classes.
-     * Moves through loading → (success | error) states.
-     */
-    private void loadClasses() {
-        showLoading();
-
+    private void initialize() {
+        showStatus("Loading classes...", false);
         TaskRunner.run(
-            classService::getMyClasses,
-            this::onLoadSuccess,
-            this::onLoadError
+            () -> ApiClient.getInstance().get(
+                    "/teacher/classes", TeacherClassResponse[].class),
+            this::showClasses,
+            error -> {
+                log.error("Unable to load teacher classes", error);
+                String message = error.getMessage();
+                showStatus("Unable to load classes."
+                        + (message == null || message.isBlank() ? "" : " " + message), true);
+            }
         );
     }
 
-    /**
-     * Called on the JavaFX Application Thread when the backend request succeeds.
-     *
-     * @param result the list of class assignments returned by the server
-     */
-    private void onLoadSuccess(List<TeacherClassResponse> result) {
-        log.debug("Loaded {} teacher class(es)", result == null ? 0 : result.size());
+    private void showClasses(TeacherClassResponse[] response) {
+        List<ClassCard> classes = new ArrayList<>();
+        if (response != null) {
+            for (TeacherClassResponse teacherClass : response) {
+                if (teacherClass == null) {
+                    continue;
+                }
+                String className = teacherClass.getClassName() == null
+                        ? "" : teacherClass.getClassName();
+                String streamName = teacherClass.getStreamName();
+                if (streamName != null && !streamName.isBlank()) {
+                    className = className.isBlank()
+                            ? streamName : className + " " + streamName;
+                }
+                classes.add(new ClassCard(
+                        className,
+                        teacherClass.getSubjectName() == null ? "" : teacherClass.getSubjectName(),
+                        teacherClass.getStudentCount(),
+                        teacherClass.getAssessmentCount(),
+                        teacherClass.getDraftCount()));
+            }
+        }
 
-        classes.clear();
-
-        if (result == null || result.isEmpty()) {
-            showEmpty();
+        if (classes.isEmpty()) {
+            showStatus("No classes are assigned to your account.", false);
             return;
         }
-
-        classes.addAll(result);
-        showTable();
+        buildCards(classes);
     }
 
-    /**
-     * Called on the JavaFX Application Thread when the backend request fails.
-     * Handles known error codes per ERROR_CODES.md and falls back to a generic message.
-     *
-     * @param error the exception thrown during the background task
-     */
-    private void onLoadError(Exception error) {
-        log.warn("Failed to load teacher classes: {}", error.getMessage());
+    private void showStatus(String message, boolean error) {
+        Label status = new Label(message);
+        status.setWrapText(true);
+        status.setMaxWidth(600);
+        status.setStyle(error
+                ? "-fx-text-fill: #B91C1C; -fx-font-size: 14px;"
+                : "-fx-text-fill: #64748B; -fx-font-size: 14px;");
+        cardsPane.getChildren().setAll(status);
+    }
 
-        if (error instanceof ApiException apiEx) {
-            String code = apiEx.getCode();
-            switch (code) {
-                case "SESSION_EXPIRED", "HTTP_401" -> {
-                    // Session has expired — clear and redirect to login
-                    log.warn("Session expired. Redirecting to login.");
-                    session.clear();
-                    redirectToLogin();
-                    return;
-                }
-                case "PERMISSION_DENIED", "ADMIN_ONLY", "HTTP_403" -> {
-                    // Access denied — user is not allowed to view this screen
-                    log.warn("Access denied for My Classes. Redirecting to login.");
-                    redirectToLogin();
-                    return;
-                }
-                case "NETWORK_ERROR" -> {
-                    String msg = "Could not connect to the server. Please check your network and try again.";
-                    showError(msg);
-                    Toast.error(msg);
-                }
-                default -> {
-                    String msg = apiEx.getMessage() != null
-                            ? apiEx.getMessage()
-                            : "An unexpected error occurred. Please try again.";
-                    showError(msg);
-                    Toast.error(msg);
-                }
-            }
-        } else {
-            String msg = "Could not connect to the server. Please check your network and try again.";
-            showError(msg);
-            Toast.error(msg);
+    // -------------------------------------------------------------------------
+    // Card building
+    // -------------------------------------------------------------------------
+
+    private void buildCards(List<ClassCard> classes) {
+        cardsPane.getChildren().clear();
+
+        for (ClassCard cls : classes) {
+            cardsPane.getChildren().add(buildCard(cls));
         }
     }
 
+    /** Builds a single class card matching the Musomi design system. */
+    private VBox buildCard(ClassCard cls) {
+
+        // ── Card container ──────────────────────────────────────────────────
+        VBox card = new VBox(14);
+        card.setPrefWidth(280);
+        card.setMaxWidth(320);
+        card.setPadding(new Insets(20));
+        card.setStyle(
+            "-fx-background-color: #FFFFFF;" +
+            "-fx-background-radius: 12px;" +
+            "-fx-border-color: #E2E8F0;" +
+            "-fx-border-radius: 12px;" +
+            "-fx-border-width: 1px;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 4, 0, 0, 1);"
+        );
+
+        // ── Class name ───────────────────────────────────────────────────────
+        Label nameLabel = new Label(cls.getClassName());
+        nameLabel.setStyle(
+            "-fx-font-size: 20px;" +
+            "-fx-font-weight: 700;" +
+            "-fx-text-fill: #0F172A;"
+        );
+
+        // ── Subject ──────────────────────────────────────────────────────────
+        Label subjectLabel = new Label(cls.getSubject());
+        subjectLabel.setStyle(
+            "-fx-font-size: 13px;" +
+            "-fx-text-fill: #64748B;"
+        );
+
+        // ── Separator region ─────────────────────────────────────────────────
+        Region sep = new Region();
+        sep.setPrefHeight(1);
+        sep.setStyle("-fx-background-color: #F1F5F9;");
+
+        // ── Stats row ────────────────────────────────────────────────────────
+        HBox statsRow = new HBox(20);
+        statsRow.setAlignment(Pos.CENTER_LEFT);
+        statsRow.getChildren().addAll(
+            buildStat(String.valueOf(cls.getStudents()), "Students"),
+            buildStat(String.valueOf(cls.getAssessments()), "Assessments")
+        );
+
+        // ── Pending marks badge ───────────────────────────────────────────────
+        HBox pendingRow = new HBox(8);
+        pendingRow.setAlignment(Pos.CENTER_LEFT);
+
+        int drafts = cls.getDraftAssessments();
+        Label pendingLabel;
+
+        if (drafts > 0) {
+            pendingLabel = new Label(drafts + " Draft Assessment" + (drafts == 1 ? "" : "s"));
+            pendingLabel.setStyle(
+                "-fx-background-color: #FFFBEB;" +
+                "-fx-text-fill: #B45309;" +
+                "-fx-padding: 4 10;" +
+                "-fx-background-radius: 999px;" +
+                "-fx-font-size: 12px;" +
+                "-fx-font-weight: 600;"
+            );
+        } else {
+            pendingLabel = new Label("No Draft Assessments");
+            pendingLabel.setStyle(
+                "-fx-background-color: #ECFDF5;" +
+                "-fx-text-fill: #047857;" +
+                "-fx-padding: 4 10;" +
+                "-fx-background-radius: 999px;" +
+                "-fx-font-size: 12px;" +
+                "-fx-font-weight: 600;"
+            );
+        }
+        pendingRow.getChildren().add(pendingLabel);
+
+        // ── View Class button ─────────────────────────────────────────────────
+        Button viewBtn = new Button("View Class →");
+        viewBtn.setMaxWidth(Double.MAX_VALUE);
+        viewBtn.setStyle(
+            "-fx-background-color: #4F46E5;" +
+            "-fx-text-fill: #FFFFFF;" +
+            "-fx-background-radius: 8px;" +
+            "-fx-padding: 10 18;" +
+            "-fx-font-weight: 600;" +
+            "-fx-font-size: 14px;" +
+            "-fx-cursor: hand;"
+        );
+        viewBtn.setOnAction(e -> openRoster(cls));
+        VBox.setVgrow(viewBtn, Priority.NEVER);
+
+        card.getChildren().addAll(nameLabel, subjectLabel, sep, statsRow, pendingRow, viewBtn);
+        return card;
+    }
+
+    /** Builds a small vertical stat: big number + label below it. */
+    private VBox buildStat(String value, String label) {
+        VBox stat = new VBox(2);
+        stat.setAlignment(Pos.CENTER_LEFT);
+
+        Label valLabel = new Label(value);
+        valLabel.setStyle(
+            "-fx-font-size: 22px;" +
+            "-fx-font-weight: 700;" +
+            "-fx-text-fill: #0F172A;"
+        );
+
+        Label txtLabel = new Label(label);
+        txtLabel.setStyle(
+            "-fx-font-size: 12px;" +
+            "-fx-text-fill: #64748B;"
+        );
+
+        stat.getChildren().addAll(valLabel, txtLabel);
+        return stat;
+    }
+
     // -------------------------------------------------------------------------
-    // UI State Management
+    // Navigation to Class Roster
     // -------------------------------------------------------------------------
 
-    private void showLoading() {
-        loadingPane.setVisible(true);
-        emptyPane.setVisible(false);
-        errorPane.setVisible(false);
-        classesTable.setVisible(false);
+    private javafx.scene.layout.StackPane findContentArea() {
+        javafx.scene.Node current = cardsPane;
+        while (current != null) {
+            if ("contentArea".equals(current.getId()) && current instanceof javafx.scene.layout.StackPane sp) {
+                return sp;
+            }
+            current = current.getParent();
+        }
+        if (cardsPane != null && cardsPane.getScene() != null) {
+            javafx.scene.Node node = cardsPane.getScene().lookup("#contentArea");
+            if (node instanceof javafx.scene.layout.StackPane sp) {
+                return sp;
+            }
+        }
+        return null;
     }
 
-    private void showTable() {
-        loadingPane.setVisible(false);
-        emptyPane.setVisible(false);
-        errorPane.setVisible(false);
-        classesTable.setVisible(true);
+    private void openRoster(ClassCard cls) {
+        try {
+            javafx.scene.layout.StackPane sp = findContentArea();
+            if (sp == null) {
+                System.err.println("Could not locate contentArea StackPane");
+                return;
+            }
+
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/fxml/teacher/class-roster.fxml")
+            );
+            Node roster = loader.load();
+
+            ClassRosterController rosterCtrl = loader.getController();
+            rosterCtrl.setClassData(
+                    cls.getClassName(),
+                    cls.getStudents(),
+                    () -> returnToMyClasses(sp)
+            );
+
+            // Replace the content in the parent StackPane
+            sp.getChildren().setAll(roster);
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            System.out.println("FAILED TO LOAD class-roster.fxml: " + ex.getMessage());
+        }
     }
 
-    private void showEmpty() {
-        loadingPane.setVisible(false);
-        emptyPane.setVisible(true);
-        errorPane.setVisible(false);
-        classesTable.setVisible(false);
-    }
-
-    private void showError(String message) {
-        errorMessageLabel.setText(message);
-        loadingPane.setVisible(false);
-        emptyPane.setVisible(false);
-        errorPane.setVisible(true);
-        classesTable.setVisible(false);
-    }
-
-    // -------------------------------------------------------------------------
-    // Role Safety
-    // -------------------------------------------------------------------------
-
-    /**
-     * Returns true if the authenticated user is a TEACHER.
-     * Uses the actual role field from Session, as stored by AuthService on login.
-     */
-    private boolean isTeacher() {
-        String role = session.getRole();
-        return "TEACHER".equalsIgnoreCase(role);
-    }
-
-    /**
-     * Redirects to the login screen. Used when the session is invalid or
-     * the user does not have the required role.
-     */
-    private void redirectToLogin() {
-        SceneManager.getInstance().switchTo(LOGIN_FXML);
+    /** Called by ClassRosterController when the Back button is pressed. */
+    private void returnToMyClasses(javafx.scene.layout.StackPane sp) {
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/fxml/teacher/my-classes.fxml")
+            );
+            Node myClasses = loader.load();
+            if (sp != null) {
+                sp.getChildren().setAll(myClasses);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 }

@@ -17,12 +17,11 @@
             prefHeight="700.0"
             styleClass="main-layout">
 
-    <!-- Top bar -->
+    <!-- TOP BAR -->
     <top>
         <HBox alignment="CENTER_LEFT"
               spacing="20.0"
-              styleClass="topbar"
-              BorderPane.alignment="CENTER">
+              styleClass="topbar">
 
             <padding>
                 <Insets top="12.0" right="20.0"
@@ -45,11 +44,10 @@
         </HBox>
     </top>
 
-    <!-- Sidebar and page content -->
+    <!-- SIDEBAR AND CONTENT -->
     <center>
         <HBox spacing="0.0">
 
-            <!-- Sidebar -->
             <VBox prefWidth="240.0"
                   spacing="8.0"
                   styleClass="sidebar">
@@ -68,8 +66,10 @@
                         styleClass="nav-button"
                         onAction="#showDashboard"/>
 
-                <!-- Admin navigation -->
-                <VBox fx:id="adminNavSection" spacing="8.0">
+                <!-- ADMIN NAVIGATION -->
+                <VBox fx:id="adminNavSection"
+                      spacing="8.0">
+
                     <Label text="ADMIN"
                            styleClass="sidebar-title"/>
 
@@ -91,8 +91,10 @@
                             styleClass="nav-button"
                             onAction="#showSubjects"/>
 
-                    <Button text="Teacher Assignments"
+                    <Button fx:id="teacherAssignmentsNavButton"
+                            text="Teacher Assignments"
                             maxWidth="Infinity"
+                            styleClass="nav-button"
                             onAction="#showTeacherAssignments"/>
 
                     <Button fx:id="topicsNavButton"
@@ -125,22 +127,44 @@
                             onAction="#showAuditLog"/>
                 </VBox>
 
-                <!-- Teacher navigation -->
-                <VBox fx:id="teacherNavSection" spacing="8.0">
+                <!-- TEACHER NAVIGATION -->
+                <VBox fx:id="teacherNavSection"
+                      spacing="8.0">
+
                     <Label text="TEACHER"
                            styleClass="sidebar-title"/>
+
+                    <Button fx:id="markEntryNavButton"
+                            text="Mark Entry"
+                            maxWidth="Infinity"
+                            styleClass="nav-button"
+                            onAction="#showMarkEntry"/>
 
                     <Button fx:id="myClassesNavButton"
                             text="My Classes"
                             maxWidth="Infinity"
                             styleClass="nav-button"
                             onAction="#showMyClasses"/>
+
+                    <Button fx:id="assessmentsNavButton"
+                            text="Assessments"
+                            maxWidth="Infinity"
+                            styleClass="nav-button"
+                            onAction="#showAssessments"/>
+
+                    <Button fx:id="reportsNavButton"
+                            text="Reports"
+                            maxWidth="Infinity"
+                            styleClass="nav-button"
+                            onAction="#onReportsClicked"/>
                 </VBox>
 
             </VBox>
 
-            <!-- Main page content -->
+            <!-- PAGE CONTENT -->
             <StackPane fx:id="contentArea"
+                       minWidth="0.0"
+                       minHeight="0.0"
                        HBox.hgrow="ALWAYS"
                        styleClass="content-area"/>
         </HBox>

@@ -7,6 +7,7 @@ import com.musomi.manager.dto.request.UpdateAssessmentRequest;
 import com.musomi.manager.dto.response.ApiResponse;
 import com.musomi.manager.dto.response.AssessmentResponse;
 import com.musomi.manager.service.AssessmentService;
+import com.musomi.manager.util.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -29,9 +30,6 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('TEACHER')")
 public class TeacherAssessmentApiController {
 
-    private static final Long SCHOOL_ID = 1L;
-    private static final Long TEACHER_ID = 1L;
-
     private final AssessmentService assessmentService;
 
     /** Lists the teacher's assessments with optional filters. */
@@ -42,14 +40,15 @@ public class TeacherAssessmentApiController {
             @RequestParam(required = false) Long termId,
             @RequestParam(required = false) String status) {
         return ApiResponse.success(
-                assessmentService.listAssessments(TEACHER_ID, classId, subjectId, termId, status));
+                assessmentService.listAssessments(CurrentUser.getUserId(), classId, subjectId, termId, status));
     }
 
     /** Creates an assessment draft. */
     @PostMapping
     public ResponseEntity<ApiResponse<AssessmentResponse>> createAssessment(
             @Valid @RequestBody CreateAssessmentRequest request) {
-        AssessmentResponse created = assessmentService.createAssessment(SCHOOL_ID, TEACHER_ID, request);
+        AssessmentResponse created = assessmentService.createAssessment(
+                CurrentUser.getSchoolId(), CurrentUser.getUserId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
     }
 
@@ -77,7 +76,7 @@ public class TeacherAssessmentApiController {
     /** Publishes an assessment and returns its updated representation. */
     @PostMapping("/{id}/publish")
     public ApiResponse<AssessmentResponse> publishAssessment(@PathVariable Long id) {
-        assessmentService.publishAssessment(id, TEACHER_ID);
+        assessmentService.publishAssessment(id, CurrentUser.getUserId());
         return ApiResponse.success(assessmentService.getAssessment(id));
     }
 }

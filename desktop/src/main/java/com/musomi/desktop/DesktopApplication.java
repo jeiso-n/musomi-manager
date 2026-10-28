@@ -2,6 +2,8 @@ package com.musomi.desktop;
 
 import com.musomi.desktop.config.AppConfig;
 import com.musomi.desktop.config.SceneManager;
+import com.musomi.desktop.controller.teacher.AssessmentRepository;
+import com.musomi.desktop.controller.teacher.AssessmentStore;
 import javafx.application.Application;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
@@ -32,8 +34,8 @@ public class DesktopApplication extends Application {
         primaryStage.setMinHeight(MIN_HEIGHT);
 
         SceneManager.getInstance().setPrimaryStage(primaryStage);
-      // SceneManager.getInstance().switchTo(LOGIN_FXML);
-        SceneManager.getInstance().switchTo("/fxml/main-layout.fxml");
+        AssessmentStore.initialize(new AssessmentRepository());
+        SceneManager.getInstance().switchTo(LOGIN_FXML);
 
         primaryStage.show();
         log.info("Application started");

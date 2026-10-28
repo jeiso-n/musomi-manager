@@ -9,7 +9,6 @@ public record ReportResponse(
         Long termId,
         String termName,
         Integer academicYear,
-        String filePath,
         Long fileSizeBytes,
         LocalDateTime generatedAt,
         String downloadUrl

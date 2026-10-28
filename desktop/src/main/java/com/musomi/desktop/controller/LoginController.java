@@ -7,6 +7,13 @@ import java.util.ResourceBundle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.musomi.desktop.api.ApiException;
+import com.musomi.desktop.config.AppConfig;
+import com.musomi.desktop.config.SceneManager;
+import com.musomi.desktop.config.Session;
+import com.musomi.desktop.service.AuthService;
+import com.musomi.desktop.util.TaskRunner;
+
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
@@ -16,17 +23,6 @@ import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 
-import com.musomi.desktop.api.ApiException;
-import com.musomi.desktop.config.AppConfig;
-import com.musomi.desktop.config.SceneManager;
-import com.musomi.desktop.config.Session;
-import com.musomi.desktop.service.AuthService;
-import com.musomi.desktop.util.TaskRunner;
-
-/**
- * Controller for the login screen.
- * Handles authentication and opens the main layout after successful login.
- */
 public class LoginController implements Initializable {
 
     private static final Logger log =
@@ -41,6 +37,8 @@ public class LoginController implements Initializable {
     @FXML private Label versionLabel;
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
+    @FXML private TextField visiblePasswordField;
+    @FXML private Button togglePasswordButton;
     @FXML private Label errorLabel;
     @FXML private Button loginButton;
     @FXML private ProgressIndicator spinner;
@@ -50,15 +48,27 @@ public class LoginController implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         versionLabel.setText(
-                "Musomi Manager " +
-                        AppConfig.getInstance().getAppVersion()
+                "Musomi Manager " + AppConfig.getInstance().getAppVersion()
         );
 
-        errorLabel.managedProperty()
-                .bind(errorLabel.visibleProperty());
+        errorLabel.managedProperty().bind(errorLabel.visibleProperty());
+        spinner.managedProperty().bind(spinner.visibleProperty());
 
-        spinner.managedProperty()
-                .bind(spinner.visibleProperty());
+        visiblePasswordField.textProperty().addListener(
+                (obs, oldVal, newVal) -> {
+                    if (!newVal.equals(passwordField.getText())) {
+                        passwordField.setText(newVal);
+                    }
+                }
+        );
+
+        passwordField.textProperty().addListener(
+                (obs, oldVal, newVal) -> {
+                    if (!newVal.equals(visiblePasswordField.getText())) {
+                        visiblePasswordField.setText(newVal);
+                    }
+                }
+        );
     }
 
     @FXML
@@ -71,28 +81,24 @@ public class LoginController implements Initializable {
             return;
         }
 
-        log.debug("Login attempt — user: {}", username);
+        log.debug("Login attempt");
 
         clearError();
         setLoading(true);
 
         TaskRunner.run(
                 () -> authService.login(username, password),
-
                 response -> {
-                    log.debug("Login successful — user: {}", username);
-
-                    // Diagnostic: check the role saved in the session.
-                    System.out.println(
-                            "ROLE AFTER LOGIN = " +
-                                    Session.getInstance().getRole()
-                    );
-
-                    // Open the main layout after successful login.
-                    SceneManager.getInstance()
-                            .switchTo(MAIN_LAYOUT_FXML);
+                    if (Session.getInstance().isAuthenticated()) {
+                        log.debug("Login successful — user: {}", username);
+                        SceneManager.getInstance().switchTo(MAIN_LAYOUT_FXML);
+                    } else {
+                        setLoading(false);
+                        showError(
+                                "The server returned an invalid login response. Please try again."
+                        );
+                    }
                 },
-
                 error -> {
                     log.debug(
                             "Login failed — user: {} — reason: {}",
@@ -104,6 +110,35 @@ public class LoginController implements Initializable {
                     showError(resolveErrorMessage(error));
                 }
         );
+    }
+
+    @FXML
+    private void togglePasswordVisibility() {
+        boolean currentlyHidden = !visiblePasswordField.isVisible();
+
+        if (currentlyHidden) {
+            visiblePasswordField.setText(passwordField.getText());
+            visiblePasswordField.setVisible(true);
+            visiblePasswordField.setManaged(true);
+
+            passwordField.setVisible(false);
+            passwordField.setManaged(false);
+
+            visiblePasswordField.requestFocus();
+            visiblePasswordField.positionCaret(
+                    visiblePasswordField.getText().length()
+            );
+        } else {
+            passwordField.setText(visiblePasswordField.getText());
+            visiblePasswordField.setVisible(false);
+            visiblePasswordField.setManaged(false);
+
+            passwordField.setVisible(true);
+            passwordField.setManaged(true);
+
+            passwordField.requestFocus();
+            passwordField.positionCaret(passwordField.getText().length());
+        }
     }
 
     private void setLoading(boolean loading) {
@@ -126,6 +161,9 @@ public class LoginController implements Initializable {
             return switch (apiEx.getCode()) {
                 case "INVALID_CREDENTIALS" ->
                         "Invalid username or password.";
+
+                case "INVALID_AUTH_RESPONSE" ->
+                        "The server returned an invalid login response. Please try again.";
 
                 case "ACCOUNT_LOCKED" ->
                         apiEx.getMessage();

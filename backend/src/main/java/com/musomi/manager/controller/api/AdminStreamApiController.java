@@ -6,6 +6,7 @@ import com.musomi.manager.dto.request.CreateStreamRequest;
 import com.musomi.manager.dto.response.ApiResponse;
 import com.musomi.manager.dto.response.StreamResponse;
 import com.musomi.manager.service.StreamService;
+import com.musomi.manager.util.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,8 +26,6 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminStreamApiController {
 
-    private static final Long SCHOOL_ID = 1L;
-
     private final StreamService streamService;
 
     /** Lists streams within a class. */
@@ -39,7 +38,7 @@ public class AdminStreamApiController {
     @PostMapping
     public ResponseEntity<ApiResponse<StreamResponse>> createStream(
             @Valid @RequestBody CreateStreamRequest request) {
-        StreamResponse created = streamService.createStream(SCHOOL_ID, request);
+        StreamResponse created = streamService.createStream(CurrentUser.getSchoolId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
     }
 }
