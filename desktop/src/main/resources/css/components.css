@@ -143,7 +143,7 @@
 .grade-a {
     -fx-background-color: #ECFDF5;
     -fx-text-fill: #047857;
-    -fx-font-family: "JetBrains Mono", "Courier New", monospace;
+    -fx-font-family: "JetBrains Mono";
     -fx-background-radius: 999px;
     -fx-padding: 4 10;
     -fx-font-size: 12px;
@@ -153,7 +153,7 @@
 .grade-b {
     -fx-background-color: #EFF6FF;
     -fx-text-fill: #1D4ED8;
-    -fx-font-family: "JetBrains Mono", "Courier New", monospace;
+    -fx-font-family: "JetBrains Mono";
     -fx-background-radius: 999px;
     -fx-padding: 4 10;
     -fx-font-size: 12px;
@@ -163,7 +163,7 @@
 .grade-c {
     -fx-background-color: #FFFBEB;
     -fx-text-fill: #B45309;
-    -fx-font-family: "JetBrains Mono", "Courier New", monospace;
+    -fx-font-family: "JetBrains Mono";
     -fx-background-radius: 999px;
     -fx-padding: 4 10;
     -fx-font-size: 12px;
@@ -173,7 +173,7 @@
 .grade-d {
     -fx-background-color: #FFF7ED;
     -fx-text-fill: #C2410C;
-    -fx-font-family: "JetBrains Mono", "Courier New", monospace;
+    -fx-font-family: "JetBrains Mono";
     -fx-background-radius: 999px;
     -fx-padding: 4 10;
     -fx-font-size: 12px;
@@ -183,7 +183,7 @@
 .grade-e {
     -fx-background-color: #FEF2F2;
     -fx-text-fill: #B91C1C;
-    -fx-font-family: "JetBrains Mono", "Courier New", monospace;
+    -fx-font-family: "JetBrains Mono";
     -fx-background-radius: 999px;
     -fx-padding: 4 10;
     -fx-font-size: 12px;
@@ -193,7 +193,7 @@
 .grade-f {
     -fx-background-color: #FEE2E2;
     -fx-text-fill: #991B1B;
-    -fx-font-family: "JetBrains Mono", "Courier New", monospace;
+    -fx-font-family: "JetBrains Mono";
     -fx-background-radius: 999px;
     -fx-padding: 4 10;
     -fx-font-size: 12px;
@@ -236,7 +236,7 @@
 }
 
 .assessment-table .table-cell.numeric-cell {
-    -fx-font-family: "JetBrains Mono", "Courier New", monospace;
+    -fx-font-family: "JetBrains Mono";
     -fx-alignment: CENTER-RIGHT;
 }
 
@@ -257,7 +257,7 @@
 .assessment-action-edit,
 .assessment-action-review,
 .assessment-action-view {
-    -fx-background-radius: 6px;
+    -fx-background-radius: 8px;
     -fx-padding: 5 8;
     -fx-font-size: 12px;
     -fx-font-weight: 600;
@@ -403,14 +403,14 @@
 
 .mark-entry .mark-score-cell {
     -fx-alignment: CENTER-RIGHT;
-    -fx-font-family: "JetBrains Mono", "Courier New", monospace;
+    -fx-font-family: "JetBrains Mono";
     -fx-font-size: 14px;
     -fx-text-fill: #0F172A;
 }
 
 .mark-entry .mark-score-editor {
     -fx-alignment: CENTER-RIGHT;
-    -fx-font-family: "JetBrains Mono", "Courier New", monospace;
+    -fx-font-family: "JetBrains Mono";
 }
 
 .mark-entry .grade-a,
@@ -420,7 +420,7 @@
 .mark-entry .grade-e,
 .mark-entry .grade-f {
     -fx-alignment: CENTER;
-    -fx-font-family: "JetBrains Mono", "Courier New", monospace;
+    -fx-font-family: "JetBrains Mono";
     -fx-font-weight: 600;
 }
 
@@ -498,7 +498,7 @@
 /* Logo icon placeholder (indigo panel, top-left) */
 .logo-placeholder {
     -fx-background-color: rgba(255, 255, 255, 0.25);
-    -fx-background-radius: 10px;
+    -fx-background-radius: 8px;
     -fx-min-width: 40px;
     -fx-min-height: 40px;
     -fx-max-width: 40px;

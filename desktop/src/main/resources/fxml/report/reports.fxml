@@ -30,8 +30,8 @@
             <HBox spacing="8.0" alignment="CENTER_LEFT">
                 <Label text="LOCAL DATA" styleClass="badge-inactive"/>
                 <Label text="(not a school report)"
-                       styleClass="body-small"
-                       style="-fx-text-fill: #64748B;"/>
+                       styleClass="body-small fxml-inline-017"
+                       />
             </HBox>
 
             <HBox spacing="12.0" alignment="CENTER_LEFT">
@@ -43,31 +43,21 @@
                 <VBox spacing="12.0"
                       HBox.hgrow="ALWAYS"
                       maxWidth="1.7976931348623157E308"
-                      style="-fx-background-color: #EEF2FF;
-                             -fx-background-radius: 12px;
-                             -fx-padding: 18px;">
+                       styleClass="fxml-inline-018">
                     <Label text="CLASS SUMMARY"
-                           style="-fx-font-size: 11px;
-                                  -fx-font-weight: bold;
-                                  -fx-text-fill: #64748B;"/>
+                            styleClass="fxml-inline-019"/>
                     <HBox spacing="40.0">
                         <VBox spacing="4.0">
                             <Label fx:id="studentCountLabel"
-                                   style="-fx-font-size: 28px;
-                                          -fx-font-weight: bold;
-                                          -fx-text-fill: #0F172A;"/>
+                                    styleClass="fxml-inline-020"/>
                             <Label text="Students in report"
-                                   style="-fx-font-size: 12px;
-                                          -fx-text-fill: #64748B;"/>
+                                    styleClass="fxml-inline-021"/>
                         </VBox>
                         <VBox spacing="4.0">
                             <Label fx:id="classAverageLabel"
-                                   style="-fx-font-size: 28px;
-                                          -fx-font-weight: bold;
-                                          -fx-text-fill: #0F172A;"/>
+                                    styleClass="fxml-inline-020"/>
                             <Label text="Class average"
-                                   style="-fx-font-size: 12px;
-                                          -fx-text-fill: #64748B;"/>
+                                    styleClass="fxml-inline-021"/>
                         </VBox>
                     </HBox>
                 </VBox>
@@ -100,8 +90,8 @@
                       managed="false"
                       VBox.vgrow="ALWAYS">
                     <Label text="○"
-                           styleClass="text-muted"
-                           style="-fx-font-size: 32px;"/>
+                           styleClass="text-muted fxml-inline-022"
+                           />
                     <Label fx:id="emptyStateTitle" styleClass="h3"/>
                     <Label fx:id="emptyStateMessage" styleClass="body-small"/>
                 </VBox>

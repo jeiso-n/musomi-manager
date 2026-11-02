@@ -15,7 +15,7 @@
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="com.musomi.desktop.controller.teacher.ClassRosterController"
-            style="-fx-background-color: #f7f8fc;">
+             styleClass="fxml-inline-023">
 
     <!-- ===================================================== -->
     <!-- PAGE HEADER                                           -->
@@ -34,25 +34,17 @@
 
                 <Button text="← Back to My Classes"
                         onAction="#handleBack"
-                        style="-fx-background-color: transparent;
-                               -fx-text-fill: #4F46E5;
-                               -fx-font-size: 13px;
-                               -fx-font-weight: 600;
-                               -fx-padding: 4 0;
-                               -fx-cursor: hand;"/>
+                         styleClass="fxml-inline-045"/>
 
             </HBox>
 
             <Label fx:id="classNameLabel"
                    text="Class Roster"
-                   style="-fx-font-size: 26px;
-                          -fx-font-weight: bold;
-                          -fx-text-fill: #1e293b;"/>
+                    styleClass="fxml-inline-024"/>
 
             <Label fx:id="studentCountLabel"
                    text="0 students"
-                   style="-fx-font-size: 14px;
-                          -fx-text-fill: #64748b;"/>
+                    styleClass="fxml-inline-025"/>
 
         </VBox>
 
@@ -81,11 +73,7 @@
                 <TextField fx:id="searchField"
                            promptText="Search student name or admission number..."
                            prefWidth="380.0"
-                           style="-fx-background-color: white;
-                                  -fx-background-radius: 8px;
-                                  -fx-border-color: #e2e8f0;
-                                  -fx-border-radius: 8px;
-                                  -fx-padding: 10px;"/>
+                            styleClass="fxml-inline-046"/>
 
                 <Region HBox.hgrow="ALWAYS"/>
 
@@ -98,8 +86,7 @@
 
             <TableView fx:id="rosterTable"
                        VBox.vgrow="ALWAYS"
-                       style="-fx-background-color: white;
-                              -fx-background-radius: 10px;">
+                        styleClass="fxml-inline-047">
 
                 <columns>
 
@@ -138,21 +125,17 @@
                   prefHeight="200.0"
                   visible="false"
                   managed="false"
-                  style="-fx-background-color: white;
-                         -fx-background-radius: 10px;">
+                   styleClass="fxml-inline-047">
 
                 <padding>
                     <Insets top="40.0" bottom="40.0"/>
                 </padding>
 
                 <Label text="No students found"
-                       style="-fx-font-size: 17px;
-                              -fx-font-weight: 600;
-                              -fx-text-fill: #1e293b;"/>
+                        styleClass="fxml-inline-048"/>
 
                 <Label text="Try a different name or admission number."
-                       style="-fx-font-size: 13px;
-                              -fx-text-fill: #64748b;"/>
+                        styleClass="fxml-inline-009"/>
 
             </VBox>
 

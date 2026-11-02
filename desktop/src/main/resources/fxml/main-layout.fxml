@@ -12,7 +12,7 @@
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.musomi.desktop.controller.MainLayoutController"
-            style="-fx-background-color: #f8fafc;">
+             styleClass="fxml-inline-006">
 
     <!-- ===================================================== -->
     <!-- TOP BAR                                               -->
@@ -22,27 +22,22 @@
         <HBox prefHeight="56.0"
               alignment="CENTER_LEFT"
               spacing="16"
-              style="-fx-background-color: white; -fx-border-color: #e2e8f0; -fx-border-width: 0 0 1 0;">
+               styleClass="fxml-inline-007">
 
             <padding>
                 <Insets left="20" right="20"/>
             </padding>
 
             <Label text="MUSOMI MANAGER"
-                   style="-fx-font-size: 18px;
-                          -fx-font-weight: bold;
-                          -fx-text-fill: #2563eb;"/>
+                    styleClass="fxml-inline-008"/>
 
             <Region HBox.hgrow="ALWAYS"/>
 
             <Label fx:id="roleLabel" text="Teacher"
-                   style="-fx-font-size: 13px;
-                          -fx-text-fill: #64748b;"/>
+                    styleClass="fxml-inline-009"/>
 
             <Label fx:id="userNameLabel" text="John"
-                   style="-fx-font-size: 14px;
-                          -fx-font-weight: bold;
-                          -fx-text-fill: #1e293b;"/>
+                    styleClass="fxml-inline-010"/>
 
         </HBox>
     </top>
@@ -55,9 +50,7 @@
     <left>
         <VBox prefWidth="240.0"
               spacing="4"
-              style="-fx-background-color: white;
-                     -fx-border-color: #e2e8f0;
-                     -fx-border-width: 0 1 0 0;">
+               styleClass="fxml-inline-011">
 
             <padding>
                 <Insets top="20" right="16" bottom="20" left="16"/>
@@ -66,10 +59,7 @@
 
             <!-- ROLE -->
             <Label fx:id="sectionRoleLabel" text="TEACHER"
-                   style="-fx-font-size: 11px;
-                          -fx-font-weight: bold;
-                          -fx-text-fill: #94a3b8;
-                          -fx-padding: 0 0 12 8;"/>
+                    styleClass="fxml-inline-012"/>
 
 
             <!-- ================================================= -->
@@ -84,14 +74,7 @@
                         text="Dashboard"
                         maxWidth="1.7976931348623157E308"
                         onAction="#showDashboard"
-                        style="-fx-background-color: #eef4ff;
-                               -fx-background-radius: 8px;
-                               -fx-text-fill: #2563eb;
-                               -fx-font-size: 14px;
-                               -fx-font-weight: bold;
-                               -fx-alignment: CENTER_LEFT;
-                               -fx-padding: 11px 14px;
-                               -fx-cursor: hand;"/>
+                         styleClass="fxml-inline-013"/>
 
 
                 <!-- MARK ENTRY -->
@@ -99,12 +82,7 @@
                         text="Mark Entry"
                         maxWidth="1.7976931348623157E308"
                         onAction="#showMarkEntry"
-                        style="-fx-background-color: transparent;
-                               -fx-text-fill: #475569;
-                               -fx-font-size: 14px;
-                               -fx-alignment: CENTER_LEFT;
-                               -fx-padding: 11px 14px;
-                               -fx-cursor: hand;"/>
+                         styleClass="fxml-inline-014"/>
 
 
                 <!-- MY CLASSES -->
@@ -112,12 +90,7 @@
                         text="My Classes"
                         maxWidth="1.7976931348623157E308"
                         onAction="#showMyClasses"
-                        style="-fx-background-color: transparent;
-                               -fx-text-fill: #475569;
-                               -fx-font-size: 14px;
-                               -fx-alignment: CENTER_LEFT;
-                               -fx-padding: 11px 14px;
-                               -fx-cursor: hand;"/>
+                         styleClass="fxml-inline-014"/>
 
 
                 <!-- ASSESSMENTS -->
@@ -125,12 +98,7 @@
                         text="Assessments"
                         maxWidth="1.7976931348623157E308"
                         onAction="#showAssessments"
-                        style="-fx-background-color: transparent;
-                               -fx-text-fill: #475569;
-                               -fx-font-size: 14px;
-                               -fx-alignment: CENTER_LEFT;
-                               -fx-padding: 11px 14px;
-                               -fx-cursor: hand;"/>
+                         styleClass="fxml-inline-014"/>
 
 
                 <!-- REPORTS -->
@@ -138,24 +106,14 @@
                         text="Reports"
                         maxWidth="1.7976931348623157E308"
                         onAction="#onReportsClicked"
-                        style="-fx-background-color: transparent;
-                               -fx-text-fill: #475569;
-                               -fx-font-size: 14px;
-                               -fx-alignment: CENTER_LEFT;
-                               -fx-padding: 11px 14px;
-                               -fx-cursor: hand;"/>
+                         styleClass="fxml-inline-014"/>
 
 
                 <!-- SETTINGS -->
                 <Button text="Settings"
                         disable="true"
                         maxWidth="1.7976931348623157E308"
-                        style="-fx-background-color: transparent;
-                               -fx-text-fill: #475569;
-                               -fx-font-size: 14px;
-                               -fx-alignment: CENTER_LEFT;
-                               -fx-padding: 11px 14px;
-                               -fx-cursor: hand;"/>
+                         styleClass="fxml-inline-014"/>
 
             </VBox>
 
@@ -174,10 +132,7 @@
                   spacing="4">
 
                 <Label text="ADMIN"
-                       style="-fx-font-size: 11px;
-                              -fx-font-weight: bold;
-                              -fx-text-fill: #94a3b8;
-                              -fx-padding: 0 0 8 8;"/>
+                        styleClass="fxml-inline-015"/>
 
                 <Button text="Dashboard"
                         maxWidth="1.7976931348623157E308"
@@ -229,7 +184,7 @@
         <StackPane fx:id="contentArea"
                    minWidth="0"
                    minHeight="0"
-                   style="-fx-background-color: #f8fafc;">
+                    styleClass="fxml-inline-006">
 
             <padding>
                 <Insets top="24" right="24" bottom="24" left="24"/>

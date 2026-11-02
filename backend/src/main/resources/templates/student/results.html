@@ -21,7 +21,7 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Term Summary & Results</h1>
+            <h1 class="text-2xl font-semibold text-slate-900 tracking-tight">Term Summary & Results</h1>
             <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
                 <span th:text="${termName != null ? termName : 'Term 1'}">Term 1</span>, 
                 <span th:text="${year != null ? year : '2026'}">2026</span> Academic Performance
@@ -35,13 +35,13 @@
     </div>
 
     <!-- Overall Summary Banner -->
-    <div class="bg-gradient-to-br from-indigo-900 via-indigo-800 to-indigo-950 text-white rounded-2xl p-5 sm:p-6 mb-6 shadow-md">
+    <div class="bg-gradient-to-br from-indigo-900 via-indigo-800 to-indigo-950 text-white rounded-xl p-5 sm:p-6 mb-6 shadow-md">
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-indigo-700/60">
             <!-- Overall Average -->
             <div class="pt-2 sm:pt-0">
                 <span class="text-xs font-medium text-indigo-200 uppercase tracking-wider">Overall Average</span>
                 <div class="flex items-baseline gap-2 mt-1.5">
-                    <span class="text-3xl font-bold font-mono tabular-nums" th:text="${overallAverage != null ? overallAverage : '81.4'}">81.4</span>
+                    <span class="text-3xl font-semibold font-mono tabular-nums" th:text="${overallAverage != null ? overallAverage : '81.4'}">81.4</span>
                     <span class="text-indigo-300 text-sm">%</span>
                 </div>
             </div>
@@ -50,7 +50,7 @@
             <div class="pt-2 sm:pt-0 sm:pl-4">
                 <span class="text-xs font-medium text-indigo-200 uppercase tracking-wider">Overall Grade</span>
                 <div class="mt-1.5">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold font-mono bg-emerald-500 text-white shadow-sm"
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold font-mono bg-emerald-500 text-white shadow-sm"
                           th:text="${overallGrade != null ? overallGrade : 'A'}">A</span>
                 </div>
             </div>
@@ -58,7 +58,7 @@
             <!-- Position -->
             <div class="pt-2 sm:pt-0 sm:pl-4">
                 <span class="text-xs font-medium text-indigo-200 uppercase tracking-wider">Class Rank</span>
-                <div class="mt-1.5 text-2xl font-bold font-mono tabular-nums">
+                <div class="mt-1.5 text-2xl font-semibold font-mono tabular-nums">
                     <span th:text="${position != null ? position : '4'}">4</span>
                     <span class="text-xs text-indigo-300 font-normal">of <span th:text="${classSize != null ? classSize : '42'}">42</span></span>
                 </div>
@@ -67,7 +67,7 @@
             <!-- Subjects Count -->
             <div class="pt-2 sm:pt-0 sm:pl-4">
                 <span class="text-xs font-medium text-indigo-200 uppercase tracking-wider">Subjects</span>
-                <div class="mt-1.5 text-2xl font-bold font-mono tabular-nums" th:text="${subjects != null ? #lists.size(subjects) : '8'}">
+                <div class="mt-1.5 text-2xl font-semibold font-mono tabular-nums" th:text="${subjects != null ? #lists.size(subjects) : '8'}">
                     8
                 </div>
             </div>
@@ -95,7 +95,7 @@
                     </div>
 
                     <div class="flex items-center gap-3 text-right shrink-0">
-                        <div class="font-mono text-base sm:text-lg font-bold text-slate-900 tabular-nums">
+                        <div class="font-mono text-base sm:text-lg font-semibold text-slate-900 tabular-nums">
                             <span th:text="${#numbers.formatDecimal(sub.average, 1, 1)}">84.5</span>%
                         </div>
                         <div th:replace="~{fragments/grade-badge :: badge(${sub.grade})}"></div>
@@ -105,7 +105,7 @@
                 <!-- Visual score progress bar -->
                 <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                     <div class="h-full rounded-full transition-all duration-500"
-                         th:style="'width: ' + ${sub.average} + '%;'"
+                         th:classappend="${'score-progress-' + #numbers.formatInteger(sub.average, 0)}"
                          th:classappend="${
                             sub.average >= 80 ? 'bg-emerald-500' :
                             (sub.average >= 70 ? 'bg-indigo-600' :

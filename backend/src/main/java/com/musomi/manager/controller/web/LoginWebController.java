@@ -5,6 +5,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.musomi.manager.entity.School;
 import com.musomi.manager.repository.SchoolRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -24,7 +25,7 @@ public class LoginWebController {
 
         model.addAttribute("pageTitle", "Student Login");
         model.addAttribute("schoolName", schoolRepository.findAll().stream()
-                .findFirst().map(school -> school.getName()).orElse("Musomi Manager"));
+                .findFirst().map(School::getName).orElse("Musomi Manager"));
 
         if (error != null) {
             String errorMessage = "Wrong username or password.";

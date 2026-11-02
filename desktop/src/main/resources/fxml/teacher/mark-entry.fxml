@@ -36,13 +36,10 @@ styleClass="mark-entry">
             </padding>
 
             <Label text="Mark Entry"
-                   style="-fx-font-size: 26px;
-                          -fx-font-weight: bold;
-                          -fx-text-fill: #1e293b;"/>
+                    styleClass="fxml-inline-024"/>
 
             <Label text="Enter and manage student marks for your classes."
-                   style="-fx-font-size: 14px;
-                          -fx-text-fill: #64748b;"/>
+                    styleClass="fxml-inline-025"/>
 
         </VBox>
 
@@ -70,9 +67,7 @@ styleClass="mark-entry">
             <!-- ================================================= -->
 
             <VBox spacing="12.0"
-                  style="-fx-background-color: white;
-                         -fx-background-radius: 12px;
-                         -fx-padding: 18px;">
+                   styleClass="fxml-inline-049">
 
                 <GridPane hgap="14.0"
                           vgap="8.0">
@@ -82,9 +77,7 @@ styleClass="mark-entry">
                     <Label text="Class"
                            GridPane.columnIndex="0"
                            GridPane.rowIndex="0"
-                           style="-fx-font-size: 12px;
-                                  -fx-font-weight: bold;
-                                  -fx-text-fill: #64748b;"/>
+                            styleClass="fxml-inline-050"/>
 
                     <ComboBox fx:id="classComboBox"
                               prefWidth="180.0"
@@ -98,9 +91,7 @@ styleClass="mark-entry">
                     <Label text="Subject"
                            GridPane.columnIndex="1"
                            GridPane.rowIndex="0"
-                           style="-fx-font-size: 12px;
-                                  -fx-font-weight: bold;
-                                  -fx-text-fill: #64748b;"/>
+                            styleClass="fxml-inline-050"/>
 
                     <ComboBox fx:id="subjectComboBox"
                               prefWidth="180.0"
@@ -114,9 +105,7 @@ styleClass="mark-entry">
                     <Label text="Topic"
                            GridPane.columnIndex="2"
                            GridPane.rowIndex="0"
-                           style="-fx-font-size: 12px;
-                                  -fx-font-weight: bold;
-                                  -fx-text-fill: #64748b;"/>
+                            styleClass="fxml-inline-050"/>
 
                     <ComboBox fx:id="topicComboBox"
                               prefWidth="180.0"
@@ -130,9 +119,7 @@ styleClass="mark-entry">
                     <Label text="Assessment"
                            GridPane.columnIndex="3"
                            GridPane.rowIndex="0"
-                           style="-fx-font-size: 12px;
-                                  -fx-font-weight: bold;
-                                  -fx-text-fill: #64748b;"/>
+                            styleClass="fxml-inline-050"/>
 
                     <ComboBox fx:id="assessmentComboBox"
                               prefWidth="180.0"
@@ -153,21 +140,14 @@ styleClass="mark-entry">
                   alignment="CENTER_LEFT">
 
                 <Label text="Student Marks"
-                       style="-fx-font-size: 17px;
-                              -fx-font-weight: bold;
-                              -fx-text-fill: #1e293b;"/>
+                        styleClass="fxml-inline-048"/>
 
                 <Region HBox.hgrow="ALWAYS"/>
 
                 <Button fx:id="saveAllButton"
                         text="Save All"
                         onAction="#saveAll"
-                        style="-fx-background-color: #4f46e5;
-                               -fx-background-radius: 8px;
-                               -fx-text-fill: white;
-                               -fx-font-weight: bold;
-                               -fx-padding: 10px 18px;
-                               -fx-cursor: hand;"/>
+                         styleClass="fxml-inline-051"/>
 
             </HBox>
 
@@ -182,28 +162,18 @@ styleClass="mark-entry">
                 <TextField fx:id="searchField"
                            promptText="Search student name..."
                            prefWidth="320.0"
-                           style="-fx-background-color: white;
-                                  -fx-background-radius: 8px;
-                                  -fx-border-color: #e2e8f0;
-                                  -fx-border-radius: 8px;
-                                  -fx-padding: 10px;"/>
+                            styleClass="fxml-inline-046"/>
 
                 <Region HBox.hgrow="ALWAYS"/>
 
                 <Label text="Saved"
-                       style="-fx-text-fill: #16a34a;
-                              -fx-font-size: 12px;
-                              -fx-font-weight: bold;"/>
+                        styleClass="fxml-inline-052"/>
 
                 <Label text="Modified"
-                       style="-fx-text-fill: #4f46e5;
-                              -fx-font-size: 12px;
-                              -fx-font-weight: bold;"/>
+                        styleClass="fxml-inline-053"/>
 
                 <Label text="Invalid"
-                       style="-fx-text-fill: #dc2626;
-                              -fx-font-size: 12px;
-                              -fx-font-weight: bold;"/>
+                        styleClass="fxml-inline-054"/>
 
             </HBox>
 
@@ -215,8 +185,7 @@ styleClass="mark-entry">
             <TableView fx:id="marksTable"
                        editable="true"
                        VBox.vgrow="ALWAYS"
-                       style="-fx-background-color: white;
-                              -fx-background-radius: 10px;">
+                        styleClass="fxml-inline-047">
 
                 <columns>
 
@@ -260,8 +229,7 @@ styleClass="mark-entry">
 
                 <Label fx:id="progressLabel"
                        text="0 / 0 students marked"
-                       style="-fx-font-size: 12px;
-                              -fx-text-fill: #64748b;"/>
+                        styleClass="fxml-inline-055"/>
 
                 <ProgressBar fx:id="progressBar"
                              progress="0.0"
@@ -272,8 +240,7 @@ styleClass="mark-entry">
 
                 <Label fx:id="statusLabel"
                        text="Select an assessment to enter marks."
-                       style="-fx-font-size: 12px;
-                              -fx-text-fill: #64748b;"/>
+                        styleClass="fxml-inline-055"/>
 
             </HBox>
 

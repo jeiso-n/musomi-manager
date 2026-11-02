@@ -7,10 +7,10 @@
     <div class="flex flex-1 justify-between sm:hidden">
         <a th:href="@{${baseUrl}(page=${page - 1})}" 
            th:classappend="${page <= 1 ? 'pointer-events-none opacity-50 bg-slate-50' : 'bg-white hover:bg-slate-50'}"
-           class="relative inline-flex items-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700">Previous</a>
+           class="relative inline-flex items-center rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700">Previous</a>
         <a th:href="@{${baseUrl}(page=${page + 1})}" 
            th:classappend="${page >= totalPages ? 'pointer-events-none opacity-50 bg-slate-50' : 'bg-white hover:bg-slate-50'}"
-           class="relative ml-3 inline-flex items-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700">Next</a>
+           class="relative ml-3 inline-flex items-center rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700">Next</a>
     </div>
     <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
         <div>
@@ -19,7 +19,7 @@
             </p>
         </div>
         <div>
-            <nav class="isolate inline-flex -space-x-px rounded-md shadow-2xs" aria-label="Pagination">
+            <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
                 <a th:href="@{${baseUrl}(page=${page - 1})}" 
                    th:classappend="${page <= 1 ? 'pointer-events-none opacity-40' : 'hover:bg-slate-50'}"
                    class="relative inline-flex items-center rounded-l-md px-2 py-2 text-slate-400 ring-1 ring-inset ring-slate-300 focus:z-20 focus:outline-offset-0">

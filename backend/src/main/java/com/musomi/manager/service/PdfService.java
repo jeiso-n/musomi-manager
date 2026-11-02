@@ -35,6 +35,7 @@ import org.springframework.stereotype.Service;
 public class PdfService {
 
     private static final Color PRIMARY = new Color(0x4F, 0x46, 0xE5);
+    private static final Color SLATE_900 = new Color(0x0F, 0x17, 0x2A);
     private static final Color SLATE_50 = new Color(0xF8, 0xFA, 0xFC);
     private static final Color SLATE_200 = new Color(0xE2, 0xE8, 0xF0);
     private static final Color SLATE_500 = new Color(0x64, 0x74, 0x8B);
@@ -69,8 +70,8 @@ public class PdfService {
                                    String overallGrade, int position, int classSize, List<Comment> comments)
             throws DocumentException {
         Font schoolFont = FontFactory.getFont(FontFactory.HELVETICA, 17, Font.BOLD, PRIMARY);
-        Font titleFont = FontFactory.getFont(FontFactory.HELVETICA, 14, Font.BOLD, Color.BLACK);
-        Font bodyFont = FontFactory.getFont(FontFactory.HELVETICA, 10, Font.NORMAL, Color.BLACK);
+        Font titleFont = FontFactory.getFont(FontFactory.HELVETICA, 14, Font.BOLD, SLATE_900);
+        Font bodyFont = FontFactory.getFont(FontFactory.HELVETICA, 10, Font.NORMAL, SLATE_900);
         Font mutedFont = FontFactory.getFont(FontFactory.HELVETICA, 9, Font.NORMAL, SLATE_500);
         String schoolName = value(school == null ? null : school.getName(), "School");
         Paragraph schoolHeading = new Paragraph(schoolName, schoolFont);
@@ -99,7 +100,7 @@ public class PdfService {
 
         document.add(new Paragraph("Overall Average: " + format(overallAverage)
                 + "   Overall Grade: " + value(overallGrade, "N/A")
-                + "   Position: " + position + "/" + classSize));
+                + "   Position: " + position + "/" + classSize, bodyFont));
         addComments(document, comments);
         if (settings != null && hasText(settings.getReportFooter())) {
             document.add(new Paragraph(settings.getReportFooter(), mutedFont));
@@ -125,7 +126,7 @@ public class PdfService {
                 Color rowColor = alternate ? SLATE_50 : Color.WHITE;
                 addCell(table, value(subject.subjectName(), ""), rowColor, Element.ALIGN_LEFT);
                 addCell(table, format(subject.average()), rowColor, Element.ALIGN_RIGHT);
-                addGradeCell(table, value(subject.grade(), "N/A"), rowColor);
+                addGradeCell(table, value(subject.grade(), "N/A"));
                 addCell(table, Integer.toString(subject.assessmentCount()), rowColor, Element.ALIGN_RIGHT);
                 alternate = !alternate;
             }
@@ -187,11 +188,11 @@ public class PdfService {
     }
 
     private void addCell(PdfPTable table, String text, Color background, int alignment) {
-        Font font = FontFactory.getFont(FontFactory.HELVETICA, 9, Font.NORMAL, Color.BLACK);
+        Font font = FontFactory.getFont(FontFactory.HELVETICA, 9, Font.NORMAL, SLATE_900);
         PdfPCell cell = new PdfPCell(new Phrase(text, font));
         cell.setBackgroundColor(background);
         cell.setBorderColor(SLATE_200);
-        cell.setPadding(6);
+        cell.setPadding(8f);
         cell.setHorizontalAlignment(alignment);
         table.addCell(cell);
     }
@@ -201,28 +202,45 @@ public class PdfService {
         PdfPCell cell = new PdfPCell(new Phrase(text, font));
         cell.setBackgroundColor(PRIMARY);
         cell.setBorderColor(SLATE_200);
-        cell.setPadding(6);
+        cell.setPadding(8f);
         cell.setHorizontalAlignment(Element.ALIGN_LEFT);
         table.addCell(cell);
     }
 
-    private void addGradeCell(PdfPTable table, String grade, Color background) {
-        Color gradeColor = switch (grade.toUpperCase()) {
+    private void addGradeCell(PdfPTable table, String grade) {
+        Color gradeColor = gradeTextColor(grade);
+        Color gradeBackground = gradeBackgroundColor(grade);
+        Font font = FontFactory.getFont(FontFactory.HELVETICA, 9, Font.BOLD, gradeColor);
+        PdfPCell cell = new PdfPCell(new Phrase(grade, font));
+        cell.setBackgroundColor(gradeBackground);
+        cell.setBorderColor(SLATE_200);
+        cell.setPadding(8f);
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        table.addCell(cell);
+    }
+
+    private Color gradeTextColor(String grade) {
+        return switch (grade.toUpperCase()) {
             case "A" -> new Color(0x04, 0x78, 0x57);
             case "B" -> new Color(0x1D, 0x4E, 0xD8);
             case "C" -> new Color(0xB4, 0x53, 0x09);
             case "D" -> new Color(0xC2, 0x41, 0x0C);
             case "E" -> new Color(0xB9, 0x1C, 0x1C);
             case "F" -> new Color(0x99, 0x1B, 0x1B);
-            default -> Color.BLACK;
+            default -> SLATE_900;
         };
-        Font font = FontFactory.getFont(FontFactory.HELVETICA, 9, Font.BOLD, gradeColor);
-        PdfPCell cell = new PdfPCell(new Phrase(grade, font));
-        cell.setBackgroundColor(background);
-        cell.setBorderColor(SLATE_200);
-        cell.setPadding(6);
-        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-        table.addCell(cell);
+    }
+
+    private Color gradeBackgroundColor(String grade) {
+        return switch (grade.toUpperCase()) {
+            case "A" -> new Color(0xEC, 0xFD, 0xF5);
+            case "B" -> new Color(0xEF, 0xF6, 0xFF);
+            case "C" -> new Color(0xFF, 0xFB, 0xEB);
+            case "D" -> new Color(0xFF, 0xF7, 0xED);
+            case "E" -> new Color(0xFE, 0xF2, 0xF2);
+            case "F" -> new Color(0xFE, 0xE2, 0xE2);
+            default -> SLATE_50;
+        };
     }
 
     private String format(BigDecimal value) {

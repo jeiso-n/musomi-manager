@@ -20,7 +20,7 @@
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="com.musomi.desktop.controller.teacher.AssessmentsController"
-            style="-fx-background-color: #f7f8fc;">
+             styleClass="fxml-inline-023">
 
     <!-- ===================================================== -->
     <!-- PAGE HEADER                                           -->
@@ -36,24 +36,15 @@
 
                 <VBox spacing="5.0" HBox.hgrow="ALWAYS">
                     <Label text="Assessments"
-                           style="-fx-font-size: 26px;
-                                  -fx-font-weight: bold;
-                                  -fx-text-fill: #1e293b;"/>
+                            styleClass="fxml-inline-024"/>
                     <Label text="Create and manage assessments for your classes."
-                           style="-fx-font-size: 14px;
-                                  -fx-text-fill: #64748b;"/>
+                            styleClass="fxml-inline-025"/>
                 </VBox>
 
                 <Button fx:id="createBtn"
                         text="+ Create Assessment"
                         onAction="#handleCreateAssessment"
-                        style="-fx-background-color: #4F46E5;
-                               -fx-text-fill: white;
-                               -fx-font-size: 14px;
-                               -fx-font-weight: 600;
-                               -fx-background-radius: 8px;
-                               -fx-padding: 10 20;
-                               -fx-cursor: hand;"/>
+                         styleClass="fxml-inline-026"/>
             </HBox>
         </VBox>
     </top>
@@ -80,12 +71,7 @@
                        visible="false"
                        managed="false"
                        wrapText="true"
-                       style="-fx-background-color: #ECFDF5;
-                              -fx-text-fill: #065F46;
-                              -fx-font-size: 13px;
-                              -fx-background-radius: 8px;
-                              -fx-padding: 12 14;
-                              -fx-font-weight: 600;">
+                        styleClass="fxml-inline-027">
                     <VBox.margin>
                         <Insets bottom="12"/>
                     </VBox.margin>
@@ -98,11 +84,11 @@
                            styleClass="assessment-table">
                     <placeholder>
                         <VBox alignment="CENTER" spacing="8">
-                            <Label text="📋" style="-fx-font-size: 40px;"/>
+                            <Label text="📋"  styleClass="fxml-inline-028"/>
                             <Label text="No assessments yet"
-                                   style="-fx-font-size: 16px;-fx-font-weight: 600;-fx-text-fill: #0F172A;"/>
+                                    styleClass="fxml-inline-029"/>
                             <Label text="Click '+ Create Assessment' to get started."
-                                   style="-fx-font-size: 13px;-fx-text-fill: #64748B;"/>
+                                    styleClass="fxml-inline-030"/>
                         </VBox>
                     </placeholder>
                     <columns>
@@ -242,11 +228,9 @@
                         fitToWidth="true"
                         hbarPolicy="NEVER"
                         vbarPolicy="AS_NEEDED"
-                        style="-fx-background-color: #f7f8fc;
-                               -fx-background: #f7f8fc;
-                               -fx-border-color: transparent;"
+
                         StackPane.alignment="TOP_LEFT"
-                        maxWidth="Infinity" maxHeight="Infinity">
+                        maxWidth="Infinity" maxHeight="Infinity" styleClass="fxml-inline-031">
 
                 <content>
                     <VBox spacing="20">
@@ -258,35 +242,19 @@
                         <HBox alignment="CENTER_LEFT" spacing="12">
                             <Button text="← Back to Assessments"
                                     onAction="#handleCancelReview"
-                                    style="-fx-background-color: transparent;
-                                           -fx-text-fill: #4F46E5;
-                                           -fx-font-size: 13px;
-                                           -fx-font-weight: 600;
-                                           -fx-cursor: hand;
-                                           -fx-padding: 0;"/>
+                                     styleClass="fxml-inline-032"/>
                         </HBox>
 
                         <!-- Review header card -->
                         <VBox spacing="16"
-                              style="-fx-background-color: white;
-                                     -fx-background-radius: 12px;
-                                     -fx-border-color: #E2E8F0;
-                                     -fx-border-width: 1;
-                                     -fx-padding: 24 28;">
+                               styleClass="fxml-inline-033">
 
                             <HBox alignment="CENTER_LEFT">
                                 <Label text="Review Assessment"
-                                       style="-fx-font-size: 20px;
-                                              -fx-font-weight: 800;
-                                              -fx-text-fill: #0F172A;"/>
+                                        styleClass="fxml-inline-034"/>
                                 <Region HBox.hgrow="ALWAYS"/>
                                 <Label text="DRAFT"
-                                       style="-fx-background-color: #FFF7ED;
-                                              -fx-text-fill: #B45309;
-                                              -fx-font-size: 12px;
-                                              -fx-font-weight: 700;
-                                              -fx-padding: 4 12;
-                                              -fx-background-radius: 999px;"/>
+                                        styleClass="fxml-inline-035"/>
                             </HBox>
 
                             <Separator/>
@@ -295,39 +263,39 @@
                             <FlowPane hgap="28" vgap="16">
                                 <VBox spacing="4">
                                     <Label text="Assessment"
-                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                            styleClass="fxml-inline-036"/>
                                     <Label fx:id="reviewNameLabel"
-                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                            styleClass="fxml-inline-037"/>
                                 </VBox>
                                 <VBox spacing="4">
                                     <Label text="CLASS"
-                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                            styleClass="fxml-inline-036"/>
                                     <Label fx:id="reviewClassLabel"
-                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                            styleClass="fxml-inline-037"/>
                                 </VBox>
                                 <VBox spacing="4">
                                     <Label text="SUBJECT"
-                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                            styleClass="fxml-inline-036"/>
                                     <Label fx:id="reviewSubjectLabel"
-                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                            styleClass="fxml-inline-037"/>
                                 </VBox>
                                 <VBox spacing="4">
                                     <Label text="TOPIC"
-                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                            styleClass="fxml-inline-036"/>
                                     <Label fx:id="reviewTopicLabel"
-                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                            styleClass="fxml-inline-037"/>
                                 </VBox>
                                 <VBox spacing="4">
                                     <Label text="DATE"
-                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                            styleClass="fxml-inline-036"/>
                                     <Label fx:id="reviewDateLabel"
-                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                            styleClass="fxml-inline-037"/>
                                 </VBox>
                                 <VBox spacing="4">
                                     <Label text="MAX MARKS"
-                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                            styleClass="fxml-inline-036"/>
                                     <Label fx:id="reviewMaxMarksLabel"
-                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                            styleClass="fxml-inline-037"/>
                                 </VBox>
                             </FlowPane>
 
@@ -335,48 +303,29 @@
 
                             <!-- Completeness + warning -->
                             <Label fx:id="reviewCompletenessLabel"
-                                   style="-fx-font-size: 13px;-fx-text-fill: #475569;"/>
+                                    styleClass="fxml-inline-038"/>
 
                             <Label fx:id="reviewWarningLabel"
                                    visible="false" managed="false"
                                    wrapText="true"
-                                   style="-fx-background-color: #FEF9C3;
-                                          -fx-text-fill: #854D0E;
-                                          -fx-font-size: 13px;
-                                          -fx-font-weight: 600;
-                                          -fx-background-radius: 8px;
-                                          -fx-padding: 12 14;"/>
+                                    styleClass="fxml-inline-039"/>
 
                             <!-- Action buttons -->
                             <HBox spacing="12" alignment="CENTER_RIGHT">
                                 <Button text="Back to Assessments"
                                         onAction="#handleCancelReview"
-                                        style="-fx-background-color: #F1F5F9;
-                                               -fx-text-fill: #475569;
-                                               -fx-font-size: 14px;
-                                               -fx-font-weight: 600;
-                                               -fx-background-radius: 8px;
-                                               -fx-padding: 10 22;
-                                               -fx-cursor: hand;"/>
+                                         styleClass="fxml-inline-040"/>
                                 <Button fx:id="publishBtn"
                                         text="Publish Assessment"
                                         onAction="#handlePublish"
-                                        style="-fx-background-color: #059669;
-                                               -fx-text-fill: white;
-                                               -fx-font-size: 14px;
-                                               -fx-font-weight: 700;
-                                               -fx-background-radius: 8px;
-                                               -fx-padding: 10 26;
-                                               -fx-cursor: hand;"/>
+                                         styleClass="fxml-inline-041"/>
                             </HBox>
                         </VBox>
 
                         <!-- Student marks table -->
                         <VBox spacing="0">
                             <Label text="Student Marks"
-                                   style="-fx-font-size: 16px;
-                                          -fx-font-weight: 700;
-                                          -fx-text-fill: #0F172A;">
+                                    styleClass="fxml-inline-042">
                                 <VBox.margin>
                                     <Insets bottom="10"/>
                                 </VBox.margin>
@@ -399,11 +348,9 @@
                         fitToWidth="true"
                         hbarPolicy="NEVER"
                         vbarPolicy="AS_NEEDED"
-                        style="-fx-background-color: #f7f8fc;
-                               -fx-background: #f7f8fc;
-                               -fx-border-color: transparent;"
+
                         StackPane.alignment="TOP_LEFT"
-                        maxWidth="Infinity" maxHeight="Infinity">
+                        maxWidth="Infinity" maxHeight="Infinity" styleClass="fxml-inline-031">
 
                 <content>
                     <VBox spacing="20">
@@ -415,103 +362,77 @@
                         <HBox alignment="CENTER_LEFT" spacing="12">
                             <Button text="← Back to Assessments"
                                     onAction="#handleCloseView"
-                                    style="-fx-background-color: transparent;
-                                           -fx-text-fill: #4F46E5;
-                                           -fx-font-size: 13px;
-                                           -fx-font-weight: 600;
-                                           -fx-cursor: hand;
-                                           -fx-padding: 0;"/>
+                                     styleClass="fxml-inline-032"/>
                         </HBox>
 
                         <!-- View header card -->
                         <VBox spacing="16"
-                              style="-fx-background-color: white;
-                                     -fx-background-radius: 12px;
-                                     -fx-border-color: #E2E8F0;
-                                     -fx-border-width: 1;
-                                     -fx-padding: 24 28;">
+                               styleClass="fxml-inline-033">
 
                             <HBox alignment="CENTER_LEFT">
                                 <Label text="Assessment Details (Read-Only)"
-                                       style="-fx-font-size: 20px;
-                                              -fx-font-weight: 800;
-                                              -fx-text-fill: #0F172A;"/>
+                                        styleClass="fxml-inline-034"/>
                                 <Region HBox.hgrow="ALWAYS"/>
                                 <Label text="PUBLISHED"
-                                       style="-fx-background-color: #ECFDF5;
-                                              -fx-text-fill: #047857;
-                                              -fx-font-size: 12px;
-                                              -fx-font-weight: 700;
-                                              -fx-padding: 4 12;
-                                              -fx-background-radius: 999px;"/>
+                                        styleClass="fxml-inline-043"/>
                             </HBox>
                             <Separator/>
 
                             <FlowPane hgap="28" vgap="16">
                                 <VBox spacing="4">
                                     <Label text="ASSESSMENT"
-                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                            styleClass="fxml-inline-036"/>
                                     <Label fx:id="viewNameLabel"
-                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                            styleClass="fxml-inline-037"/>
                                 </VBox>
                                 <VBox spacing="4">
                                     <Label text="CLASS"
-                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                            styleClass="fxml-inline-036"/>
                                     <Label fx:id="viewClassLabel"
-                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                            styleClass="fxml-inline-037"/>
                                 </VBox>
                                 <VBox spacing="4">
                                     <Label text="SUBJECT"
-                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                            styleClass="fxml-inline-036"/>
                                     <Label fx:id="viewSubjectLabel"
-                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                            styleClass="fxml-inline-037"/>
                                 </VBox>
                                 <VBox spacing="4">
                                     <Label text="TOPIC"
-                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                            styleClass="fxml-inline-036"/>
                                     <Label fx:id="viewTopicLabel"
-                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                            styleClass="fxml-inline-037"/>
                                 </VBox>
                                 <VBox spacing="4">
                                     <Label text="DATE"
-                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                            styleClass="fxml-inline-036"/>
                                     <Label fx:id="viewDateLabel"
-                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                            styleClass="fxml-inline-037"/>
                                 </VBox>
                                 <VBox spacing="4">
                                     <Label text="MAX MARKS"
-                                           style="-fx-font-size:11px;-fx-font-weight:700;-fx-text-fill:#94A3B8;"/>
+                                            styleClass="fxml-inline-036"/>
                                     <Label fx:id="viewMaxMarksLabel"
-                                           style="-fx-font-size:14px;-fx-font-weight:600;-fx-text-fill:#0F172A;"/>
+                                            styleClass="fxml-inline-037"/>
                                 </VBox>
                             </FlowPane>
 
                             <Separator/>
 
                             <Label text="This assessment has been published and is now read-only."
-                                   style="-fx-font-size: 13px;
-                                          -fx-text-fill: #047857;
-                                          -fx-font-weight: 600;"/>
+                                    styleClass="fxml-inline-044"/>
 
                             <HBox alignment="CENTER_RIGHT">
                                 <Button text="Close"
                                         onAction="#handleCloseView"
-                                        style="-fx-background-color: #F1F5F9;
-                                               -fx-text-fill: #475569;
-                                               -fx-font-size: 14px;
-                                               -fx-font-weight: 600;
-                                               -fx-background-radius: 8px;
-                                               -fx-padding: 10 22;
-                                               -fx-cursor: hand;"/>
+                                         styleClass="fxml-inline-040"/>
                             </HBox>
                         </VBox>
 
                         <!-- Student marks table (read-only) -->
                         <VBox spacing="0">
                             <Label text="Published Marks (Read-Only)"
-                                   style="-fx-font-size: 16px;
-                                          -fx-font-weight: 700;
-                                          -fx-text-fill: #0F172A;">
+                                    styleClass="fxml-inline-042">
                                 <VBox.margin>
                                     <Insets bottom="10"/>
                                 </VBox.margin>

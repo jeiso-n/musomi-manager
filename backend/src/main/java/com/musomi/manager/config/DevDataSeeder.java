@@ -31,8 +31,15 @@ public class DevDataSeeder implements CommandLineRunner {
     public void run(String... args) {
         School school = schoolRepository.findById(1L).orElseGet(this::seedSchool);
 
-        if (userRepository.findBySchoolIdAndUsername(school.getId(), "admin").isPresent()) {
-            log.info("Dev admin already exists, skipping seed");
+        User existingAdmin = userRepository.findBySchoolIdAndUsername(school.getId(), "admin")
+                .orElse(null);
+        if (existingAdmin != null) {
+            existingAdmin.setPasswordHash(passwordEncoder.encode("password123"));
+            existingAdmin.setIsActive(true);
+            existingAdmin.setFailedLoginAttempts(0);
+            existingAdmin.setLockedUntil(null);
+            userRepository.save(existingAdmin);
+            log.info("Reset dev admin password and lockout state");
             return;
         }
 

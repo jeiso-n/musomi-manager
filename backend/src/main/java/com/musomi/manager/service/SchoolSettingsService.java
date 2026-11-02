@@ -65,9 +65,7 @@ public class SchoolSettingsService {
     public SchoolSettingsResponse updateSettings(Long schoolId, UpdateSchoolSettingsRequest request) {
         Long resolvedSchoolId = SchoolScope.require(schoolId);
         School school = findSchool(resolvedSchoolId);
-        if (request.schoolName() != null) {
-            school.setName(request.schoolName());
-        }
+        school.setName(request.schoolName());
         if (request.address() != null) {
             school.setAddress(request.address());
         }

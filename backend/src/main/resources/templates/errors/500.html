@@ -7,15 +7,15 @@
 <body>
 <main>
     <div class="flex flex-col items-center justify-center py-16 text-center">
-        <div class="w-16 h-16 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center text-red-600 mb-4 shadow-sm">
+        <div class="w-16 h-16 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center text-red-600 mb-4 shadow-sm">
             <i data-lucide="alert-triangle" class="w-8 h-8"></i>
         </div>
-        <span class="text-xs font-mono font-bold uppercase tracking-wider text-red-600 mb-1">Error 500</span>
-        <h1 class="text-2xl font-bold text-slate-900 tracking-tight mb-2">Something Went Wrong</h1>
+        <span class="text-xs font-mono font-semibold uppercase tracking-wider text-red-600 mb-1">Error 500</span>
+        <h1 class="text-2xl font-semibold text-slate-900 tracking-tight mb-2">Something Went Wrong</h1>
         <p class="text-sm text-slate-500 max-w-sm mb-6">Our system encountered an unexpected issue while loading your learning records. Please try again in a few moments.</p>
         <div class="flex items-center gap-3">
             <button onclick="window.location.reload()" 
-                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 shadow-2xs transition">
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 shadow-sm transition">
                 <i data-lucide="refresh-cw" class="w-4 h-4"></i> Reload Page
             </button>
             <a th:href="@{/student/dashboard}" 

@@ -10,7 +10,7 @@
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="com.musomi.desktop.controller.teacher.MyClassesController"
-            style="-fx-background-color: #f7f8fc;">
+             styleClass="fxml-inline-023">
 
     <!-- ===================================================== -->
     <!-- PAGE HEADER                                           -->
@@ -25,13 +25,10 @@
             </padding>
 
             <Label text="My Classes"
-                   style="-fx-font-size: 26px;
-                          -fx-font-weight: bold;
-                          -fx-text-fill: #1e293b;"/>
+                    styleClass="fxml-inline-024"/>
 
             <Label text="View and manage the classes assigned to you."
-                   style="-fx-font-size: 14px;
-                          -fx-text-fill: #64748b;"/>
+                    styleClass="fxml-inline-025"/>
 
         </VBox>
 
@@ -47,16 +44,14 @@
         <ScrollPane fitToWidth="true"
                     hbarPolicy="NEVER"
                     vbarPolicy="AS_NEEDED"
-                    style="-fx-background-color: transparent;
-                           -fx-background: transparent;
-                           -fx-border-color: transparent;">
+                     styleClass="fxml-inline-056">
 
             <content>
 
                 <FlowPane fx:id="cardsPane"
                           hgap="20.0"
                           vgap="20.0"
-                          style="-fx-background-color: transparent;">
+                           styleClass="fxml-inline-057">
 
                     <padding>
                         <Insets top="4.0" right="30.0" bottom="30.0" left="30.0"/>

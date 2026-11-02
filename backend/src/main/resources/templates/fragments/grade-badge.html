@@ -3,7 +3,7 @@
 <body>
 <!-- Grade Badge Component conforming to DESIGN_SYSTEM.md §3 -->
 <span th:fragment="badge(grade)" 
-      class="inline-flex items-center justify-center font-mono font-semibold px-2 py-0.5 rounded-full text-xs uppercase tracking-wide border shadow-2xs"
+      class="inline-flex items-center justify-center font-mono font-semibold px-2 py-0.5 rounded-full text-xs uppercase tracking-wide border shadow-sm"
       th:classappend="${
           grade == 'A' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
           grade == 'B' ? 'bg-blue-50 text-blue-700 border-blue-200' :

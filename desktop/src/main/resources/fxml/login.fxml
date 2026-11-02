@@ -35,8 +35,8 @@
         <HBox alignment="CENTER_LEFT" spacing="12">
             <padding><Insets top="40" left="40" right="40" bottom="0"/></padding>
             <Label text="M"
-                   styleClass="logo-placeholder text-white"
-                   style="-fx-font-size: 20px; -fx-font-weight: bold;"
+                   styleClass="logo-placeholder text-white fxml-inline-001"
+
                    alignment="CENTER"/>
             <Label text="Musomi Manager" styleClass="logo-text"/>
             <Label fx:id="schoolNameLabel" styleClass="body-small text-white-subtle"/>
@@ -91,15 +91,13 @@
                     <Label text="Username or Email" styleClass="form-label"/>
                     <StackPane alignment="CENTER_LEFT">
                         <TextField fx:id="usernameField"
-                                   styleClass="input"
+                                   styleClass="input fxml-inline-002"
                                    promptText="Enter your username or email"
                                    onAction="#handleLogin"
-                                   style="-fx-padding: 0 12 0 36;"/>
+                                   />
                         <Label text="👤"
                                mouseTransparent="true"
-                               style="-fx-font-size: 14px;
-                                      -fx-text-fill: #94a3b8;
-                                      -fx-padding: 0 0 0 12;"/>
+                                styleClass="fxml-inline-003"/>
                     </StackPane>
                 </VBox>
 
@@ -108,26 +106,22 @@
                     <Label text="Password" styleClass="form-label"/>
                     <StackPane alignment="CENTER_LEFT">
                         <PasswordField fx:id="passwordField"
-                                       styleClass="input"
+                                       styleClass="input fxml-inline-004"
                                        promptText="Enter your password"
                                        onAction="#handleLogin"
-                                       style="-fx-padding: 0 40 0 12;"/>
+                                       />
                         <TextField fx:id="visiblePasswordField"
-                                   styleClass="input"
+                                   styleClass="input fxml-inline-004"
                                    promptText="Enter your password"
                                    onAction="#handleLogin"
                                    visible="false"
                                    managed="false"
-                                   style="-fx-padding: 0 40 0 12;"/>
+                                   />
                         <Button fx:id="togglePasswordButton"
                                 text="👁"
                                 onAction="#togglePasswordVisibility"
                                 StackPane.alignment="CENTER_RIGHT"
-                                style="-fx-background-color: transparent;
-                                       -fx-cursor: hand;
-                                       -fx-font-size: 14px;
-                                       -fx-text-fill: #64748b;
-                                       -fx-padding: 4 10 4 10;"/>
+                                 styleClass="fxml-inline-005"/>
                     </StackPane>
                 </VBox>
 

@@ -5,7 +5,7 @@
     <div class="max-w-md mx-auto h-full grid grid-cols-4 items-center px-1">
         <!-- Home -->
         <a th:href="@{/student/dashboard}" 
-           class="flex flex-col items-center justify-center w-full h-full gap-1 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-600"
+           class="flex flex-col items-center justify-center w-full h-full gap-1 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
            th:classappend="${currentPage == 'dashboard' ? 'text-indigo-600 font-semibold' : 'text-slate-500 hover:text-slate-900'}">
             <i data-lucide="home" class="w-5 h-5" th:classappend="${currentPage == 'dashboard' ? 'stroke-[2.5]' : 'stroke-2'}"></i>
             <span class="text-[11px] leading-none">Home</span>
@@ -13,7 +13,7 @@
         
         <!-- Marks -->
         <a th:href="@{/student/marks}" 
-           class="flex flex-col items-center justify-center w-full h-full gap-1 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-600"
+           class="flex flex-col items-center justify-center w-full h-full gap-1 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
            th:classappend="${currentPage == 'marks' ? 'text-indigo-600 font-semibold' : 'text-slate-500 hover:text-slate-900'}">
             <i data-lucide="clipboard-list" class="w-5 h-5" th:classappend="${currentPage == 'marks' ? 'stroke-[2.5]' : 'stroke-2'}"></i>
             <span class="text-[11px] leading-none">Marks</span>
@@ -21,7 +21,7 @@
 
         <!-- Results / Reports -->
         <a th:href="@{/student/results}" 
-           class="flex flex-col items-center justify-center w-full h-full gap-1 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-600"
+           class="flex flex-col items-center justify-center w-full h-full gap-1 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
            th:classappend="${currentPage == 'results' || currentPage == 'reports' ? 'text-indigo-600 font-semibold' : 'text-slate-500 hover:text-slate-900'}">
             <i data-lucide="bar-chart-2" class="w-5 h-5" th:classappend="${currentPage == 'results' || currentPage == 'reports' ? 'stroke-[2.5]' : 'stroke-2'}"></i>
             <span class="text-[11px] leading-none">Results</span>
@@ -29,7 +29,7 @@
         
         <!-- Profile / Me -->
         <a th:href="@{/student/profile}" 
-           class="flex flex-col items-center justify-center w-full h-full gap-1 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-600"
+           class="flex flex-col items-center justify-center w-full h-full gap-1 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
            th:classappend="${currentPage == 'profile' ? 'text-indigo-600 font-semibold' : 'text-slate-500 hover:text-slate-900'}">
             <i data-lucide="user" class="w-5 h-5" th:classappend="${currentPage == 'profile' ? 'stroke-[2.5]' : 'stroke-2'}"></i>
             <span class="text-[11px] leading-none">Me</span>

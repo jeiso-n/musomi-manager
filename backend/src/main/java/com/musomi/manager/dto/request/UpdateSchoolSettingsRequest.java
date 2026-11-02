@@ -1,8 +1,10 @@
 package com.musomi.manager.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record UpdateSchoolSettingsRequest(
+        @NotBlank
         @jakarta.validation.constraints.Size(max = 200)
         String schoolName,
         @jakarta.validation.constraints.Size(max = 2000)

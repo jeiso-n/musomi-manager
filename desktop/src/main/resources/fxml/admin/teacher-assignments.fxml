@@ -79,7 +79,7 @@
                 <VBox spacing="7">
                     <HBox spacing="4">
                         <Label text="Teacher" styleClass="form-label"/>
-                        <Label text="*" style="-fx-text-fill: #dc2626;"/>
+                        <Label text="*"  styleClass="fxml-inline-016"/>
                     </HBox>
 
                     <ComboBox fx:id="teacherComboBox"
