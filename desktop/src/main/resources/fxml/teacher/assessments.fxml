@@ -174,7 +174,14 @@
                                               maxWidth="Infinity"
                                               styleClass="assessment-form-input"/>
                                 </VBox>
-                        </FlowPane>
+                                <VBox spacing="6" prefWidth="280" styleClass="assessment-form-field">
+                                    <Label text="Term *" styleClass="assessment-field-label"/>
+                                    <ComboBox fx:id="termCombo"
+                                              promptText="Select term"
+                                              maxWidth="Infinity"
+                                              styleClass="assessment-form-input"/>
+                                </VBox>
+                            </FlowPane>
 
                             <VBox spacing="6" styleClass="assessment-form-field">
                                 <Label text="Topic *" styleClass="assessment-field-label"/>
