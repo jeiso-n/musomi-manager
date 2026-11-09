@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.musomi.desktop.controller.AccountSettingsController"
+      spacing="24"
+      styleClass="dashboard-container">
+
+    <padding>
+        <Insets top="30" right="35" bottom="30" left="35"/>
+    </padding>
+
+    <!-- PAGE HEADING -->
+    <VBox spacing="6">
+        <Label text="Account Settings" styleClass="h2"/>
+        <Label text="Manage your password and account security."
+               styleClass="text-muted"/>
+    </VBox>
+
+    <!-- PASSWORD SETTINGS -->
+    <VBox spacing="20" styleClass="card">
+
+        <padding>
+            <Insets top="25" right="25" bottom="25" left="25"/>
+        </padding>
+
+        <VBox spacing="6">
+            <Label text="Password &amp; Security" styleClass="h3"/>
+            <Label text="Change your password to keep your account secure."
+                   styleClass="text-muted"/>
+        </VBox>
+
+        <VBox spacing="8">
+            <Label text="Current Password"/>
+            <PasswordField fx:id="currentPasswordField"
+                           promptText="Enter your current password"
+                           maxWidth="420"/>
+        </VBox>
+
+        <VBox spacing="8">
+            <Label text="New Password"/>
+            <PasswordField fx:id="newPasswordField"
+                           promptText="Enter your new password"
+                           maxWidth="420"/>
+            <Label text="Your new password must contain at least 8 characters."
+                   styleClass="text-muted"/>
+        </VBox>
+
+        <VBox spacing="8">
+            <Label text="Confirm New Password"/>
+            <PasswordField fx:id="confirmPasswordField"
+                           promptText="Re-enter your new password"
+                           maxWidth="420"/>
+        </VBox>
+
+        <Label fx:id="feedbackLabel"
+               text=""
+               wrapText="true"
+               maxWidth="500"/>
+
+        <Button fx:id="changePasswordButton"
+                text="Change Password"
+                onAction="#handleChangePassword"
+                styleClass="button-primary"
+                prefWidth="180"
+                prefHeight="40"/>
+
+    </VBox>
+
+</VBox>
