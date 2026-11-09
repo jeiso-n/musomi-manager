@@ -41,7 +41,11 @@ public class PdfService {
     private static final Color SLATE_500 = new Color(0x64, 0x74, 0x8B);
 
     /** PDF subject summary data. */
-    public record SubjectAverage(String subjectName, BigDecimal average, String grade, int assessmentCount) {
+    public record SubjectAverage(String subjectName, BigDecimal average, String grade,
+                                 int assessmentCount, int expectedAssessmentCount) {
+        public SubjectAverage(String subjectName, BigDecimal average, String grade, int assessmentCount) {
+            this(subjectName, average, grade, assessmentCount, assessmentCount);
+        }
     }
 
     /** Generates a one-page A4 report card PDF for a student and term. */
@@ -98,9 +102,14 @@ public class PdfService {
         document.add(new Paragraph(" "));
         addSubjectTable(document, subjects);
 
+        String reportStatus = subjects == null || subjects.isEmpty()
+                ? "NO PUBLISHED RESULTS"
+                : position > 0 ? "COMPLETE" : "PARTIAL - MARKS INCOMPLETE";
+        String positionText = position > 0 ? position + "/" + classSize : "Not ranked";
+        document.add(new Paragraph("Report Status: " + reportStatus, bodyFont));
         document.add(new Paragraph("Overall Average: " + format(overallAverage)
                 + "   Overall Grade: " + value(overallGrade, "N/A")
-                + "   Position: " + position + "/" + classSize, bodyFont));
+                + "   Position: " + positionText, bodyFont));
         addComments(document, comments);
         if (settings != null && hasText(settings.getReportFooter())) {
             document.add(new Paragraph(settings.getReportFooter(), mutedFont));
@@ -109,13 +118,14 @@ public class PdfService {
     }
 
     private void addSubjectTable(Document document, List<SubjectAverage> subjects) throws DocumentException {
-        PdfPTable table = new PdfPTable(4);
+        PdfPTable table = new PdfPTable(5);
         table.setWidthPercentage(100);
-        table.setWidths(new float[] {4, 2, 1, 2});
+        table.setWidths(new float[] {4, 2, 1, 1, 1});
         addHeaderCell(table, "Subject");
         addHeaderCell(table, "Average");
         addHeaderCell(table, "Grade");
-        addHeaderCell(table, "#Assessments");
+        addHeaderCell(table, "Recorded");
+        addHeaderCell(table, "Expected");
         boolean alternate = false;
         if (subjects != null) {
             for (SubjectAverage subject : subjects) {
@@ -128,6 +138,7 @@ public class PdfService {
                 addCell(table, format(subject.average()), rowColor, Element.ALIGN_RIGHT);
                 addGradeCell(table, value(subject.grade(), "N/A"));
                 addCell(table, Integer.toString(subject.assessmentCount()), rowColor, Element.ALIGN_RIGHT);
+                addCell(table, Integer.toString(subject.expectedAssessmentCount()), rowColor, Element.ALIGN_RIGHT);
                 alternate = !alternate;
             }
         }

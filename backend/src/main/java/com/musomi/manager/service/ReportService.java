@@ -9,15 +9,17 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+
+import com.musomi.manager.dto.response.ClassPerformanceSummaryResponse;
 
 import com.musomi.manager.dto.response.ReportResponse;
 import com.musomi.manager.entity.Assessment;
 import com.musomi.manager.entity.Comment;
 import com.musomi.manager.entity.GeneratedReport;
+import com.musomi.manager.entity.GeneratedReportSubject;
 import com.musomi.manager.entity.ReportRequest;
 import com.musomi.manager.entity.School;
 import com.musomi.manager.entity.SchoolSettings;
@@ -27,6 +29,7 @@ import com.musomi.manager.entity.Term;
 import com.musomi.manager.entity.User;
 import com.musomi.manager.exception.AuthenticationException;
 import com.musomi.manager.exception.ErrorCode;
+import com.musomi.manager.exception.PermissionDeniedException;
 import com.musomi.manager.exception.ResourceNotFoundException;
 import com.musomi.manager.exception.ValidationException;
 import com.musomi.manager.repository.AssessmentRepository;
@@ -39,6 +42,7 @@ import com.musomi.manager.repository.ScoreRepository;
 import com.musomi.manager.repository.StudentRepository;
 import com.musomi.manager.repository.TermRepository;
 import com.musomi.manager.repository.ClassRepository;
+import com.musomi.manager.repository.TeacherAssignmentRepository;
 import com.musomi.manager.util.SchoolScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,6 +60,7 @@ public class ReportService {
     private final StudentRepository studentRepository;
     private final TermRepository termRepository;
     private final ClassRepository classRepository;
+    private final TeacherAssignmentRepository teacherAssignmentRepository;
     private final AssessmentRepository assessmentRepository;
     private final ScoreRepository scoreRepository;
     private final CommentRepository commentRepository;
@@ -66,7 +71,7 @@ public class ReportService {
     /** Generates PDF report cards for active students in a class and stream. */
     @Transactional
     public List<ReportResponse> generateForClassStreamTerm(Long schoolId, Long classId, Long streamId, Long termId,
-                                                           Long generatedBy) {
+                                                           Long generatedBy, String requesterRole) {
         Long resolvedSchoolId = SchoolScope.require(schoolId);
         if (generatedBy == null || generatedBy <= 0) {
             throw new AuthenticationException(ErrorCode.SESSION_EXPIRED);
@@ -80,6 +85,11 @@ public class ReportService {
                 .filter(clazz -> clazz.getSchool() != null
                         && resolvedSchoolId.equals(clazz.getSchool().getId()))
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
+        if ("TEACHER".equalsIgnoreCase(requesterRole)
+                && !isTeacherAssignedToClassStream(resolvedSchoolId, generatedBy, classId, streamId, term)) {
+            throw new PermissionDeniedException(ErrorCode.NOT_YOUR_SUBJECT,
+                    "You are not assigned to the selected class and stream for this academic year.");
+        }
         School school = schoolRepository.findById(resolvedSchoolId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
         SchoolSettings settings = schoolSettingsRepository.findBySchoolId(resolvedSchoolId).orElse(null);
@@ -91,48 +101,180 @@ public class ReportService {
         }
 
         Map<Long, List<Score>> scoresByStudent = new HashMap<>();
-        Set<Long> subjectIds = new HashSet<>();
         for (Student student : students) {
-            List<Score> scores = scoreRepository.findByStudentId(student.getId());
-            scoresByStudent.put(student.getId(), scores);
-            for (Score score : scores) {
-                Assessment assessment = score.getAssessment();
-                if (isEligibleAssessment(assessment, resolvedSchoolId, classId, streamId, termId)
-                        && assessment.getSubject() != null && assessment.getSubject().getId() != null) {
-                    subjectIds.add(assessment.getSubject().getId());
-                }
-            }
+            scoresByStudent.put(student.getId(), scoreRepository.findByStudentId(student.getId()));
         }
+
+        // Discover expected assessments independently of score rows. A missing score must not
+        // cause a published subject or assessment to disappear from the report.
         List<Assessment> publishedAssessments = findPublishedAssessments(
-                subjectIds, resolvedSchoolId, classId, streamId, termId);
-        if (publishedAssessments.isEmpty()) {
-            throw new ValidationException(ErrorCode.NO_MARKS_PUBLISHED);
-        }
+                resolvedSchoolId, classId, streamId, termId);
         List<StudentReport> reports = students.stream()
-                .map(student -> calculateStudentReport(student, publishedAssessments,
-                        scoresByStudent.getOrDefault(student.getId(), List.of())))
+                .map(student -> {
+                    List<Assessment> studentAssessments = publishedAssessments.stream()
+                            .filter(assessment -> assessment.getStream() == null
+                                    || student.getCurrentStream() != null
+                                    && assessment.getStream().getId().equals(student.getCurrentStream().getId()))
+                            .toList();
+                    return calculateStudentReport(student, studentAssessments,
+                            scoresByStudent.getOrDefault(student.getId(), List.of()));
+                })
                 .toList();
         Map<Long, Integer> positions = calculatePositions(reports);
+        int rankedStudentCount = (int) reports.stream().filter(StudentReport::complete).count();
         List<ReportResponse> responses = new ArrayList<>();
         for (StudentReport report : reports) {
             responses.add(generateStudentReport(
                     report, term, school, settings, resolvedSchoolId, termId, generatedBy,
-                    positions.get(report.student().getId()), students.size()));
+                    positions.get(report.student().getId()), rankedStudentCount));
         }
         return List.copyOf(responses);
     }
 
     /** Lists generated reports for a student. */
     @Transactional(readOnly = true)
-    public List<ReportResponse> listByStudent(Long schoolId, Long studentId) {
+    public List<ReportResponse> listByStudent(Long schoolId, Long studentId, Long termId) {
         Long resolvedSchoolId = SchoolScope.require(schoolId);
         studentRepository.findByIdAndSchoolId(studentId, resolvedSchoolId)
                 .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND));
-        return generatedReportRepository.findBySchoolIdAndStudentIdOrderByGeneratedAtDesc(
+        List<GeneratedReport> reports = termId == null
+                ? generatedReportRepository.findBySchoolIdAndStudentIdOrderByGeneratedAtDesc(
                         resolvedSchoolId, studentId)
-                .stream()
-                .map(this::toResponse)
+                : generatedReportRepository.findBySchoolIdAndStudentIdAndTermIdOrderByGeneratedAtDesc(
+                        resolvedSchoolId, studentId, termId);
+        return reports.stream().map(this::toResponse).toList();
+    }
+
+    /** Returns the saved class performance snapshot for a class, stream and term. */
+    @Transactional(readOnly = true)
+    public ClassPerformanceSummaryResponse getClassPerformanceSummary(Long schoolId, Long classId,
+                                                                       Long streamId, Long termId,
+                                                                       Long requesterId, String requesterRole) {
+        Long resolvedSchoolId = SchoolScope.require(schoolId);
+        Term term = termRepository.findById(termId)
+                .filter(value -> value.getSchool() != null
+                        && resolvedSchoolId.equals(value.getSchool().getId()))
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
+        var classEntity = classRepository.findById(classId)
+                .filter(value -> value.getSchool() != null
+                        && resolvedSchoolId.equals(value.getSchool().getId()))
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.VALIDATION_FAILED));
+        if ("TEACHER".equalsIgnoreCase(requesterRole)
+                && !isTeacherAssignedToClassStream(resolvedSchoolId, requesterId, classId, streamId, term)) {
+            throw new PermissionDeniedException(ErrorCode.NOT_YOUR_SUBJECT,
+                    "You are not assigned to the selected class and stream for this academic year.");
+        }
+
+        Map<Long, GeneratedReport> latestByStudent = new LinkedHashMap<>();
+        for (GeneratedReport report : generatedReportRepository
+                .findBySchoolIdAndClassIdAndTermIdOrderByGeneratedAtDesc(
+                        resolvedSchoolId, classId, termId)) {
+            if (streamId != null && !streamId.equals(report.getStreamId())) {
+                continue;
+            }
+            if (report.getStudent() != null) {
+                latestByStudent.putIfAbsent(report.getStudent().getId(), report);
+            }
+        }
+        List<GeneratedReport> reports = List.copyOf(latestByStudent.values());
+        List<GeneratedReport> completeReports = reports.stream()
+                .filter(report -> "COMPLETE".equalsIgnoreCase(report.getReportStatus()))
                 .toList();
+
+        BigDecimal classAverage = average(completeReports.stream()
+                .map(GeneratedReport::getOverallAverage).filter(value -> value != null).toList());
+        Map<String, Integer> gradeDistribution = new LinkedHashMap<>();
+        for (String grade : List.of("A", "B", "C", "D", "E", "F")) {
+            gradeDistribution.put(grade, 0);
+        }
+        completeReports.stream().map(GeneratedReport::getOverallGrade)
+                .filter(grade -> grade != null && gradeDistribution.containsKey(grade))
+                .forEach(grade -> gradeDistribution.computeIfPresent(grade, (key, count) -> count + 1));
+
+        Map<String, SubjectSnapshotAccumulator> subjectTotals = new LinkedHashMap<>();
+        for (GeneratedReport report : reports) {
+            for (GeneratedReportSubject subject : report.getSubjectResults()) {
+                subjectTotals.computeIfAbsent(subject.getSubjectName(),
+                        ignored -> new SubjectSnapshotAccumulator()).add(subject);
+            }
+        }
+        List<ClassPerformanceSummaryResponse.SubjectPerformance> subjectPerformance = subjectTotals.entrySet()
+                .stream()
+                .sorted(Map.Entry.comparingByKey(String.CASE_INSENSITIVE_ORDER))
+                .map(entry -> entry.getValue().toResponse(entry.getKey()))
+                .toList();
+
+        List<ClassPerformanceSummaryResponse.StudentPerformance> studentPerformance = reports.stream()
+                .map(report -> new ClassPerformanceSummaryResponse.StudentPerformance(
+                        report.getStudent().getId(),
+                        report.getStudent().getFullName(),
+                        report.getStudent().getAdmissionNumber(),
+                        report.getReportStatus() == null ? "LEGACY" : report.getReportStatus(),
+                        report.getOverallAverage(),
+                        report.getOverallGrade(),
+                        report.getClassPosition(),
+                        report.getRankingCohortSize(),
+                        report.getExpectedAssessmentCount(),
+                        report.getRecordedAssessmentCount()))
+                .sorted(Comparator.comparing(
+                        ClassPerformanceSummaryResponse.StudentPerformance::overallAverage,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+
+        String className = reports.stream().map(GeneratedReport::getClassName)
+                .filter(value -> value != null && !value.isBlank()).findFirst().orElse(classEntity.getName());
+        String streamName = streamId == null ? "All streams" : reports.stream()
+                .map(GeneratedReport::getStreamName)
+                .filter(value -> value != null && !value.isBlank())
+                .findFirst().orElse(null);
+        int completeCount = (int) reports.stream()
+                .filter(report -> "COMPLETE".equalsIgnoreCase(report.getReportStatus())).count();
+        int noResultsCount = (int) reports.stream()
+                .filter(report -> "NO_RESULTS".equalsIgnoreCase(report.getReportStatus())).count();
+        return new ClassPerformanceSummaryResponse(
+                classId, className, streamId, streamName,
+                termId, term.getName(),
+                term.getAcademicYear() == null ? null : term.getAcademicYear().getYear(),
+                reports.size(), completeCount, reports.size() - completeCount - noResultsCount,
+                noResultsCount, classAverage, gradeDistribution, subjectPerformance, studentPerformance);
+    }
+
+    private BigDecimal average(List<BigDecimal> values) {
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+        return values.stream().reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(values.size()), 1, RoundingMode.HALF_UP);
+    }
+
+    private static final class SubjectSnapshotAccumulator {
+        private BigDecimal total = BigDecimal.ZERO;
+        private int studentsWithMarks;
+        private int studentsMissingMarks;
+        private int expectedCount;
+        private int recordedCount;
+
+        private void add(GeneratedReportSubject subject) {
+            int expected = subject.getExpectedAssessmentCount() == null ? 0 : subject.getExpectedAssessmentCount();
+            int recorded = subject.getRecordedAssessmentCount() == null ? 0 : subject.getRecordedAssessmentCount();
+            expectedCount += expected;
+            recordedCount += recorded;
+            if (recorded < expected) {
+                studentsMissingMarks++;
+            }
+            if (subject.getAverage() != null) {
+                total = total.add(subject.getAverage());
+                studentsWithMarks++;
+            }
+        }
+
+        private ClassPerformanceSummaryResponse.SubjectPerformance toResponse(String subjectName) {
+            BigDecimal subjectAverage = studentsWithMarks == 0 ? null
+                    : total.divide(BigDecimal.valueOf(studentsWithMarks), 1, RoundingMode.HALF_UP);
+            return new ClassPerformanceSummaryResponse.SubjectPerformance(
+                    subjectName, subjectAverage, studentsWithMarks, studentsMissingMarks,
+                    expectedCount, recordedCount);
+        }
     }
 
     /** Returns a generated report by id. */
@@ -242,7 +384,16 @@ public class ReportService {
                 term != null && term.getAcademicYear() != null ? term.getAcademicYear().getYear() : null,
                 report.getFileSizeBytes(),
                 report.getGeneratedAt(),
-                "/reports/download/" + report.getId()
+                "/reports/download/" + report.getId(),
+                report.getClassId(),
+                report.getStreamId(),
+                report.getReportStatus(),
+                report.getExpectedAssessmentCount(),
+                report.getRecordedAssessmentCount(),
+                report.getOverallAverage(),
+                report.getOverallGrade(),
+                report.getClassPosition(),
+                report.getRankingCohortSize()
         );
     }
 
@@ -255,19 +406,32 @@ public class ReportService {
                 || student.getCurrentStream() != null && streamId.equals(student.getCurrentStream().getId());
     }
 
-    private List<Assessment> findPublishedAssessments(Set<Long> subjectIds, Long schoolId, Long classId,
-                                                      Long streamId, Long termId) {
-        Map<Long, Assessment> assessments = new HashMap<>();
-        for (Long subjectId : subjectIds) {
-            for (Assessment assessment : assessmentRepository.findByClassEntityIdAndSubjectIdAndTermId(
-                    classId, subjectId, termId)) {
-                if (isEligibleAssessment(assessment, schoolId, classId, streamId, termId)
-                        && assessment.getId() != null) {
-                    assessments.put(assessment.getId(), assessment);
-                }
-            }
+    private boolean isTeacherAssignedToClassStream(Long schoolId, Long teacherId, Long classId,
+                                                   Long streamId, Term term) {
+        if (term.getAcademicYear() == null || term.getAcademicYear().getId() == null) {
+            return false;
         }
-        return List.copyOf(assessments.values());
+        return teacherAssignmentRepository.findBySchoolIdAndTeacherIdOrderByIdAsc(schoolId, teacherId).stream()
+                .filter(assignment -> assignment.getClassEntity() != null
+                        && classId.equals(assignment.getClassEntity().getId()))
+                .filter(assignment -> assignment.getAcademicYear() != null
+                        && term.getAcademicYear().getId().equals(assignment.getAcademicYear().getId()))
+                .anyMatch(assignment -> {
+                    Long assignedStreamId = assignment.getStream() == null
+                            ? null : assignment.getStream().getId();
+                    return streamId == null
+                            ? assignedStreamId == null
+                            : assignedStreamId == null || streamId.equals(assignedStreamId);
+                });
+    }
+
+    private List<Assessment> findPublishedAssessments(Long schoolId, Long classId,
+                                                      Long streamId, Long termId) {
+        return assessmentRepository.findByClassEntityIdAndTermId(classId, termId).stream()
+                .filter(assessment -> isEligibleAssessment(assessment, schoolId, classId, streamId, termId))
+                .filter(assessment -> assessment.getId() != null)
+                .sorted(Comparator.comparing(Assessment::getId))
+                .toList();
     }
 
     private StudentReport calculateStudentReport(Student student, List<Assessment> assessments, List<Score> scores) {
@@ -277,24 +441,25 @@ public class ReportService {
                 scoresByAssessment.put(score.getAssessment().getId(), score);
             }
         }
+
         Map<Long, SubjectTotals> totalsBySubject = new HashMap<>();
         for (Assessment assessment : assessments) {
-            Score score = scoresByAssessment.get(assessment.getId());
-            if (score == null
-                    || score.getScore() == null || assessment.getMaxScore() == null
-                    || assessment.getMaxScore().compareTo(BigDecimal.ZERO) <= 0
-                    || assessment.getSubject() == null) {
+            if (assessment.getSubject() == null || assessment.getSubject().getId() == null) {
                 continue;
             }
-            BigDecimal percentage = score.getScore().multiply(BigDecimal.valueOf(100))
-                    .divide(assessment.getMaxScore(), 4, RoundingMode.HALF_UP);
             Long subjectId = assessment.getSubject().getId();
             SubjectTotals totals = totalsBySubject.computeIfAbsent(subjectId,
                     ignored -> new SubjectTotals(assessment.getSubject().getName()));
+            totals.expectAssessment();
+            Score score = scoresByAssessment.get(assessment.getId());
+            if (score == null || score.getScore() == null || assessment.getMaxScore() == null
+                    || assessment.getMaxScore().compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+            // A recorded zero is a real mark. Only an absent/null score is missing.
+            BigDecimal percentage = score.getScore().multiply(BigDecimal.valueOf(100))
+                    .divide(assessment.getMaxScore(), 4, RoundingMode.HALF_UP);
             totals.add(percentage);
-        }
-        if (totalsBySubject.isEmpty()) {
-            throw new ValidationException(ErrorCode.NO_MARKS_PUBLISHED);
         }
 
         List<PdfService.SubjectAverage> subjects = totalsBySubject.values().stream()
@@ -302,13 +467,21 @@ public class ReportService {
                 .sorted(Comparator.comparing(PdfService.SubjectAverage::subjectName,
                         Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                 .toList();
-        BigDecimal overallAverage = subjects.stream()
+        List<BigDecimal> availableSubjectAverages = subjects.stream()
                 .map(PdfService.SubjectAverage::average)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .divide(BigDecimal.valueOf(subjects.size()), 1, RoundingMode.HALF_UP);
+                .filter(average -> average != null)
+                .toList();
+        BigDecimal overallAverage = availableSubjectAverages.isEmpty() ? null
+                : availableSubjectAverages.stream()
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .divide(BigDecimal.valueOf(availableSubjectAverages.size()), 1, RoundingMode.HALF_UP);
         String overallGrade = com.musomi.manager.util.GradeCalculator.calculate(
                 overallAverage, BigDecimal.valueOf(100));
-        return new StudentReport(student, subjects, overallAverage, overallGrade);
+        int recordedAssessmentCount = totalsBySubject.values().stream().mapToInt(SubjectTotals::getCount).sum();
+        int expectedAssessmentCount = assessments.size();
+        boolean complete = expectedAssessmentCount > 0 && recordedAssessmentCount == expectedAssessmentCount;
+        return new StudentReport(student, subjects, overallAverage, overallGrade, complete,
+                expectedAssessmentCount, recordedAssessmentCount);
     }
 
     private boolean isEligibleAssessment(Assessment assessment, Long schoolId, Long classId, Long streamId,
@@ -319,11 +492,13 @@ public class ReportService {
                 && assessment.getClassEntity() != null && classId.equals(assessment.getClassEntity().getId())
                 && assessment.getTerm() != null && termId.equals(assessment.getTerm().getId())
                 && (assessment.getStream() == null
-                        || streamId != null && streamId.equals(assessment.getStream().getId()));
+                        || streamId == null || streamId.equals(assessment.getStream().getId()));
     }
 
     private Map<Long, Integer> calculatePositions(List<StudentReport> reports) {
         List<StudentReport> ranked = reports.stream()
+                .filter(StudentReport::complete)
+                .filter(report -> report.overallAverage() != null)
                 .sorted(Comparator.comparing(StudentReport::overallAverage).reversed())
                 .toList();
         Map<Long, Integer> positions = new HashMap<>();
@@ -357,6 +532,10 @@ public class ReportService {
         }
         String storedFilePath = filePath.toString().replace('\\', '/');
 
+        int expectedCount = report.expectedAssessmentCount();
+        int recordedCount = report.recordedAssessmentCount();
+        String status = report.subjects().isEmpty() ? "NO_RESULTS"
+                : report.complete() ? "COMPLETE" : "PARTIAL";
         GeneratedReport saved = generatedReportRepository.save(GeneratedReport.builder()
                 .school(School.builder().id(schoolId).build())
                 .student(report.student())
@@ -365,7 +544,35 @@ public class ReportService {
                 .fileSizeBytes((long) pdf.length)
                 .generatedBy(User.builder().id(generatedBy).build())
                 .generatedAt(LocalDateTime.now())
+                .classId(report.student().getCurrentClass() == null
+                        ? null : report.student().getCurrentClass().getId())
+                .streamId(report.student().getCurrentStream() == null
+                        ? null : report.student().getCurrentStream().getId())
+                .className(report.student().getCurrentClass() == null
+                        ? null : report.student().getCurrentClass().getName())
+                .streamName(report.student().getCurrentStream() == null
+                        ? null : report.student().getCurrentStream().getName())
+                .reportStatus(status)
+                .expectedAssessmentCount(expectedCount)
+                .recordedAssessmentCount(recordedCount)
+                .overallAverage(report.overallAverage())
+                .overallGrade(report.overallGrade())
+                .classPosition(position)
+                .rankingCohortSize(position == null ? null : classSize)
                 .build());
+        GeneratedReport parentReport = saved;
+        List<GeneratedReportSubject> subjectSnapshots = report.subjects().stream()
+                .map(subject -> GeneratedReportSubject.builder()
+                        .generatedReport(parentReport)
+                        .subjectName(subject.subjectName())
+                        .average(subject.average())
+                        .grade(subject.grade())
+                        .expectedAssessmentCount(subject.expectedAssessmentCount())
+                        .recordedAssessmentCount(subject.assessmentCount())
+                        .build())
+                .toList();
+        saved.setSubjectResults(subjectSnapshots);
+        saved = generatedReportRepository.save(saved);
         log.info("Generated report {} for student {} in term {}", saved.getId(),
                 report.student().getId(), termId);
         return toResponse(saved);
@@ -382,16 +589,22 @@ public class ReportService {
     }
 
     private record StudentReport(Student student, List<PdfService.SubjectAverage> subjects,
-                                 BigDecimal overallAverage, String overallGrade) {
+                                 BigDecimal overallAverage, String overallGrade, boolean complete,
+                                 int expectedAssessmentCount, int recordedAssessmentCount) {
     }
 
     private static final class SubjectTotals {
         private final String subjectName;
         private BigDecimal total = BigDecimal.ZERO;
         private int count;
+        private int expectedCount;
 
         private SubjectTotals(String subjectName) {
             this.subjectName = subjectName;
+        }
+
+        private void expectAssessment() {
+            expectedCount++;
         }
 
         private void add(BigDecimal score) {
@@ -399,10 +612,16 @@ public class ReportService {
             count++;
         }
 
+        private int getCount() {
+            return count;
+        }
+
         private PdfService.SubjectAverage toAverage() {
-            BigDecimal average = total.divide(BigDecimal.valueOf(count), 1, RoundingMode.HALF_UP);
+            BigDecimal average = count == 0 ? null
+                    : total.divide(BigDecimal.valueOf(count), 1, RoundingMode.HALF_UP);
             return new PdfService.SubjectAverage(subjectName, average,
-                    com.musomi.manager.util.GradeCalculator.calculate(average, BigDecimal.valueOf(100)), count);
+                    com.musomi.manager.util.GradeCalculator.calculate(average, BigDecimal.valueOf(100)),
+                    count, expectedCount);
         }
     }
 }

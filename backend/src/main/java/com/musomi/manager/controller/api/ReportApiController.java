@@ -8,6 +8,7 @@ import java.util.List;
 
 import com.musomi.manager.dto.request.GenerateReportRequest;
 import com.musomi.manager.dto.response.ApiResponse;
+import com.musomi.manager.dto.response.ClassPerformanceSummaryResponse;
 import com.musomi.manager.dto.response.ReportResponse;
 import com.musomi.manager.entity.GeneratedReport;
 import com.musomi.manager.exception.ErrorCode;
@@ -44,7 +45,7 @@ public class ReportApiController {
             @Valid @RequestBody GenerateReportRequest request) {
         return ApiResponse.success(reportService.generateForClassStreamTerm(
                 CurrentUser.getSchoolId(), request.classId(), request.streamId(), request.termId(),
-                CurrentUser.getUserId()));
+                CurrentUser.getUserId(), CurrentUser.getRole()));
     }
 
     /** Lists generated reports for a student. */
@@ -52,7 +53,18 @@ public class ReportApiController {
     public ApiResponse<List<ReportResponse>> listByStudent(
             @PathVariable Long studentId,
             @RequestParam(required = false) Long termId) {
-        return ApiResponse.success(reportService.listByStudent(CurrentUser.getSchoolId(), studentId));
+        return ApiResponse.success(reportService.listByStudent(CurrentUser.getSchoolId(), studentId, termId));
+    }
+
+    /** Returns the saved class performance summary for the selected term. */
+    @GetMapping("/class-summary")
+    public ApiResponse<ClassPerformanceSummaryResponse> getClassPerformanceSummary(
+            @RequestParam Long classId,
+            @RequestParam(required = false) Long streamId,
+            @RequestParam Long termId) {
+        return ApiResponse.success(reportService.getClassPerformanceSummary(
+                CurrentUser.getSchoolId(), classId, streamId, termId,
+                CurrentUser.getUserId(), CurrentUser.getRole()));
     }
 
     /** Downloads a generated PDF report. */
