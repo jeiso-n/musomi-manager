@@ -175,16 +175,18 @@ class TeacherAssignmentServiceTest {
     @Test
     @DisplayName("should delete assignment when it exists")
     void shouldDeleteWhenExists() {
-        when(teacherAssignmentRepository.existsById(8L)).thenReturn(true);
+        TeacherAssignment existing = assignment();
+        when(teacherAssignmentRepository.findById(8L)).thenReturn(Optional.of(existing));
 
-        teacherAssignmentService.deleteAssignment(8L, 1L);
+        teacherAssignmentService.deleteAssignment(8L, SCHOOL_ID);
 
-        verify(teacherAssignmentRepository).deleteById(8L);
+        verify(teacherAssignmentRepository).delete(existing);
     }
 
     private TeacherAssignment assignment() {
         return TeacherAssignment.builder()
                 .id(8L)
+                .school(school())
                 .teacher(teacher())
                 .subject(Subject.builder().id(3L).name("Mathematics").build())
                 .classEntity(ClassEntity.builder().id(4L).name("S3").build())
