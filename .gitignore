@@ -1,3 +1,4 @@
+# Compiled artifacts
 *.class
 *.jar
 *.war
@@ -27,32 +28,24 @@ logs/
 application-local.yml
 application-local.properties
 
-# Local data
+# Local data and generated files
 data/
 uploads/
 reports/
+backend/data/
 *.sql.gz
+backend/classpath.txt
 
 # Build artifacts
 dist/
 build/
 out/
+target/
 
 # jpackage output
 *.msi
 *.dmg
 *.deb
 
-# Node (if ever used)
+# Node
 node_modules/
-EOF
-=======
-
-backend/classpath.txt
->>>>>>> 59ce7fe (feat: User entity, repository, V002 migration, and Flyway starter fix)
-
-# Generated report PDFs
-backend/data/
-
-# IDE config
-.idea/compiler.xml

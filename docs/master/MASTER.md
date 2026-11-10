@@ -9,7 +9,7 @@ It captures every assessment at topic level, tracks student progress across year
 
 **v1 goal:** One school enters marks for one term and generates report cards.
 
-**Current version:** v1 — Core Operations.
+**Current version:** v1 — Core Operations. As of 10 November 2026, the codebase is at V1 release-candidate stage; see `docs/CURRENT_STATUS.md` for the verified status and remaining pilot sign-off gates.
 
 ---
 
@@ -35,11 +35,11 @@ It captures every assessment at topic level, tracks student progress across year
 
 ## 3. Version Status
 
-**We are building v1.** Everything else is planned but not built.
+**V1 is in release-candidate verification.** Later versions remain planned and must not be started until V1 is stable and used by a real school.
 
 | Version | Name | Focus | Status |
 |---|---|---|---|
-| v1 | Core Operations | Marks + topic tagging + reports | Building |
+| v1 | Core Operations | Marks + topic tagging + reports | Release candidate — pilot sign-off pending |
 | v2a | Daily Usability | Offline + notifications + UX | Planned |
 | v2b | Wider Access | Parents + sharing + messaging | Planned |
 | v3 | Insights | Analytics on topic data | Planned |
