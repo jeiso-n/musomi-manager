@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.musomi.desktop.controller.ProfileController"
+      spacing="24"
+      styleClass="dashboard-container">
+
+    <padding>
+        <Insets top="30" right="35" bottom="30" left="35"/>
+    </padding>
+
+    <!-- PAGE HEADING -->
+    <VBox spacing="6">
+        <Label text="My Profile" styleClass="h2"/>
+        <Label text="View your personal and account information."
+               styleClass="text-muted"/>
+    </VBox>
+
+    <!-- PROFILE HEADER -->
+    <HBox alignment="CENTER_LEFT"
+          spacing="18"
+          styleClass="card">
+
+        <padding>
+            <Insets top="25" right="25" bottom="25" left="25"/>
+        </padding>
+
+        <Label fx:id="initialsLabel"
+               text="SA"
+               styleClass="avatar-circle"/>
+
+        <VBox spacing="7">
+            <Label fx:id="fullNameLabel"
+                   text="Loading..."
+                   styleClass="h2"/>
+
+            <Label fx:id="roleLabel"
+                   text="Loading..."
+                   styleClass="text-muted"/>
+        </VBox>
+
+    </HBox>
+
+    <!-- PERSONAL INFORMATION -->
+    <VBox spacing="18" styleClass="card">
+
+        <padding>
+            <Insets top="25" right="25" bottom="25" left="25"/>
+        </padding>
+
+        <Label text="Personal Information"
+               styleClass="h3"/>
+
+        <GridPane hgap="35" vgap="22">
+
+            <Label text="Email Address"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="0"/>
+
+            <Label fx:id="emailLabel"
+                   text="Loading..."
+                   GridPane.columnIndex="1"
+                   GridPane.rowIndex="0"/>
+
+            <Label text="Phone Number"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="1"/>
+
+            <Label fx:id="phoneLabel"
+                   text="Loading..."
+                   GridPane.columnIndex="1"
+                   GridPane.rowIndex="1"/>
+
+        </GridPane>
+
+    </VBox>
+
+    <!-- ACCOUNT INFORMATION -->
+    <VBox spacing="18" styleClass="card">
+
+        <padding>
+            <Insets top="25" right="25" bottom="25" left="25"/>
+        </padding>
+
+        <Label text="Account Information"
+               styleClass="h3"/>
+
+        <GridPane hgap="35" vgap="22">
+
+            <Label text="Username"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="0"/>
+
+            <Label fx:id="usernameLabel"
+                   text="Loading..."
+                   GridPane.columnIndex="1"
+                   GridPane.rowIndex="0"/>
+
+            <Label text="School"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="1"/>
+
+            <Label fx:id="schoolLabel"
+                   text="Loading..."
+                   GridPane.columnIndex="1"
+                   GridPane.rowIndex="1"/>
+
+        </GridPane>
+
+    </VBox>
+
+</VBox>

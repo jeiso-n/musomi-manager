@@ -3,118 +3,117 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.MenuButton?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.musomi.desktop.controller.MainLayoutController"
-             styleClass="fxml-inline-006">
+            styleClass="app-root">
 
-    <!-- ===================================================== -->
-    <!-- TOP BAR                                               -->
-    <!-- ===================================================== -->
-
+    <!-- TOP BAR -->
     <top>
-        <HBox prefHeight="56.0"
+        <HBox prefHeight="64.0"
               alignment="CENTER_LEFT"
-              spacing="16"
-               styleClass="fxml-inline-007">
+              spacing="20"
+              styleClass="top-bar">
 
             <padding>
-                <Insets left="20" right="20"/>
+                <Insets left="24" right="24"/>
             </padding>
 
             <Label text="MUSOMI MANAGER"
-                    styleClass="fxml-inline-008"/>
+                   styleClass="brand-title"/>
 
             <Region HBox.hgrow="ALWAYS"/>
 
-            <Label fx:id="roleLabel" text="Teacher"
-                    styleClass="fxml-inline-009"/>
+            <!-- GLOBAL SEARCH -->
+            <TextField fx:id="globalSearchField"
+                       promptText="Search students, subjects, topics..."
+                       prefWidth="340"
+                       maxWidth="340"
+                       styleClass="global-search"/>
 
-            <Label fx:id="userNameLabel" text="John"
-                    styleClass="fxml-inline-010"/>
+            <Region prefWidth="12"/>
 
+            <!-- CURRENT USER -->
+            <Label fx:id="roleLabel"
+                   text="Admin"
+                   styleClass="topbar-role"/>
+
+            <Label fx:id="userNameLabel"
+                   text="System Administrator"
+                   styleClass="topbar-username"/>
+
+            <Label fx:id="topbarInitialsLabel"
+                   text="SA"
+                   styleClass="avatar-circle"/>
         </HBox>
     </top>
 
-
-    <!-- ===================================================== -->
-    <!-- LEFT SIDEBAR                                          -->
-    <!-- ===================================================== -->
-
+    <!-- SIDEBAR -->
     <left>
-        <VBox prefWidth="240.0"
-              spacing="4"
-               styleClass="fxml-inline-011">
+        <VBox prefWidth="240"
+              spacing="8"
+              styleClass="sidebar">
 
             <padding>
-                <Insets top="20" right="16" bottom="20" left="16"/>
+                <Insets top="24" right="14" bottom="16" left="14"/>
             </padding>
 
+            <!-- BRAND -->
+            <Label text="MUSOMI MANAGER"
+                   styleClass="sidebar-brand"/>
 
-            <!-- ROLE -->
-            <Label fx:id="sectionRoleLabel" text="TEACHER"
-                    styleClass="fxml-inline-012"/>
+            <Label fx:id="sectionRoleLabel"
+                   text="ADMIN"
+                   styleClass="sidebar-title"/>
 
-
-            <!-- ================================================= -->
-            <!-- TEACHER NAVIGATION                                -->
-            <!-- ================================================= -->
-
+            <!-- TEACHER NAVIGATION -->
             <VBox fx:id="teacherNavSection"
                   spacing="4">
 
-                <!-- DASHBOARD -->
                 <Button fx:id="dashboardButton"
                         text="Dashboard"
-                        maxWidth="1.7976931348623157E308"
+                        maxWidth="Infinity"
                         onAction="#showDashboard"
-                         styleClass="fxml-inline-013"/>
+                        styleClass="nav-button"/>
 
-
-                <!-- MARK ENTRY -->
                 <Button fx:id="markEntryButton"
                         text="Mark Entry"
-                        maxWidth="1.7976931348623157E308"
+                        maxWidth="Infinity"
                         onAction="#showMarkEntry"
-                         styleClass="fxml-inline-014"/>
+                        styleClass="nav-button"/>
 
-
-                <!-- MY CLASSES -->
                 <Button fx:id="myClassesButton"
                         text="My Classes"
-                        maxWidth="1.7976931348623157E308"
+                        maxWidth="Infinity"
                         onAction="#showMyClasses"
-                         styleClass="fxml-inline-014"/>
+                        styleClass="nav-button"/>
 
-
-                <!-- ASSESSMENTS -->
                 <Button fx:id="assessmentsButton"
                         text="Assessments"
-                        maxWidth="1.7976931348623157E308"
+                        maxWidth="Infinity"
                         onAction="#showAssessments"
-                         styleClass="fxml-inline-014"/>
+                        styleClass="nav-button"/>
 
-
-                <!-- REPORTS -->
                 <Button fx:id="reportsButton"
                         text="Reports"
-                        maxWidth="1.7976931348623157E308"
+                        maxWidth="Infinity"
                         onAction="#onReportsClicked"
-                         styleClass="fxml-inline-014"/>
+                        styleClass="nav-button"/>
 
-
-                <!-- SETTINGS -->
                 <Button text="Settings"
                         disable="true"
-                        maxWidth="1.7976931348623157E308"
-                         styleClass="fxml-inline-014"/>
-
+                        maxWidth="Infinity"
+                        styleClass="nav-button"/>
             </VBox>
 
 
@@ -122,17 +121,18 @@
             <!-- ADMIN NAVIGATION                                  -->
             <!-- ================================================= -->
 
+
+            <!-- ADMIN NAVIGATION -->
+
             <VBox fx:id="adminNavSection"
                   visible="false"
                   managed="false"
                   spacing="4">
 
-                <Label text="ADMIN"
-                        styleClass="fxml-inline-015"/>
-
                 <Button text="Dashboard"
-                        maxWidth="1.7976931348623157E308"
-                        onAction="#showDashboard"/>
+                        maxWidth="Infinity"
+                        onAction="#showDashboard"
+                        styleClass="nav-button"/>
 
                 <Button fx:id="adminReportsButton"
                         text="Reports"
@@ -141,57 +141,96 @@
                         styleClass="fxml-inline-014"/>
 
                 <Button text="Users"
-                        maxWidth="1.7976931348623157E308"
-                        onAction="#showUsers"/>
+                        maxWidth="Infinity"
+                        onAction="#showUsers"
+                        styleClass="nav-button"/>
 
                 <Button text="Classes"
-                        maxWidth="1.7976931348623157E308"
-                        onAction="#showClasses"/>
+                        maxWidth="Infinity"
+                        onAction="#showClasses"
+                        styleClass="nav-button"/>
 
                 <Button text="Subjects"
-                        maxWidth="1.7976931348623157E308"
-                        onAction="#showSubjects"/>
+                        maxWidth="Infinity"
+                        onAction="#showSubjects"
+                        styleClass="nav-button"/>
 
                 <Button text="Topics"
-                        maxWidth="1.7976931348623157E308"
-                        onAction="#showTopics"/>
+                        maxWidth="Infinity"
+                        onAction="#showTopics"
+                        styleClass="nav-button"/>
 
                 <Button text="Students"
-                        maxWidth="1.7976931348623157E308"
-                        onAction="#showStudents"/>
+                        maxWidth="Infinity"
+                        onAction="#showStudents"
+                        styleClass="nav-button"/>
 
                 <Button text="Teacher Assignments"
-                        maxWidth="1.7976931348623157E308"
-                        onAction="#showTeacherAssignments"/>
+                        maxWidth="Infinity"
+                        onAction="#showTeacherAssignments"
+                        styleClass="nav-button"/>
 
                 <Button text="Settings"
-                        maxWidth="1.7976931348623157E308"
-                        onAction="#showSettings"/>
+                        maxWidth="Infinity"
+                        onAction="#showSettings"
+                        styleClass="nav-button"/>
 
                 <Button text="Audit Log"
-                        maxWidth="1.7976931348623157E308"
-                        onAction="#showAuditLog"/>
-
+                        maxWidth="Infinity"
+                        onAction="#showAuditLog"
+                        styleClass="nav-button"/>
             </VBox>
 
+
             <Region VBox.vgrow="ALWAYS"/>
+
+
+            <!-- PUSH PROFILE TO BOTTOM -->
+            <Region VBox.vgrow="ALWAYS"/>
+
+            <!-- SIDEBAR USER PROFILE -->
+            <MenuButton fx:id="profileMenuButton"
+                        mnemonicParsing="false"
+                        styleClass="sidebar-profile-menu">
+
+                <graphic>
+                    <HBox alignment="CENTER_LEFT" spacing="10">
+                        <Label fx:id="sidebarInitialsLabel"
+                               text="SA"
+                               styleClass="avatar-circle"/>
+
+                        <VBox spacing="2">
+                            <Label fx:id="sidebarUserNameLabel"
+                                   text="System Administrator"
+                                   styleClass="sidebar-user-name"/>
+
+                            <Label fx:id="sidebarUserRoleLabel"
+                                   text="Administrator"
+                                   styleClass="sidebar-user-role"/>
+                        </VBox>
+                    </HBox>
+                </graphic>
+
+                <items>
+                    <MenuItem text="My Profile" onAction="#showMyProfile"/>
+                    <MenuItem text="Account Settings" onAction="#showAccountSettings"/>
+                    <MenuItem text="Logout" onAction="#handleLogout"/>
+                </items>
+            </MenuButton>
+
 
         </VBox>
     </left>
 
-
-    <!-- ===================================================== -->
-    <!-- MAIN CONTENT AREA                                     -->
-    <!-- ===================================================== -->
-
+    <!-- MAIN CONTENT -->
     <center>
         <StackPane fx:id="contentArea"
                    minWidth="0"
                    minHeight="0"
-                    styleClass="fxml-inline-006">
+                   styleClass="content-area">
 
             <padding>
-                <Insets top="24" right="24" bottom="24" left="24"/>
+                <Insets top="28" right="28" bottom="28" left="28"/>
             </padding>
 
         </StackPane>

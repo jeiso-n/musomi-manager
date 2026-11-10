@@ -424,3 +424,15 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 - Clean Java 21 desktop build: `mvnw clean test package`; **60 tests passed, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS.**
 - The updated UI still needs visual confirmation by the user after the desktop application is relaunched.
 - No reports were generated, no database or Docker data was changed, and no commit or push was made.
+
+
+## PRESENTATION INTEGRATION — FEATURE BRANCH MERGED LOCALLY — 2026-11-10
+
+- Created local safety branch `backup/presentation-main-2026-11-10` at pre-merge main commit `04049feb0a1ea7068fed5d972a3b85c1aeec1002`.
+- Fetched current GitHub `main` and `feature/desktop-account-search` from `jeiso-n/musomi-manager`.
+- Merged feature branch commit `529728a` into current main; resolved the two shared-file conflicts in `MainLayoutController.java` and `main-layout.fxml`.
+- Conflict resolution preserves Reports navigation and report-screen layout from main, while retaining profile/account-settings menu, global search, and associated feature implementation.
+- Desktop clean build: **60 tests, 0 failures/errors/skips; JAR packaged successfully**.
+- Backend compile succeeded. Full backend test attempt was blocked for integration tests because Docker Desktop daemon was not running; no Docker volumes or database data were changed.
+- Backend non-integration suite rerun: **150 tests, 0 failures/errors/skips; BUILD SUCCESS**. Integration tests remain unverified on this machine until Docker Desktop is running.
+- Merge is ready for final commit/push and live UI smoke test. Backup branch retained.
