@@ -108,7 +108,7 @@ $env:REPORT_STORAGE_DIR = 'D:\MusomiData\reports'
 $env:SPRING_PROFILES_ACTIVE = 'prod'
 ```
 
-Build the backend JAR with `cd backend; .\mvnw.cmd clean package`, then run it with `java -jar target\manager-0.0.1-SNAPSHOT.jar`. Configure the JavaFX client's API base URL for the deployed server before distributing the desktop application. The client supports the JVM override `-Dmusomi.api.baseUrl=https://YOUR_HOST/api/v1`; its bundled `config.properties` defaults to localhost for development. Put the application behind HTTPS; do not expose PostgreSQL publicly. The current desktop Maven JAR is a build artifact, not a self-contained Windows installer; use the documented Maven launcher for development until a tested pilot distribution package is produced.
+Build the backend JAR with `cd backend; .\mvnw.cmd clean package`, then run it with `java -jar target\manager-0.0.1-SNAPSHOT.jar`. Configure the JavaFX client's API base URL for the deployed server before distributing the desktop application. The client supports the JVM override `-Dmusomi.api.baseUrl=https://YOUR_HOST/api/v1`; its bundled `config.properties` defaults to localhost for development. Put the application behind HTTPS; do not expose PostgreSQL publicly. The desktop Maven JAR is not self-contained. Use the Windows desktop distribution script above to create a portable app-image with a bundled Java runtime, and build it with the pilot API URL before distribution. The app-image is not an MSI installer.
 
 **Do not deploy using the local `docker-compose.yml` password or the default JWT secret.** See [the V1 release and operations checklist](docs/07-operations/V1_RELEASE_CHECKLIST.md) for deployment, backup, restore, and release checks.
 

@@ -129,7 +129,7 @@ Do not mark the pilot acceptance workflow complete based only on unit tests or s
 
 - [x] Backend verification report attached to release notes (180 tests, zero failures/errors/skips; clean verify on 10 November 2026).
 - [x] Desktop verification report attached to release notes (61 tests, zero failures/errors/skips; clean verify on 10 November 2026).
-- [x] CI on the release-candidate commit is green (GitHub Actions run #90 for 7b81dce).
+- [x] CI on the release-candidate commit is green (GitHub Actions run #92 for da9b025).
 - [ ] No known critical/high defects remain open.
 - [x] Production configuration reviewed without exposing secret values; pilot environment values still need to be provisioned.
 - [x] Local PostgreSQL backup and isolated restore drill completed (27 tables, 51 students; production backup scheduling remains outstanding).

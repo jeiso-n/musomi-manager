@@ -570,8 +570,8 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 ## V1 RELEASE CLOSURE REVIEW - 2026-11-10
 
 ### Release assessment
-- The current release candidate is V1.0.0-rc2, tagged and pushed to GitHub.
-- main is clean and synchronized with origin/main as of the release-candidate push; the final status-documentation update is being committed separately.
+- The current release candidate is V1.0.0-rc3, tagged and pushed to GitHub after local verification and GitHub Actions run #92 passed.
+- main is clean and synchronized with origin/main after the portable Windows distribution and release documentation updates.
 - This review supersedes the older student audit counts, test totals, and statements about the student portal being unlinked/demo-only. The live local database currently has 51 active students linked to 51 active STUDENT login accounts.
 - V1 is a release candidate for controlled pilot preparation, not a production deployment or a pilot-school sign-off.
 
@@ -593,7 +593,7 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 - The backup was restored into an isolated temporary database and verified to contain 27 tables, 51 student records, and Flyway schema version V101. The temporary restore database was removed after verification; the original musomi_manager database and Docker volume were preserved.
 - Local backend restarted after the final migration changes. /actuator/health returns UP; /login returns HTTP 200. The student login page was opened in the browser.
 - JavaFX desktop was relaunched with mock mode disabled. The app connects to the local API.
-- GitHub Actions run #90 for commit 7b81dce completed successfully: backend build, desktop build, and JAR artifact upload all passed.
+- GitHub Actions run #92 for commit da9b025 completed successfully: backend build, desktop build, and JAR artifact upload all passed.
 
 ### Local account / credential note
 - Student STU001 is Alice Nakato, active, with an active linked STUDENT login (student ID 1, linked user ID 5).
@@ -605,14 +605,15 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 1. Execute the complete admin -> teacher assignment -> assessment -> mark entry -> publish -> student results -> report download flow through the actual interfaces with authorized accounts.
 2. Verify role-based access boundaries on the pilot environment.
 3. Configure a real school server/database, HTTPS, production environment variables, and persistent report storage. No production host/domain was provided in this task.
-4. Produce and test a self-contained Windows desktop installer/distribution package; the current desktop Maven JAR is not an installer.
+4. A portable Windows app-image ZIP with a bundled Java runtime is built and tested. Rebuild it with the pilot API URL before distribution; an MSI installer is optional if the pilot requires managed installation.
 5. Configure scheduled production backups and complete a restore drill on the pilot server.
 6. Obtain pilot-school user acceptance. Class-summary PDF export and a desktop stream filter in Reports remain enhancements to decide against the pilot requirements.
 
 ### Release commits and tags
 - bce349d fix(release): isolate demo seed data from production migrations
 - 7b81dce docs(release): finalize V1 release candidate notes
-- Tag: v1.0.0-rc2 (supersedes v1.0.0-rc1)
+- da9b025 feat(desktop): add portable Windows distribution
+- Tag: v1.0.0-rc3 (supersedes v1.0.0-rc2 and v1.0.0-rc1)
 - No force-push, history rewrite, database reset, or Docker volume reset was performed.
 
 

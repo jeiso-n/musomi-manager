@@ -2,7 +2,7 @@
 
 _Last reviewed: 10 November 2026_
 _Branch: main_
-_Release assessment: V1.0.0-rc3 prepared; final CI and tag publication pending; pilot acceptance and deployment sign-off remain._
+_Release assessment: V1.0.0-rc3 tagged and pushed to GitHub; pilot acceptance and deployment sign-off remain._
 
 > This file supersedes the October 23, 2026 status snapshot. Older audit reports remain historical records and must not be treated as current implementation status.
 
@@ -19,8 +19,8 @@ Fresh verification on 10 November 2026:
 | Windows package | `desktop/package-windows.ps1`, JDK 21 | **Portable app-image ZIP built, extracted, and launcher startup verified** |
 | Database migrations | Fresh Testcontainers PostgreSQL databases | Migrations through V101 applied in integration runs |
 | Backup and restore | Local PostgreSQL custom-format dump restored into isolated temporary database | **Passed** |
-| Git | Final pre-release review | `main` clean and pushed; tags `v1.0.0-rc1` and `v1.0.0-rc2` pushed |
-| GitHub Actions | Run #91 for commit `2cbf48e` | **Passed** — backend, desktop, and artifact upload succeeded |
+| Git | Final pre-release review | `main` clean and pushed; tags `v1.0.0-rc1`, `v1.0.0-rc2`, and `v1.0.0-rc3` pushed |
+| GitHub Actions | Run #92 for commit `da9b025` | **Passed** — backend, desktop, and artifact upload succeeded |
 
 ## 2. Implemented V1 areas
 
