@@ -5,7 +5,9 @@ import java.util.List;
 import com.musomi.manager.dto.request.CreateStudentRequest;
 import com.musomi.manager.dto.request.UpdateStudentRequest;
 import com.musomi.manager.dto.response.ApiResponse;
+import com.musomi.manager.dto.response.StudentAccountProvisioningResponse;
 import com.musomi.manager.dto.response.StudentResponse;
+import com.musomi.manager.service.StudentAccountService;
 import com.musomi.manager.service.StudentService;
 import com.musomi.manager.util.CurrentUser;
 import jakarta.validation.Valid;
@@ -23,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Admin endpoints for managing students. */
+/** Admin endpoints for managing student records and portal accounts. */
 @RestController
 @RequestMapping("/api/v1/admin/students")
 @RequiredArgsConstructor
@@ -31,8 +33,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminStudentApiController {
 
     private final StudentService studentService;
+    private final StudentAccountService studentAccountService;
 
-    /** Lists students with optional class, stream, status, and search filters. */
     @GetMapping
     public ApiResponse<List<StudentResponse>> listStudents(
             @RequestParam(required = false) Long classId,
@@ -43,7 +45,6 @@ public class AdminStudentApiController {
                 CurrentUser.getSchoolId(), classId, streamId, status, search));
     }
 
-    /** Creates a student. */
     @PostMapping
     public ResponseEntity<ApiResponse<StudentResponse>> createStudent(
             @Valid @RequestBody CreateStudentRequest request) {
@@ -52,13 +53,21 @@ public class AdminStudentApiController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
     }
 
-    /** Returns a student with guardian details. */
+    /**
+     * Creates and links student portal accounts for active students without one.
+     * Temporary passwords are returned only in this response and are never logged.
+     */
+    @PostMapping("/provision-accounts")
+    public ApiResponse<StudentAccountProvisioningResponse> provisionStudentAccounts() {
+        return ApiResponse.success(studentAccountService.provisionForSchool(
+                CurrentUser.getSchoolId(), CurrentUser.getUserId()));
+    }
+
     @GetMapping("/{id}")
     public ApiResponse<StudentResponse> getStudent(@PathVariable Long id) {
         return ApiResponse.success(studentService.getStudent(id, CurrentUser.getSchoolId()));
     }
 
-    /** Updates a student's profile. */
     @PutMapping("/{id}")
     public ApiResponse<StudentResponse> updateStudent(
             @PathVariable Long id,
@@ -67,7 +76,6 @@ public class AdminStudentApiController {
                 id, CurrentUser.getSchoolId(), CurrentUser.getUserId(), request));
     }
 
-    /** Deactivates a student without deleting the record. */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivateStudent(@PathVariable Long id) {
         studentService.deactivateStudent(id, CurrentUser.getSchoolId(), CurrentUser.getUserId());

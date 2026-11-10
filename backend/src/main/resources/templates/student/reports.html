@@ -12,9 +12,7 @@
     </div>
 
     <!-- Empty State -->
-    <div th:if="${#lists.isEmpty(reports)}" 
-         th:replace="~{fragments/empty-state :: empty-state('file-text', 'No report cards published', 'Official PDF report cards are published at the end of each academic term.')}">
-    </div>
+    <div th:if="${#lists.isEmpty(reports)}"><div th:replace="~{fragments/empty-state :: empty-state('file-text', 'No report cards published', 'Official PDF report cards are published at the end of each academic term.')}"></div></div>
 
     <!-- Reports Cards List -->
     <div th:unless="${#lists.isEmpty(reports)}" class="space-y-4">

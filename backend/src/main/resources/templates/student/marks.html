@@ -22,20 +22,18 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
             <h1 class="text-2xl font-semibold text-slate-900 tracking-tight">Published Marks</h1>
-            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Continuous assessment and term marks across all registered subjects</p>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Published marks for your current class, stream and term</p>
         </div>
         <div class="flex items-center gap-2 self-start sm:self-auto">
             <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
                 <i data-lucide="filter" class="w-3.5 h-3.5 mr-1 text-slate-400"></i>
-                <span th:text="${termName != null ? termName : 'Term 1, 2026'}">Term 1, 2026</span>
+                <span th:text="${termName != null && !#strings.isEmpty(termName) ? termName : 'No active term'}">Term 1, 2026</span>
             </span>
         </div>
     </div>
 
     <!-- Empty State -->
-    <div th:if="${#lists.isEmpty(subjectGroups)}" 
-         th:replace="~{fragments/empty-state :: empty-state('award', 'No published marks found', 'Your teachers have not published any assessments for this term yet.')}">
-    </div>
+    <div th:if="${#lists.isEmpty(subjectGroups)}"><div th:replace="~{fragments/empty-state :: empty-state('award', 'No published marks found', 'Your teachers have not published any assessments for this term yet.')}"></div></div>
 
     <!-- Subject Groups -->
     <div th:unless="${#lists.isEmpty(subjectGroups)}" class="space-y-5">

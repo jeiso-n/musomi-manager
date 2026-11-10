@@ -10,6 +10,12 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.TextArea;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -25,6 +31,8 @@ import com.musomi.desktop.api.AdminStudentApi;
 import com.musomi.desktop.api.AdminClassApi;
 import com.musomi.desktop.model.ClassResponse;
 import com.musomi.desktop.model.StudentResponse;
+import com.musomi.desktop.model.StudentAccountCredentialResponse;
+import com.musomi.desktop.model.StudentAccountProvisioningResponse;
 import com.musomi.desktop.util.Modal;
 import com.musomi.desktop.util.TaskRunner;
 import com.musomi.desktop.util.Toast;
@@ -247,6 +255,59 @@ public class StudentsController {
         studentsTable.setItems(filteredStudents);
     }
 
+    @FXML
+    private void provisionStudentAccounts() {
+        if (!Modal.confirm("Create portal login accounts for active students who do not have one? Temporary passwords will be shown once. Copy and store them securely.")) {
+            return;
+        }
+        TaskRunner.run(
+                adminStudentApi::provisionStudentAccounts,
+                this::showProvisionedCredentials,
+                error -> {
+                    log.error("Failed to provision student portal accounts", error);
+                    Toast.error(errorMessage(error));
+                }
+        );
+    }
+
+    private void showProvisionedCredentials(StudentAccountProvisioningResponse result) {
+        if (result == null || result.createdAccounts().isEmpty()) {
+            Toast.success("No new accounts created. " + (result == null ? "" : result.alreadyLinkedCount() + " students already have accounts."));
+            return;
+        }
+        StringBuilder output = new StringBuilder("STUDENT PORTAL LOGIN CREDENTIALS\n")
+                .append("Distribute each credential only to its student and store this list securely.\n\n")
+                .append("Student\tAdmission Number\tUsername\tTemporary Password\n");
+        for (StudentAccountCredentialResponse credential : result.createdAccounts()) {
+            output.append(credential.fullName()).append('\t')
+                    .append(credential.admissionNumber()).append('\t')
+                    .append(credential.username()).append('\t')
+                    .append(credential.temporaryPassword()).append('\n');
+        }
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Student Portal Accounts Created");
+        alert.setHeaderText(result.createdCount() + " student login account(s) created");
+        alert.setContentText("Temporary passwords are shown only in this window. Copy and store them securely before closing. Already linked: "
+                + result.alreadyLinkedCount() + ". Skipped due to account conflicts: " + result.skippedCount() + ".");
+        TextArea credentials = new TextArea(output.toString());
+        credentials.setEditable(false);
+        credentials.setWrapText(false);
+        credentials.setPrefRowCount(Math.min(20, result.createdCount() + 4));
+        credentials.setPrefColumnCount(90);
+        alert.getDialogPane().setExpandableContent(credentials);
+        alert.getDialogPane().setExpanded(true);
+        ButtonType copyButton = new ButtonType("Copy credentials", ButtonBar.ButtonData.LEFT);
+        alert.getButtonTypes().add(copyButton);
+        alert.showAndWait().filter(copyButton::equals).ifPresent(ignored -> {
+            ClipboardContent clipboardContent = new ClipboardContent();
+            clipboardContent.putString(output.toString());
+            Clipboard.getSystemClipboard().setContent(clipboardContent);
+            Toast.success("Student credentials copied to clipboard");
+        });
+        if (!result.skippedAdmissions().isEmpty()) {
+            log.warn("Some student accounts were skipped due to username conflicts: {}", result.skippedAdmissions());
+        }
+    }
     /*
      * Add Student
      */

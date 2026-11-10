@@ -3,6 +3,12 @@ package com.musomi.manager.integration;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.musomi.manager.AbstractIntegrationTest;
+import com.musomi.manager.entity.User;
+import com.musomi.manager.entity.Student;
+import com.musomi.manager.repository.StudentRepository;
+import com.musomi.manager.repository.UserRepository;
+import com.musomi.manager.security.WebUserPrincipal;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,6 +29,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -34,6 +43,12 @@ class StudentIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private StudentRepository studentRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @TestConfiguration(proxyBeanMethods = false)
     static class JsonConfiguration {
@@ -136,6 +151,63 @@ class StudentIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isNotFound());
     }
 
+    @Test
+    @DisplayName("should provision a secure linked portal login for an active student")
+    void shouldProvisionStudentPortalAccount() throws Exception {
+        String admissionNumber = uniqueAdmission("PORTAL");
+        JsonNode created = createStudent(admissionNumber, "Portal Account Student");
+        long studentId = created.path("data").path("id").asLong();
+
+        MvcResult result = mockMvc.perform(post("/api/v1/admin/students/provision-accounts")
+                        .with(withAuthenticatedUser("ADMIN", 1L, 1L)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.createdCount").isNumber())
+                .andReturn();
+
+        JsonNode response = objectMapper.readTree(result.getResponse().getContentAsString());
+        JsonNode credential = null;
+        for (JsonNode item : response.path("data").path("createdAccounts")) {
+            if (admissionNumber.equals(item.path("admissionNumber").asText())) {
+                credential = item;
+                break;
+            }
+        }
+        assertThat(credential).isNotNull();
+        assertThat(credential.path("username").asText()).isEqualTo(admissionNumber);
+        assertThat(credential.path("temporaryPassword").asText()).hasSize(12);
+
+        mockMvc.perform(formLogin().user("1::" + admissionNumber)
+                        .password(credential.path("temporaryPassword").asText()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl("/student/dashboard"));
+
+        User linkedUser = userRepository.findBySchoolIdAndUsername(1L, admissionNumber).orElseThrow();
+        assertThat(linkedUser.getRole().name()).isEqualTo("STUDENT");
+        assertThat(studentRepository.findFirstBySchoolIdAndUserId(1L, linkedUser.getId()))
+                .isPresent().get().extracting(student -> student.getId()).isEqualTo(studentId);
+    }
+    @Test
+    @DisplayName("should render student portal pages using the authenticated student's own account")
+    void shouldRenderStudentPortalPages() throws Exception {
+        String admissionNumber = uniqueAdmission("WEB");
+        createStudent(admissionNumber, "Portal Page Student");
+        mockMvc.perform(post("/api/v1/admin/students/provision-accounts")
+                        .with(withAuthenticatedUser("ADMIN", 1L, 1L)))
+                .andExpect(status().isOk());
+        User studentUser = userRepository.findBySchoolIdAndUsername(1L, admissionNumber).orElseThrow();
+        WebUserPrincipal principal = new WebUserPrincipal(studentUser.getUsername(), studentUser.getPasswordHash(),
+                true, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")), 1L);
+
+        for (String path : List.of("/student/dashboard", "/student/marks", "/student/results",
+                "/student/reports", "/student/profile")) {
+            mockMvc.perform(get(path).with(user(principal)))
+                    .andExpect(status().isOk());
+        }
+        mockMvc.perform(get("/student/profile").with(user(principal)))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                        .string(org.hamcrest.Matchers.containsString("name=\"_csrf\"")));
+    }
     private JsonNode createStudent(String admissionNumber, String fullName) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/v1/admin/students")
                         .with(withAuthenticatedUser("ADMIN", 1L, 1L))

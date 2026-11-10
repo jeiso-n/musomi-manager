@@ -33,6 +33,10 @@
 
         <Region HBox.hgrow="ALWAYS"/>
 
+        <Button text="Create Student Logins"
+                onAction="#provisionStudentAccounts"
+                styleClass="secondary-button"/>
+
         <Button text="+  Add Student"
                 onAction="#showAddStudentDialog"
                 styleClass="primary-button"/>

@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.musomi.desktop.model.PageResult;
 import com.musomi.desktop.model.StudentResponse;
+import com.musomi.desktop.model.StudentAccountProvisioningResponse;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -62,6 +63,11 @@ public class AdminStudentApi {
         StudentResponse[] students = client.get(path, StudentResponse[].class);
         List<StudentResponse> data = students == null ? List.of() : Arrays.asList(students);
         return new PageResult<>(data, page, size, data.size(), data.isEmpty() ? 0 : 1);
+    }
+
+    public StudentAccountProvisioningResponse provisionStudentAccounts() {
+        return client.post("/admin/students/provision-accounts", java.util.Map.of(),
+                StudentAccountProvisioningResponse.class);
     }
 
     public void deactivateStudent(Long studentId) {

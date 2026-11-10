@@ -8,28 +8,23 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import com.musomi.manager.entity.GeneratedReport;
 import com.musomi.manager.entity.Student;
-import com.musomi.manager.entity.User;
 import com.musomi.manager.repository.GeneratedReportRepository;
-import com.musomi.manager.repository.StudentRepository;
-import com.musomi.manager.repository.UserRepository;
-import com.musomi.manager.util.WebCurrentUser;
+import com.musomi.manager.security.WebUserPrincipal;
+import com.musomi.manager.service.StudentPortalService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
-/**
- * Controller for viewing and downloading student report card PDFs.
- */
 @Controller
 @RequiredArgsConstructor
 @Slf4j
@@ -38,93 +33,79 @@ public class StudentReportsWebController {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("d MMM yyyy");
 
     private final GeneratedReportRepository generatedReportRepository;
-    private final StudentRepository studentRepository;
-    private final UserRepository userRepository;
+    private final StudentPortalService studentPortalService;
 
     @GetMapping("/student/reports")
-    public String showReports(Model model) {
-        Optional<Student> studentOpt = findCurrentStudent();
-        if (studentOpt.isEmpty()) {
+    public String showReports(@AuthenticationPrincipal WebUserPrincipal principal, Model model) {
+        Student student = studentPortalService.findCurrentStudent(principal).orElse(null);
+        if (student == null) {
             return "redirect:/login";
         }
-        Student student = studentOpt.get();
         List<Map<String, Object>> reports = new ArrayList<>();
         for (GeneratedReport report : generatedReportRepository
                 .findByStudentIdOrderByGeneratedAtDesc(student.getId())) {
             Map<String, Object> item = new HashMap<>();
             item.put("id", report.getId());
-            item.put("termName", report.getTerm() != null ? valueOrEmpty(report.getTerm().getName()) : "");
-            item.put("academicYear", report.getTerm() != null
-                    && report.getTerm().getAcademicYear() != null
-                    && report.getTerm().getAcademicYear().getYear() != null
-                    ? report.getTerm().getAcademicYear().getYear().toString() : "");
-            item.put("generatedAt", report.getGeneratedAt() != null
-                    ? report.getGeneratedAt().format(DATE_FORMAT) : "");
+            item.put("termName", report.getTerm() == null ? "" : safe(report.getTerm().getName()));
+            item.put("academicYear", report.getTerm() == null || report.getTerm().getAcademicYear() == null
+                    || report.getTerm().getAcademicYear().getYear() == null
+                    ? "" : report.getTerm().getAcademicYear().getYear().toString());
+            item.put("generatedAt", report.getGeneratedAt() == null
+                    ? "" : report.getGeneratedAt().format(DATE_FORMAT));
             item.put("fileSize", formatFileSize(report.getFileSizeBytes()));
             item.put("downloadUrl", "/student/reports/download/" + report.getId());
             reports.add(item);
         }
         model.addAttribute("pageTitle", "Report Cards");
         model.addAttribute("currentPage", "reports");
-        model.addAttribute("schoolName", student.getSchool() != null
-                ? valueOrEmpty(student.getSchool().getName()) : "");
+        model.addAttribute("schoolName", student.getSchool() == null ? "" : safe(student.getSchool().getName()));
         model.addAttribute("reports", reports);
         return "student/reports";
     }
 
     @GetMapping("/student/reports/download/{id}")
-    public ResponseEntity<byte[]> downloadReportCard(@PathVariable Long id) {
-        Optional<Student> studentOpt = findCurrentStudent();
-        if (studentOpt.isEmpty()) {
+    public ResponseEntity<byte[]> downloadReportCard(
+            @PathVariable Long id, @AuthenticationPrincipal WebUserPrincipal principal) {
+        Student student = studentPortalService.findCurrentStudent(principal).orElse(null);
+        if (student == null) {
             return ResponseEntity.status(302).header(HttpHeaders.LOCATION, "/login").build();
         }
-        Optional<GeneratedReport> reportOpt = generatedReportRepository
-                .findByStudentIdOrderByGeneratedAtDesc(studentOpt.get().getId()).stream()
-                .filter(report -> id.equals(report.getId()))
-                .findFirst();
-        if (reportOpt.isEmpty() || reportOpt.get().getFilePath() == null) {
+        GeneratedReport report = generatedReportRepository
+                .findByStudentIdOrderByGeneratedAtDesc(student.getId()).stream()
+                .filter(item -> id.equals(item.getId()))
+                .findFirst().orElse(null);
+        if (report == null || report.getFilePath() == null || report.getFilePath().isBlank()) {
             return ResponseEntity.notFound().build();
         }
 
-        Path reportPath = Path.of(reportOpt.get().getFilePath()).normalize();
-        if (!Files.isRegularFile(reportPath)) {
-            return ResponseEntity.notFound().build();
-        }
         try {
+            Path reportPath = Path.of(report.getFilePath()).normalize();
+            if (!Files.isRegularFile(reportPath)) {
+                return ResponseEntity.notFound().build();
+            }
             byte[] pdfBytes = Files.readAllBytes(reportPath);
+            if (pdfBytes.length < 5 || pdfBytes[0] != '%'
+                    || pdfBytes[1] != 'P' || pdfBytes[2] != 'D'
+                    || pdfBytes[3] != 'F' || pdfBytes[4] != '-') {
+                log.error("Stored report {} is not a valid PDF", id);
+                return ResponseEntity.internalServerError().build();
+            }
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION,
                             "attachment; filename=\"Report-Card-" + id + ".pdf\"")
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdfBytes);
-        } catch (IOException exception) {
-            log.error("Failed to read generated report {} for student {}", id, studentOpt.get().getId(), exception);
+        } catch (IOException | RuntimeException exception) {
+            log.error("Failed to read generated report {} for student {}", id, student.getId(), exception);
             return ResponseEntity.internalServerError().build();
         }
     }
 
-    private Optional<Student> findCurrentStudent() {
-        org.springframework.security.core.Authentication auth =
-                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
-            return Optional.empty();
-        }
-        Optional<User> user = userRepository.findBySchoolIdAndUsername(WebCurrentUser.getSchoolId(), auth.getName());
-        if (user.isEmpty()) {
-            return Optional.empty();
-        }
-        Long userId = user.get().getId();
-        return studentRepository.findAll().stream()
-                .filter(student -> student.getUser() != null
-                        && userId.equals(student.getUser().getId()))
-                .findFirst();
+    private String formatFileSize(Long bytes) {
+        return bytes == null ? "" : String.format("%.0f KB", bytes / 1024.0);
     }
 
-    private String formatFileSize(Long fileSizeBytes) {
-        return fileSizeBytes == null ? "" : String.format("%.0f KB", fileSizeBytes / 1024.0);
-    }
-
-    private String valueOrEmpty(String value) {
+    private String safe(String value) {
         return value == null ? "" : value;
     }
 }

@@ -451,3 +451,48 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 - Relaunched the JavaFX desktop app against `http://localhost:8080/api/v1` with mock mode disabled. Startup log confirms navigation to `/fxml/login.fxml` and `Application started`.
 - Remaining presentation smoke test: sign in as ADMIN, verify the profile/account-settings/global-search navigation, then open Reports and verify the report filters. Password change and live search results should be demonstrated only if the configured backend data supports the actions.
 - Earlier note above saying the merge was only local and that Docker prevented the full backend suite is superseded by this verification: the merge is now on `origin/main`, and the full backend suite has passed.
+
+
+## STUDENT PORTAL AUDIT AND REPAIR — 2026-11-10
+
+### Initial findings
+- The student-facing web portal had dashboard, marks, results, report cards, profile, and password-change pages, but the result calculations mixed assessments from different terms and could show demonstration fallback values as if they were real student data.
+- Student marks/results did not consistently apply school, class, stream, term, or published-assessment scoping.
+- Missing marks could be obscured by incomplete summary displays; class ranking was not reliably withheld for incomplete results.
+- Student login was not school-scoped. The login page had no school selector, and identical admission numbers across schools could be ambiguous.
+- Live local database audit: 51 active student records, 0 linked student login accounts, 0 students missing class assignments, and 0 missing admission numbers. Therefore, none of those 51 students could currently sign in to the portal.
+
+### Student portal implementation
+- Added `StudentPortalService` to resolve the authenticated student's own active record and current school term, and to retrieve only published assessments for that student's current class, stream, and term.
+- Dashboard, marks, results, subject detail, profile, and report-card controllers now resolve the student from the authenticated school-scoped principal instead of scanning the entire student table.
+- Marks and results pages now use current-term published results only. Assessments in other terms, unpublished assessments, other classes, other schools, and other streams are excluded.
+- Missing scores remain missing; a recorded numeric zero is valid. Subject averages use the available assessment percentages, and the overall average gives each subject equal weight, consistent with official report calculations.
+- Results show expected and recorded assessment counts, per-subject pending marks, and incomplete status. Ranking is withheld unless all expected published marks are recorded. Stream-specific rankings include only complete active students from the same school, class, and stream; the UI labels the position as Stream Position / Stream Rank.
+- Empty states were corrected so they appear only when their associated data lists are actually empty. Demonstration averages, grades, positions, sample names, guardian details, and dates were removed from student-facing data fallbacks.
+- Profile and report-card download queries are tied to the authenticated student's linked record. Report download checks the stored file exists and has a PDF signature.
+- Student profile now uses actual student and primary guardian details and clearly handles missing guardian information.
+- Password-change form now submits a CSRF token, enforces the backend minimum of 8 characters, validates the current password and confirmation, and returns a fresh CSRF token when HTMX replaces the form.
+- Student account authentication now requires a linked, active student record. Changing a student's status away from ACTIVE also deactivates portal access; reactivating status to ACTIVE restores the active flag.
+- Student login page now requires school selection and scopes the admission-number lookup to that school, avoiding cross-school username ambiguity.
+- Mobile navigation now provides a dedicated Reports destination.
+
+### Student login account provisioning
+- Added admin-only `POST /api/v1/admin/students/provision-accounts`.
+- Added `StudentAccountService`, which provisions accounts for active students without linked accounts, uses each student's admission number as the username, generates a cryptographically random 12-character temporary password, hashes it before storage, links the User to the Student, and records an audit event.
+- Plaintext temporary passwords are returned once to the authorized admin in the provisioning response; they are not stored in the database or written to logs. Username collisions and invalid linked accounts are reported as skipped rather than silently linked to the wrong student.
+- Added a **Create Student Logins** action to the desktop Admin → Students screen. It confirms the action and displays the one-time credentials in a selectable table with a Copy Credentials option. Administrators must distribute each student's credential privately.
+- IMPORTANT: I did not run bulk provisioning against the persistent local database. Its 51 active student records remain unlinked until an administrator uses the new Create Student Logins action. This avoids creating accounts with passwords that cannot be securely handed to students. The provisioning flow is covered by disposable-database integration tests.
+
+### Regression coverage and verification
+- Added `StudentPortalServiceTest` for school/class/stream/term/published filtering, valid zero marks, missing marks, equal subject weighting, and withheld ranking for incomplete results.
+- Added `StudentAccountServiceTest` for random one-time credentials, secure password hashing, account linking, already-linked accounts, and username-collision handling.
+- Extended `StudentIntegrationTest` to provision a student account, authenticate through the school-scoped admission-number login, and render the dashboard, marks, results, reports, and profile pages. The profile render assertion verifies the CSRF token is present.
+- Added `StudentsFxmlContractTest` to verify the Admin Students screen exposes the student-login provisioning action.
+- Full backend clean test on JDK 21: **176 tests, 0 failures, 0 errors, 1 skipped; BUILD SUCCESS**. Testcontainers applied all 28 Flyway migrations through V101 to disposable PostgreSQL databases.
+- Full desktop clean test/package on JDK 21: **61 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS**. Desktop JAR packaged successfully.
+- `git diff --check` passed. No migration was added, no live student/account records were changed, and no Docker volume or database was reset.
+
+### Remaining live verification
+- Start the updated backend and desktop application, then sign in as an administrator.
+- In Admin → Students, use **Create Student Logins** once and securely distribute the one-time credentials to students. This action will create linked accounts for active students that do not already have them.
+- Open `http://localhost:8080/login`, select the school, and verify a provisioned student can sign in using their admission number and temporary password. Verify dashboard, marks, results, report cards, profile, and password change using that student account.

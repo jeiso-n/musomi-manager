@@ -125,6 +125,7 @@ public class StudentService {
         student.setCurrentStream(currentStream);
         if (request.status() != null) {
             student.setStatus(request.status());
+            student.setIsActive("ACTIVE".equalsIgnoreCase(request.status()));
         }
         student.setUpdatedAt(LocalDateTime.now());
 
