@@ -537,3 +537,32 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 - `git diff --check` passed.
 - No live student password was changed, no existing user account was modified, and no persistent database, Docker volume, or student data was reset.
 - This implementation is ready for an administrator to set a chosen password for a specific student, then verify that student can sign in with their admission number and the newly chosen password.
+
+
+## STUDENT PORTAL DASHBOARD TEXT-ENCODING FIX — 2026-11-10
+
+### Screenshot review
+- Reviewed `C:\Users\jeis\Pictures\Screenshots\nakato.png` showing Alice Nakato's student dashboard.
+- Found literal mojibake in the student dashboard template: a corrupted greeting emoji, broken separators (`Â·`), an invalid average placeholder (`â€”`), and a corrupted right arrow (`â†’`). The subject-detail page title also contained a corrupted middle-dot character.
+- Confirmed the base layout already declares UTF-8. The problem was the corrupted literal text stored in the templates, not a missing browser charset declaration.
+
+### Corrections
+- Removed the corrupted emoji from the dashboard greeting.
+- Replaced the broken separators with the HTML `&middot;` entity and the broken link arrow with `&rarr;`.
+- Replaced the corrupted average placeholder with the plain `N/A` fallback.
+- Replaced the subject-detail page title separator with a plain hyphen.
+- Extended `StudentIntegrationTest.shouldRenderStudentPortalPages` to assert that the dashboard contains the expected greeting, separators, and marks link, and does not contain the known mojibake sequences.
+- Scanned all student portal HTML templates for the identified mojibake patterns; no remaining matches were found.
+
+### Live data verification
+- Confirmed Alice Nakato (`STU001`) has one published Mathematics assessment in the current term and a stored score of `85.00 / 100`.
+- Confirmed the stream has 30 active students, one applicable published assessment, and 30 recorded scores.
+- Independently recalculated the rank from the live score rows: Alice is correctly ranked **9 of 30**. The dashboard average and rank in the screenshot are therefore supported by the live database data.
+- No persistent database records, passwords, Docker volumes, or student data were modified during this investigation.
+
+### Verification
+- Targeted `StudentIntegrationTest`: **9 tests passed, 0 failures, 0 errors, 0 skipped**.
+- Full backend clean test on JDK 21: **178 tests, 0 failures, 0 errors, 1 skipped; BUILD SUCCESS**.
+- `git diff --check` passed.
+- Changed files: `backend/src/main/resources/templates/student/dashboard.html`, `backend/src/main/resources/templates/student/subject-detail.html`, and `backend/src/test/java/com/musomi/manager/integration/StudentIntegrationTest.java`.
+- The running backend must be restarted to load the corrected templates; the student should refresh the dashboard after the restart.

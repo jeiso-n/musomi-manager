@@ -203,6 +203,15 @@ class StudentIntegrationTest extends AbstractIntegrationTest {
             mockMvc.perform(get(path).with(user(principal)))
                     .andExpect(status().isOk());
         }
+        MvcResult dashboard = mockMvc.perform(get("/student/dashboard").with(user(principal)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String dashboardHtml = dashboard.getResponse().getContentAsString();
+        assertThat(dashboardHtml).contains("Hello,")
+                .contains("&middot;")
+                .contains("View all marks &rarr;")
+                .doesNotContain("Â·", "ðŸ", "â†");
+
         mockMvc.perform(get("/student/profile").with(user(principal)))
                 .andExpect(status().isOk())
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
