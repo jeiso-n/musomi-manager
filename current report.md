@@ -2,7 +2,7 @@
 
 ---
 
-# PHASE 1 — REVIEW CORRECTIONS IMPLEMENTATION
+# PHASE 1 â€” REVIEW CORRECTIONS IMPLEMENTATION
 
 **Implementation Date:** 2026-11-09  
 **Target Scope:** Priority 1 (`FAIL`) and Priority 2 (`WARNING`) corrections identified during the Phase 1 Independent Code Review  
@@ -25,14 +25,14 @@
 
 ## 2. Defects Corrected
 
-### Priority 1.1 — Prevent Saving School Settings Before Initial Load Completes
+### Priority 1.1 â€” Prevent Saving School Settings Before Initial Load Completes
 - **Files:** [`SettingsController.java`](file:///d:/Projects/musomi-manager/desktop/src/main/java/com/musomi/desktop/controller/admin/SettingsController.java), [`settings.fxml`](file:///d:/Projects/musomi-manager/desktop/src/main/resources/fxml/admin/settings.fxml)
 - **Changes Implemented:**
   - Added `fx:id="saveButton"` (`disable="true"` initially) in [`settings.fxml`](file:///d:/Projects/musomi-manager/desktop/src/main/resources/fxml/admin/settings.fxml#L84-L88) and `@FXML private Button saveButton` in [`SettingsController.java`](file:///d:/Projects/musomi-manager/desktop/src/main/java/com/musomi/desktop/controller/admin/SettingsController.java#L32-L33).
   - Disabled `saveButton` in `initialize()` and on load error, enabling it only inside `populateSettingsData()` once `data != null && data.settings() != null`.
   - Added an explicit `if (loadedSettings == null)` guard at the top of `handleSave()`, inside `prepareSavePlan()`, and inside `buildUpdateRequest()`, throwing `IllegalStateException("Settings have not finished loading yet. Please reload before saving.")` and displaying a clear `Toast.error(...)` message without issuing any API calls or constructing a `null`-overwriting `UpdateSchoolSettingsRequest`.
 
-### Priority 1.2 — Prevent Academic-Year and Term Mismatches
+### Priority 1.2 â€” Prevent Academic-Year and Term Mismatches
 - **File:** [`SettingsController.java`](file:///d:/Projects/musomi-manager/desktop/src/main/java/com/musomi/desktop/controller/admin/SettingsController.java)
 - **Changes Implemented:**
   - Corrected [`filterTermsForYear(List<TermResponse>, Long)`](file:///d:/Projects/musomi-manager/desktop/src/main/java/com/musomi/desktop/controller/admin/SettingsController.java#L276-L283) so it strictly returns only terms whose `academicYearId` matches the specified `academicYearId` (and `List.of()` when none match or when `academicYearId == null`), never falling back to terms from another academic year.
@@ -43,12 +43,12 @@
     3. The selected term belongs to the target academic year (otherwise rejecting the save with `"Please select a valid term for the chosen academic year."`).
   - Updated `updateTermOptionsForYearText()` and `populateSettings()` (guarded by an `updatingUi` flag to prevent duplicate listener firing) to clear `termComboBox` and display `"No terms available for this academic year"` when an academic year has no configured terms.
 
-### Priority 2.3 — Validate Student Status Values Against `VALID_STATUSES`
+### Priority 2.3 â€” Validate Student Status Values Against `VALID_STATUSES`
 - **File:** [`AdminStudentApi.java`](file:///d:/Projects/musomi-manager/desktop/src/main/java/com/musomi/desktop/api/AdminStudentApi.java)
 - **Changes Implemented:**
   - Updated [`AdminStudentApi.normalizeStatus(String)`](file:///d:/Projects/musomi-manager/desktop/src/main/java/com/musomi/desktop/api/AdminStudentApi.java#L37-L53) to validate that every non-blank normalized status is contained in `VALID_STATUSES` (`ACTIVE`, `INACTIVE`, `TRANSFERRED`, `GRADUATED`, `DROPPED_OUT`, `SUSPENDED`), throwing an `IllegalArgumentException` with the list of allowed values for any unsupported status string.
 
-### Priority 2.4 — Make Admission Number Read-Only in Edit Student Dialog
+### Priority 2.4 â€” Make Admission Number Read-Only in Edit Student Dialog
 - **Files:** [`edit-student.fxml`](file:///d:/Projects/musomi-manager/desktop/src/main/resources/fxml/admin/edit-student.fxml), [`EditStudentController.java`](file:///d:/Projects/musomi-manager/desktop/src/main/java/com/musomi/desktop/controller/admin/EditStudentController.java)
 - **Changes Implemented:**
   - Updated [`edit-student.fxml`](file:///d:/Projects/musomi-manager/desktop/src/main/resources/fxml/admin/edit-student.fxml#L44-L51) to label the field `"Admission Number (Read-Only)"` and set `editable="false"` and `disable="true"` on `admissionNumberField`.
@@ -97,7 +97,7 @@ mvn -f desktop\pom.xml clean test package "-DargLine=-javaagent:C:/Users/jeis/.m
 
 ## 5. Remaining Warnings / External Blockers & Updated Git Status
 
-- **Remaining Backend Dependency (`BLOCKED` — Backend Team):**
+- **Remaining Backend Dependency (`BLOCKED` â€” Backend Team):**
   - Whole-class teacher roster loading (`streamId == null`) in `ClassRosterController` requires the backend team to add `GET /api/v1/teacher/classes/{classId}/students` in `TeacherClassApiController.java`. Until added, `ClassRosterController` displays a clear explanatory empty-state message.
   - In `StudentService.java` (backend), `listStudents` defaults to `status = "ACTIVE"` when no `status` query parameter is passed, and `updateStudent` does not toggle `student.setIsActive(...)`.
 - **Updated Git Status (`0` backend files touched, `0` commits made):**
@@ -125,7 +125,7 @@ mvn -f desktop\pom.xml clean test package "-DargLine=-javaagent:C:/Users/jeis/.m
 
 ---
 
-# PHASE 2 — TEACHER ASSESSMENTS FXML INJECTION FIX
+# PHASE 2 â€” TEACHER ASSESSMENTS FXML INJECTION FIX
 
 **Implementation Date:** 2026-11-09  
 **Scope:** Desktop-only correction for the Teacher Assessments page failing to load.
@@ -163,7 +163,7 @@ Executed from `desktop` using OpenJDK 21.0.13 and the Maven wrapper:
 
 ---
 
-# PHASE 3 — REPORT BACKEND CORRECTNESS AND AUTHORIZATION
+# PHASE 3 â€” REPORT BACKEND CORRECTNESS AND AUTHORIZATION
 
 **Implementation Date:** 2026-11-09  
 **Scope:** Backend report calculation, teacher authorization, report-history term filtering, and PDF status labelling.  
@@ -193,7 +193,7 @@ Executed from `desktop` using OpenJDK 21.0.13 and the Maven wrapper:
 - Overall averages are calculated from subjects with available averages, using the existing equal-subject weighting policy.
 - Students with incomplete marks receive a partial report and are excluded from class ranking.
 - When no published assessments exist, report generation no longer aborts the entire class. It can produce a clearly labelled no-results PDF with unavailable averages and no ranking.
-- Complete students are ranked only against other complete students. The PDF shows the complete-report cohort size as the ranking denominator; partial/no-results reports show “Not ranked”.
+- Complete students are ranked only against other complete students. The PDF shows the complete-report cohort size as the ranking denominator; partial/no-results reports show â€œNot rankedâ€.
 
 ### 2.3 Teacher report-generation authorization
 - The report-generation service now receives the authenticated requester's role.
@@ -209,7 +209,7 @@ Executed from `desktop` using OpenJDK 21.0.13 and the Maven wrapper:
 
 ### 2.5 PDF report status
 - PDFs now label reports as `COMPLETE`, `PARTIAL - MARKS INCOMPLETE`, or `NO PUBLISHED RESULTS`.
-- Partial/no-results PDFs display “Not ranked” instead of misleading position values such as `0/0`.
+- Partial/no-results PDFs display â€œNot rankedâ€ instead of misleading position values such as `0/0`.
 
 ## 3. Regression Tests Added
 - Recorded zero remains a valid score while the report remains partial if another expected assessment is missing.
@@ -327,7 +327,7 @@ The summary uses the latest generated report snapshot per student for the select
 
 ---
 
-# PHASE 5 — DESKTOP REPORTS SCREEN INTEGRATION
+# PHASE 5 â€” DESKTOP REPORTS SCREEN INTEGRATION
 
 **Implementation Date:** 2026-11-09  
 **Scope:** Connect the JavaFX Reports screen to the authenticated report-generation, class-summary, and PDF-download APIs.  
@@ -335,7 +335,7 @@ The summary uses the latest generated report snapshot per student for the select
 
 ## 1. Desktop Integration Implemented
 
-- Replaced the old Reports placeholder ("LOCAL DATA — not a school report") with a real API-backed screen.
+- Replaced the old Reports placeholder ("LOCAL DATA â€” not a school report") with a real API-backed screen.
 - Added class, stream, and term selectors.
   - Class list comes from the existing school class endpoint.
   - Teacher users see only classes present in their assignment list and can select only their assigned stream(s), including a class-wide assignment where applicable.
@@ -395,7 +395,7 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 - Existing unrelated desktop changes, screenshots, and `current report.md` remain untouched by commits; nothing was staged, committed, or pushed.
 
 
-## ADMIN REPORTS NAVIGATION VISIBILITY FIX — 2026-11-09
+## ADMIN REPORTS NAVIGATION VISIBILITY FIX â€” 2026-11-09
 
 - User logged in as administrator and reported that Reports was not visible in the admin sidebar.
 - Root cause in `desktop/src/main/resources/fxml/main-layout.fxml`: an expanding `Region` spacer appeared before the admin navigation VBox, pushing the entire admin menu toward/beyond the bottom of the sidebar. Reports was also placed near the bottom of the admin menu.
@@ -405,7 +405,7 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 - Pending user confirmation that Reports is now visible after administrator login. No commit or push made.
 
 
-## ADMIN REPORTS BUTTON PRESENTATION FIX — 2026-11-09
+## ADMIN REPORTS BUTTON PRESENTATION FIX â€” 2026-11-09
 
 - User clarified that Reports was not appearing as a proper button.
 - Inspection found that the admin Reports entry was a JavaFX `Button`, but unlike the teacher Reports entry it had no sidebar style class. It could therefore render with the default button appearance instead of matching the navigation items.
@@ -415,7 +415,7 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 - Awaiting visual confirmation from the user after relaunch. No commit or push performed.
 
 
-## REPORTS FILTER LAYOUT VISIBILITY CORRECTION — 2026-11-09
+## REPORTS FILTER LAYOUT VISIBILITY CORRECTION â€” 2026-11-09
 
 - User reported that the Stream selector and Generate / Refresh Reports action were not visible on the Reports screen.
 - Inspection confirmed both controls existed in `reports.fxml`, but all four controls had been placed in one horizontal HBox. This could push controls beyond the visible content area at narrower application widths.
@@ -426,7 +426,7 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 - No reports were generated, no database or Docker data was changed, and no commit or push was made.
 
 
-## PRESENTATION INTEGRATION — FEATURE BRANCH MERGED LOCALLY — 2026-11-10
+## PRESENTATION INTEGRATION â€” FEATURE BRANCH MERGED LOCALLY â€” 2026-11-10
 
 - Created local safety branch `backup/presentation-main-2026-11-10` at pre-merge main commit `04049feb0a1ea7068fed5d972a3b85c1aeec1002`.
 - Fetched current GitHub `main` and `feature/desktop-account-search` from `jeiso-n/musomi-manager`.
@@ -436,3 +436,18 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 - Backend compile succeeded. Full backend test attempt was blocked for integration tests because Docker Desktop daemon was not running; no Docker volumes or database data were changed.
 - Backend non-integration suite rerun: **150 tests, 0 failures/errors/skips; BUILD SUCCESS**. Integration tests remain unverified on this machine until Docker Desktop is running.
 - Merge is ready for final commit/push and live UI smoke test. Backup branch retained.
+
+
+## PRESENTATION MERGE AND FINAL BUILD VERIFICATION â€” 2026-11-10
+
+- Rechecked the current GitHub state. `main` now points to merge commit `c70d176` (`merge: integrate desktop profile and global search features`), with parents `04049fe` (the prior main checkpoint) and `529728a` (friend's `feature/desktop-account-search` commit). The feature branch remains available on origin.
+- The merged main contains the friend's `profile.fxml`, `account-settings.fxml`, `ProfileController`, `AccountSettingsController`, `GlobalSearchService`, password-change request/API updates, global-search UI, and styling changes.
+- The same merge retains the Reports integration: `ReportApi`, `reports.fxml`, `ReportPreviewController`, and backend migration V101 are present in HEAD.
+- Working tree was clean before this report update. No reset, force-push, database reset, or Docker volume deletion was performed.
+- Full backend clean test: **169 tests, 0 failures, 0 errors, 1 skipped; BUILD SUCCESS**. Testcontainers successfully applied all 28 Flyway migrations through V101 on disposable PostgreSQL test databases.
+- Full desktop clean test/package on JDK 21: **60 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS**. Desktop JAR packaged successfully.
+- `git diff --check` passed.
+- The existing `musomi-postgres` container was already running; the backend connected to `musomi_manager`, verified schema version 101, and started successfully on port 8080. `/actuator/health` returned `UP`.
+- Relaunched the JavaFX desktop app against `http://localhost:8080/api/v1` with mock mode disabled. Startup log confirms navigation to `/fxml/login.fxml` and `Application started`.
+- Remaining presentation smoke test: sign in as ADMIN, verify the profile/account-settings/global-search navigation, then open Reports and verify the report filters. Password change and live search results should be demonstrated only if the configured backend data supports the actions.
+- Earlier note above saying the merge was only local and that Docker prevented the full backend suite is superseded by this verification: the merge is now on `origin/main`, and the full backend suite has passed.
