@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$ApiBaseUrl = "http://localhost:8080/api/v1"
 )
 
@@ -48,6 +48,7 @@ try {
         "--name", "MusomiManager",
         "--app-version", "1.0.0",
         "--vendor", "Musomi Manager",
+        "--icon", (Join-Path $projectRoot "src\main\resources\images\musomi-logo.ico"),
         "--input", $inputDir,
         "--dest", $imageDir,
         "--main-jar", "desktop-1.0.0.jar",
@@ -75,3 +76,5 @@ try {
 finally {
     Pop-Location
 }
+
+

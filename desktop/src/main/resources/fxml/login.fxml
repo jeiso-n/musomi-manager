@@ -10,9 +10,10 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.image.ImageView?>
 
 <!--
-    login.fxml — Musomi Manager login screen
+    login.fxml â€” Musomi Manager login screen
     Layout: 55/45 columns (indigo brand panel | white form panel)
     Controller: com.musomi.desktop.controller.LoginController
     Stylesheets: applied globally by SceneManager (styles.css + components.css)
@@ -24,7 +25,7 @@
       prefHeight="720">
 
     <!-- ===================================================================
-         LEFT PANEL — Indigo branding column
+         LEFT PANEL â€” Indigo branding column
          =================================================================== -->
     <VBox fx:id="leftPanel"
           styleClass="login-left-panel"
@@ -34,15 +35,18 @@
         <!-- Top: logo placeholder + app name + optional school name -->
         <HBox alignment="CENTER_LEFT" spacing="12">
             <padding><Insets top="40" left="40" right="40" bottom="0"/></padding>
-            <Label text="M"
+            <ImageView fitWidth="64" fitHeight="64" preserveRatio="true">
+                <image><Image url="@/images/musomi-logo.png"/></image>
+            </ImageView>
+            <!-- <Label text="M"
                    styleClass="logo-placeholder text-white fxml-inline-001"
 
-                   alignment="CENTER"/>
+                   alignment="CENTER"/> -->
             <Label text="Musomi Manager" styleClass="logo-text"/>
             <Label fx:id="schoolNameLabel" styleClass="body-small text-white-subtle"/>
         </HBox>
 
-        <!-- Flexible spacer — pushes branding copy toward center -->
+        <!-- Flexible spacer â€” pushes branding copy toward center -->
         <Region VBox.vgrow="ALWAYS"/>
 
         <!-- Center: headline + sub-heading -->
@@ -59,7 +63,7 @@
     </VBox>
 
     <!-- ===================================================================
-         RIGHT PANEL — White login form column
+         RIGHT PANEL â€” White login form column
          =================================================================== -->
     <VBox fx:id="rightPanel"
           styleClass="login-right-panel"
@@ -68,14 +72,14 @@
           alignment="CENTER"
           spacing="0">
 
-        <!-- Flexible top spacer — vertically centers the card -->
+        <!-- Flexible top spacer â€” vertically centers the card -->
         <Region VBox.vgrow="ALWAYS"/>
 
         <!-- Card wrapper: centers card horizontally, constrains max width -->
         <StackPane alignment="CENTER" maxWidth="380" minWidth="380">
             <padding><Insets top="0" right="40" bottom="0" left="40"/></padding>
 
-            <!-- Login card — styleClass must remain card login-card -->
+            <!-- Login card â€” styleClass must remain card login-card -->
             <VBox styleClass="card login-card" spacing="24">
 
                 <!-- Heading block -->
@@ -95,7 +99,7 @@
                                    promptText="Enter your username or email"
                                    onAction="#handleLogin"
                                    />
-                        <Label text="👤"
+                        <Label text="ðŸ‘¤"
                                mouseTransparent="true"
                                 styleClass="fxml-inline-003"/>
                     </StackPane>
@@ -118,14 +122,14 @@
                                    managed="false"
                                    />
                         <Button fx:id="togglePasswordButton"
-                                text="👁"
+                                text="ðŸ‘"
                                 onAction="#togglePasswordVisibility"
                                 StackPane.alignment="CENTER_RIGHT"
                                  styleClass="fxml-inline-005"/>
                     </StackPane>
                 </VBox>
 
-                <!-- Error label — hidden and collapsed by default -->
+                <!-- Error label â€” hidden and collapsed by default -->
                 <Label fx:id="errorLabel"
                        styleClass="error-label"
                        wrapText="true"
@@ -153,10 +157,10 @@
             </VBox>
         </StackPane>
 
-        <!-- Flexible bottom spacer — pushes version label to bottom -->
+        <!-- Flexible bottom spacer â€” pushes version label to bottom -->
         <Region VBox.vgrow="ALWAYS"/>
 
-        <!-- Version label — sits at bottom of right panel, outside the card -->
+        <!-- Version label â€” sits at bottom of right panel, outside the card -->
         <Label fx:id="versionLabel"
                styleClass="text-muted"
                maxWidth="Infinity"
@@ -169,3 +173,5 @@
     </VBox>
 
 </HBox>
+
+

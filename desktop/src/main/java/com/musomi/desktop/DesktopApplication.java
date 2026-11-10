@@ -4,6 +4,8 @@ import com.musomi.desktop.config.AppConfig;
 import com.musomi.desktop.config.SceneManager;
 import javafx.application.Application;
 import javafx.stage.Stage;
+import javafx.scene.image.Image;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +30,8 @@ public class DesktopApplication extends Application {
         log.info("Starting Musomi Manager v{}", AppConfig.getInstance().getAppVersion());
 
         primaryStage.setTitle("Musomi Manager");
+        primaryStage.getIcons().add(new Image(Objects.requireNonNull(
+                getClass().getResourceAsStream("/images/musomi-logo.png"))));
         primaryStage.setMinWidth(MIN_WIDTH);
         primaryStage.setMinHeight(MIN_HEIGHT);
 
@@ -42,3 +46,4 @@ public class DesktopApplication extends Application {
         launch(args);
     }
 }
+
