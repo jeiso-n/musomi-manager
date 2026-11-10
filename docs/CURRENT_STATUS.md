@@ -14,7 +14,7 @@ Fresh verification on 10 November 2026:
 
 | Module | Verification | Result |
 |---|---|---|
-| Backend | `mvnw clean verify`, JDK 21, Testcontainers/PostgreSQL 16 | **178 tests, 0 failures, 0 errors, 0 skipped — BUILD SUCCESS** |
+| Backend | `mvnw clean verify`, JDK 21, Testcontainers/PostgreSQL 16 | **180 tests, 0 failures, 0 errors, 0 skipped — BUILD SUCCESS** |
 | Desktop | `mvnw clean verify`, JDK 21 | **61 tests, 0 failures, 0 errors, 0 skipped — BUILD SUCCESS** |
 | Database migrations | Fresh Testcontainers PostgreSQL databases | Migrations through V101 applied in integration runs |
 | Backup and restore | Local PostgreSQL custom-format dump restored into isolated temporary database | **Passed** |
@@ -37,6 +37,8 @@ The feature list describes implemented code paths; it is not a claim that every 
 ## 3. Release-hardening changes on this review
 
 - Production profile now requires `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `JWT_SECRET`, and `REPORT_STORAGE_DIR`; no development fallbacks are defined in the production profile. Generated PDF reports now use the configurable storage directory.
+- Moved V099 sample data into a development-only Flyway location. Fresh production databases receive the schema migrations but no sample school, admin, teacher, student, or marks. Added a Testcontainers regression test for both fresh production migrations and validation against an existing development history.
+- Added a repeatable development-only migration to correct the seeded admin/teacher BCrypt hash. It updates only accounts still carrying the original seed hash, preserving manually changed passwords, and also runs on existing development databases already at V101. The documented local development login is verified by a password-hash regression test.
 - Production disables SQL statement logging and uses INFO application logging / WARN Spring Security logging.
 - Default SQL statement logging was disabled and application logging reduced from DEBUG to INFO.
 - Re-enabled the previously skipped published-assessment integration test. The test now loads the real seeded roster, saves marks through the batch API, publishes the assessment, and verifies that editing a published assessment is rejected.

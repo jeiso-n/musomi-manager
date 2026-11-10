@@ -35,7 +35,7 @@ AI features, parent access, offline mode, notifications, billing, and advanced a
    docker exec musomi-postgres pg_isready -U musomi -d musomi_manager
    ```
 
-   The Compose credentials and `dev_password` are for local development only. Do not reuse them for a school deployment.
+   The Compose credentials and `dev_password` are for local development only. Do not reuse them for a school deployment. The V099 sample school/student seed is loaded only by the default development/test Flyway location; the production profile excludes it, so a fresh production database starts with schema only.
 
 2. Build and test the backend:
 
@@ -51,6 +51,8 @@ AI features, parent access, offline mode, notifications, billing, and advanced a
    ```
 
    The API and student portal are served on `http://localhost:8080`. Student login: `http://localhost:8080/login`. Health check: `http://localhost:8080/actuator/health`.
+
+On a fresh development database, the local seed accounts are `admin` / `password123`, `teacher1` / `password123`, and `teacher2` / `password123`. These are development-only demo credentials; never use them for a school deployment. If an account password has been manually changed, the seed migration preserves that custom hash, so the default password will no longer apply. Production databases do not receive these seed accounts.
 
 4. Build and test the JavaFX desktop application in a second terminal:
 

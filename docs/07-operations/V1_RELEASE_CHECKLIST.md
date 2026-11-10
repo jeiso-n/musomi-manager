@@ -39,10 +39,11 @@ Production profile behaviour:
 - SQL statement logging is disabled.
 - Application logging is INFO by default; Spring Security logs are WARN.
 - Missing database credentials, JWT secret, or report-storage directory prevent startup rather than falling back to development values.
+- Production Flyway migrations exclude the V099 development seed location. A fresh production database receives schema only, never the sample school, users, students, or marks.
 
 ## 4. Build and deploy
 
-1. Back up the current database and report-file storage.
+1. Provision a fresh, empty production database. Do not promote the local development database, which contains V099 sample records. Back up any existing production database and report-file storage before an upgrade.
 2. Verify the intended Git commit and ensure the working tree is clean.
 3. Run backend `mvnw clean verify` with JDK 21 and Docker available for Testcontainers.
 4. Run desktop `mvnw clean verify` with JDK 21.
