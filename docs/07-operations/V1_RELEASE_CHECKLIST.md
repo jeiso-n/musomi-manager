@@ -133,6 +133,7 @@ Do not mark the pilot acceptance workflow complete based only on unit tests or s
 - [ ] No known critical/high defects remain open.
 - [x] Production configuration reviewed without exposing secret values; pilot environment values still need to be provisioned.
 - [x] Local PostgreSQL backup and isolated restore drill completed (27 tables, 51 students; production backup scheduling remains outstanding).
+- [x] Windows portable desktop package built, extracted, and launched successfully; rebuild with the pilot API URL before distribution (MSI installer not included).
 - [ ] Critical acceptance workflow completed on the pilot environment.
 - [ ] Admin, teacher, and student quick-start guides reviewed by real users.
 - [ ] Pilot owner approves the release and support contact is known.

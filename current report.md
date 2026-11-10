@@ -614,3 +614,20 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 - 7b81dce docs(release): finalize V1 release candidate notes
 - Tag: v1.0.0-rc2 (supersedes v1.0.0-rc1)
 - No force-push, history rewrite, database reset, or Docker volume reset was performed.
+
+
+## WINDOWS PORTABLE DESKTOP DISTRIBUTION — 2026-11-10
+
+### Implementation
+- Added DesktopLauncher, a non-JavaFX entry point used by packaged Windows builds. This avoids the Java launcher treating the JavaFX Application subclass as a special entry point before the packaged JavaFX modules are resolved.
+- Added desktop/package-windows.ps1. It runs the desktop clean verification suite, copies runtime dependencies, assembles JavaFX and required JDK modules, and creates a Windows app-image with a bundled Java runtime.
+- Added README instructions for building the package and supplying a non-local API base URL with the ApiBaseUrl parameter.
+- The package includes the client only; the Spring Boot backend and PostgreSQL service must be available separately.
+
+### Verification and artifact
+- Desktop clean verify after adding DesktopLauncher: 61 tests passed, 0 failures, 0 errors, 0 skipped.
+- package-windows.ps1 completed successfully and created MusomiManager-1.0.0-Windows-x64.zip (approximately 49 MB).
+- Extracted the ZIP to D:\MusomiReleases\MusomiManager-1.0.0-Windows-x64 and launched MusomiManager.exe; the packaged application remained running and loaded the login screen.
+- Copied the distributable ZIP to D:\MusomiReleases\MusomiManager-1.0.0-Windows-x64.zip.
+- The delivered package currently targets http://localhost:8080/api/v1; build again with -ApiBaseUrl 'https://YOUR_HOST/api/v1' for a remote school deployment.
+- This is a portable app-image ZIP, not an MSI installer. A managed MSI can be added later if required by the pilot school's deployment policy.

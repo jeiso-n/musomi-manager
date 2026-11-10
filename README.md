@@ -69,6 +69,24 @@ On a fresh development database, the local seed accounts are `admin` / `password
 
 The desktop application connects to the backend configured in its application configuration. Start the backend before signing in from the desktop app.
 
+## Windows desktop distribution
+
+A portable Windows application image can be built with a bundled Java runtime (end users do not need to install Java separately):
+
+```powershell
+cd desktop
+$env:JAVA_HOME = 'C:\Program Files\Eclipse Adoptium\jdk-21.0.13.9-hotspot'
+.\package-windows.ps1
+```
+
+The script runs `clean verify`, assembles the runtime dependencies, and creates `target\MusomiManager-1.0.0-Windows-x64.zip`. Extract the ZIP and run `MusomiManager.exe`. The backend must already be running. To build the client for a different API host, pass its URL when packaging:
+
+```powershell
+.\package-windows.ps1 -ApiBaseUrl 'https://YOUR_HOST/api/v1'
+```
+
+This is a portable application image, not an MSI installer. The packaged client defaults to the local development API unless another API URL is supplied at build time. Do not distribute a localhost-configured package to a school using a remote server.
+
 ## Production configuration
 
 Production must use the `prod` Spring profile. The profile requires these environment variables and intentionally has no development fallbacks:

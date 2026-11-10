@@ -2,7 +2,7 @@
 
 _Last reviewed: 10 November 2026_
 _Branch: main_
-_Release assessment: V1.0.0-rc2 pushed to GitHub; pilot acceptance and deployment sign-off remain._
+_Release assessment: V1.0.0-rc3 prepared; final CI and tag publication pending; pilot acceptance and deployment sign-off remain._
 
 > This file supersedes the October 23, 2026 status snapshot. Older audit reports remain historical records and must not be treated as current implementation status.
 
@@ -16,10 +16,11 @@ Fresh verification on 10 November 2026:
 |---|---|---|
 | Backend | `mvnw clean verify`, JDK 21, Testcontainers/PostgreSQL 16 | **180 tests, 0 failures, 0 errors, 0 skipped — BUILD SUCCESS** |
 | Desktop | `mvnw clean verify`, JDK 21 | **61 tests, 0 failures, 0 errors, 0 skipped — BUILD SUCCESS** |
+| Windows package | `desktop/package-windows.ps1`, JDK 21 | **Portable app-image ZIP built, extracted, and launcher startup verified** |
 | Database migrations | Fresh Testcontainers PostgreSQL databases | Migrations through V101 applied in integration runs |
 | Backup and restore | Local PostgreSQL custom-format dump restored into isolated temporary database | **Passed** |
 | Git | Final pre-release review | `main` clean and pushed; tags `v1.0.0-rc1` and `v1.0.0-rc2` pushed |
-| GitHub Actions | Run #90 for commit `7b81dce` | **Passed** — backend, desktop, and artifact upload succeeded |
+| GitHub Actions | Run #91 for commit `2cbf48e` | **Passed** — backend, desktop, and artifact upload succeeded |
 
 ## 2. Implemented V1 areas
 
@@ -69,7 +70,7 @@ These are not all code defects; several require a real deployment or real-user e
 2. Verify administrator, teacher, and student access boundaries in the actual deployed environment.
 3. Confirm production secrets and database configuration on the actual pilot server. No school server or production database was provided during this review.
 4. Configure and test HTTPS, desktop API URL, and report-file persistence on the pilot environment.
-5. Create a tested desktop distribution/installer for the target Windows school computers; the current Maven JAR is not a self-contained installer.
+5. A tested Windows portable app-image ZIP is available with a bundled Java runtime. Rebuild it with the pilot API URL before distribution. An MSI installer is optional and should be added only if the pilot requires managed installation.
 6. Schedule automated backups and perform a restore drill on the pilot server.
 7. Obtain pilot-school acceptance and user review of the quick guides.
 
