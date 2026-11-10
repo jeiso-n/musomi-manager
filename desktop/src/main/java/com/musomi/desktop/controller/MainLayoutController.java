@@ -45,6 +45,9 @@ public class MainLayoutController {
     private Button reportsButton;
 
     @FXML
+    private Button adminReportsButton;
+
+    @FXML
     private Label roleLabel;
 
     @FXML
@@ -166,6 +169,12 @@ public class MainLayoutController {
         loadView("/fxml/report/reports.fxml");
     }
 
+    @FXML
+    private void onAdminReportsClicked() {
+        setActiveButton(adminReportsButton);
+        loadView("/fxml/report/reports.fxml");
+    }
+
 
     // =========================================================
     // ADMIN NAVIGATION
@@ -242,6 +251,7 @@ public class MainLayoutController {
         if (myClassesButton   != null) myClassesButton.setStyle(INACTIVE_STYLE);
         if (assessmentsButton != null) assessmentsButton.setStyle(INACTIVE_STYLE);
         if (reportsButton     != null) reportsButton.setStyle(INACTIVE_STYLE);
+        if (adminReportsButton != null) adminReportsButton.setStyle(INACTIVE_STYLE);
 
         // Apply active style to the selected button
         if (activeButton != null) {

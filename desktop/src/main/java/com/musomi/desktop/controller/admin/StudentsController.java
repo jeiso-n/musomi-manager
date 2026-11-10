@@ -191,7 +191,10 @@ public class StudentsController {
                 student.admissionNumber(),
                 student.currentClass(),
                 student.status(),
-                student.currentClassId()
+                student.currentClassId(),
+                student.gender(),
+                student.dateOfBirth(),
+                student.currentStreamId()
         );
     }
 
@@ -291,7 +294,6 @@ public class StudentsController {
             log.error("Unable to open add-student dialog", e);
             Toast.error(errorMessage(e));
         }
-        loadStudentsFromBackend();
     }
 
     /*
@@ -343,7 +345,6 @@ public class StudentsController {
             log.error("Unable to open edit-student dialog", e);
             Toast.error(errorMessage(e));
         }
-        loadStudentsFromBackend();
     }
 
     /*
@@ -417,6 +418,9 @@ public class StudentsController {
 
         private final SimpleStringProperty status;
         private final Long classId;
+        private final String gender;
+        private final Object dateOfBirth;
+        private final Long currentStreamId;
 
         public StudentRow(
                 Long id,
@@ -425,11 +429,17 @@ public class StudentsController {
                 String className,
                 String status
         ) {
-            this(id, name, admissionNumber, className, status, null);
+            this(id, name, admissionNumber, className, status, null, null, null, null);
         }
 
         public StudentRow(Long id, String name, String admissionNumber, String className,
                           String status, Long classId) {
+            this(id, name, admissionNumber, className, status, classId, null, null, null);
+        }
+
+        public StudentRow(Long id, String name, String admissionNumber, String className,
+                          String status, Long classId, String gender, Object dateOfBirth,
+                          Long currentStreamId) {
 
             this.id = id;
             this.name =
@@ -448,6 +458,9 @@ public class StudentsController {
             this.status =
                     new SimpleStringProperty(status);
             this.classId = classId;
+            this.gender = gender;
+            this.dateOfBirth = dateOfBirth;
+            this.currentStreamId = currentStreamId;
         }
 
         public SimpleStringProperty nameProperty() {
@@ -488,6 +501,18 @@ public class StudentsController {
         
         public Long getClassId() {
             return classId;
+        }
+
+        public String getGender() {
+            return gender;
+        }
+
+        public Object getDateOfBirth() {
+            return dateOfBirth;
+        }
+
+        public Long getCurrentStreamId() {
+            return currentStreamId;
         }
 
         public void setName(String name) {

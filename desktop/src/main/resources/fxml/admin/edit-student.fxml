@@ -41,10 +41,12 @@
 
         <VBox spacing="7.0">
 
-            <Label text="Admission Number"
+            <Label text="Admission Number (Read-Only)"
                    styleClass="form-label"/>
 
             <TextField fx:id="admissionNumberField"
+                       editable="false"
+                       disable="true"
                        promptText="Enter admission number"
                        styleClass="form-input"/>
 

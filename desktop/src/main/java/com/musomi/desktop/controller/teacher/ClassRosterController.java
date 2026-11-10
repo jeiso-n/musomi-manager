@@ -152,15 +152,17 @@ public class ClassRosterController {
     private ClassIds resolveClassIds(String displayName) {
         TeacherClassResponse[] classes = ApiClient.getInstance().get(
                 "/teacher/classes", TeacherClassResponse[].class);
+        return resolveClassIdsFromList(classes, displayName);
+    }
+
+    static ClassIds resolveClassIdsFromList(TeacherClassResponse[] classes, String displayName) {
         if (classes == null) {
             throw new IllegalStateException("The server returned no class list.");
         }
 
         List<ClassIds> matches = new ArrayList<>();
         for (TeacherClassResponse teacherClass : classes) {
-            if (teacherClass == null
-                    || teacherClass.getClassId() == null
-                    || teacherClass.getStreamId() == null) {
+            if (teacherClass == null || teacherClass.getClassId() == null) {
                 continue;
             }
             String resolvedName = joinClassAndStream(
@@ -184,25 +186,46 @@ public class ClassRosterController {
         return matches.get(0);
     }
 
-    private String joinClassAndStream(String className, String streamName) {
+    static String joinClassAndStream(String className, String streamName) {
         String name = className == null ? "" : className.trim();
         String stream = streamName == null ? "" : streamName.trim();
         return stream.isEmpty() ? name : name + " " + stream;
     }
 
+    static String buildRosterEndpointPath(Long classId, Long streamId) {
+        if (classId == null) {
+            throw new IllegalArgumentException("Class ID is required.");
+        }
+        if (streamId == null) {
+            return "/teacher/classes/" + classId + "/students";
+        }
+        return "/teacher/classes/" + classId + "/streams/" + streamId + "/students";
+    }
+
     private void loadStudents(Long classId, Long streamId) {
         allStudents.clear();
-        if (classId == null || streamId == null) {
-            showError(new IllegalArgumentException("Class and stream IDs are required."));
+        if (classId == null) {
+            showError(new IllegalArgumentException("Class ID is required."));
             return;
         }
         setStatus("Loading roster...", "Please wait while the students are loaded.");
 
-        String path = "/teacher/classes/" + classId + "/streams/" + streamId + "/students";
+        String path = buildRosterEndpointPath(classId, streamId);
         TaskRunner.run(
             () -> ApiClient.getInstance().get(path, StudentResponse[].class),
             this::showStudents,
-            this::showError
+            error -> {
+                if (streamId == null) {
+                    log.warn("Whole-class roster endpoint {} unavailable for classId={}: {}",
+                            path, classId, error.getMessage());
+                    setStatus("Whole-class roster unavailable",
+                            "This class assignment covers the whole class (no specific stream). "
+                            + "Loading a whole-class roster requires backend support for "
+                            + "GET /api/v1" + path + ".");
+                } else {
+                    showError(error);
+                }
+            }
         );
     }
 
@@ -255,7 +278,7 @@ public class ClassRosterController {
         rosterTable.setManaged(false);
     }
 
-    private record ClassIds(Long classId, Long streamId) {}
+    record ClassIds(Long classId, Long streamId) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     private record StudentResponse(

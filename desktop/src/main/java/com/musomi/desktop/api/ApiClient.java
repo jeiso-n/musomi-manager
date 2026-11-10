@@ -141,6 +141,52 @@ public final class ApiClient {
         exchange("DELETE", path, null, Void.class);
     }
 
+    /**
+     * Downloads an authenticated binary response such as a generated PDF.
+     * The normal JSON response-envelope handling is intentionally bypassed.
+     */
+    public byte[] getBytes(String path) {
+        if (AppConfig.getInstance().isMockMode()) {
+            throw new ApiException("MOCK_UNSUPPORTED", "PDF downloads are not available in mock mode");
+        }
+
+        try {
+            HttpRequest.Builder builder = HttpRequest.newBuilder()
+                    .uri(resolveUri(path))
+                    .header("Accept", "application/pdf");
+
+            if (Session.getInstance().isAuthenticated()) {
+                builder.header("Authorization", "Bearer " + Session.getInstance().getToken());
+            }
+
+            HttpResponse<byte[]> response = client.send(
+                    builder.GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+
+            if (response.statusCode() >= 400) {
+                if (response.statusCode() == 401) {
+                    Session.getInstance().clear();
+                    SceneManager.getInstance().handleUnauthorizedResponse();
+                }
+                String errorBody = response.body() == null ? ""
+                        : new String(response.body(), java.nio.charset.StandardCharsets.UTF_8);
+                throw ApiException.from(response.statusCode(), errorBody);
+            }
+
+            byte[] body = response.body();
+            if (body == null || body.length < 5
+                    || body[0] != '%' || body[1] != 'P' || body[2] != 'D'
+                    || body[3] != 'F' || body[4] != '-') {
+                throw new ApiException("INVALID_PDF", "The server response was not a valid PDF file");
+            }
+            return body;
+        } catch (IOException | InterruptedException exception) {
+            if (exception instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            throw new ApiException("Unable to download report PDF: " + exception.getMessage(), exception);
+        }
+    }
+
     // -------------------------------------------------------------------------
     // Internal Exchange
     // -------------------------------------------------------------------------

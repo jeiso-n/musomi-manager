@@ -81,8 +81,10 @@
         <!-- Save Button -->
         <HBox alignment="CENTER_RIGHT">
 
-            <Button text="Save Settings"
+            <Button fx:id="saveButton"
+                    text="Save Settings"
                     onAction="#handleSave"
+                    disable="true"
                     styleClass="primary-button"/>
 
         </HBox>

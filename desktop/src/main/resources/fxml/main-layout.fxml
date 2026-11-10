@@ -118,12 +118,8 @@
             </VBox>
 
 
-            <Region VBox.vgrow="ALWAYS"/>
-
-
             <!-- ================================================= -->
             <!-- ADMIN NAVIGATION                                  -->
-            <!-- Hidden while developing Teacher UI               -->
             <!-- ================================================= -->
 
             <VBox fx:id="adminNavSection"
@@ -137,6 +133,12 @@
                 <Button text="Dashboard"
                         maxWidth="1.7976931348623157E308"
                         onAction="#showDashboard"/>
+
+                <Button fx:id="adminReportsButton"
+                        text="Reports"
+                        maxWidth="1.7976931348623157E308"
+                        onAction="#onAdminReportsClicked"
+                        styleClass="fxml-inline-014"/>
 
                 <Button text="Users"
                         maxWidth="1.7976931348623157E308"
@@ -171,6 +173,8 @@
                         onAction="#showAuditLog"/>
 
             </VBox>
+
+            <Region VBox.vgrow="ALWAYS"/>
 
         </VBox>
     </left>

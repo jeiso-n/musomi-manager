@@ -1,5 +1,6 @@
 package com.musomi.desktop.controller;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -16,6 +17,7 @@ import com.musomi.desktop.controller.teacher.AssessmentStore.Assessment;
 import com.musomi.desktop.model.AssessmentResponse;
 import com.musomi.desktop.model.dto.TeacherClassResponse;
 import com.musomi.desktop.model.dto.UserResponse;
+import com.musomi.desktop.service.TeacherClassService;
 import com.musomi.desktop.util.TaskRunner;
 
 import javafx.scene.Node;
@@ -33,6 +35,10 @@ public class DashboardController {
     private record ClassStreamKey(Long classId, String className, Long streamId, String streamName) {}
 
     private record AdminSummary(int students, int classes, int subjects, int users) {}
+
+    record TeacherClassStats(int totalStudents, int totalClasses) {}
+
+    record TeacherAssessmentStats(int total, int draft, int published) {}
 
     private Consumer<Assessment> onOpenMarkEntry;
     private Consumer<String> onOpenAdminView;
@@ -61,20 +67,29 @@ public class DashboardController {
     private void configureTeacherDashboard(Parent root) {
         replaceTeacherQuickActions(root);
         updateCard(root, "Students", "My Students", "…", "Loading your classes...");
-        updateCard(root, "Classes", "My Classes", "…", "Classes you teach");
-        hideCard(root, "Subjects");
-        hideCard(root, "Users");
+        updateCard(root, "Classes", "My Classes", "…", "Loading your classes...");
+        updateCard(root, "Subjects", "Total Assessments", "…", "Loading your assessments...");
+        updateCard(root, "Users", "Published Assessments", "…", "Loading your assessments...");
+
+        TaskRunner.run(
+                () -> new TeacherClassService().getMyClasses(),
+                classes -> showTeacherStats(root, classes),
+                error -> {
+                    log.error("Unable to load teacher dashboard classes", error);
+                    updateCard(root, "My Students", "My Students", "—",
+                            "Unable to load class data");
+                    updateCard(root, "My Classes", "My Classes", "—",
+                            "Unable to load class data");
+                });
 
         TaskRunner.run(
                 () -> new TeacherAssessmentApi().getMyAssessments(),
                 response -> showTeacherAssessmentStats(root, response),
                 error -> {
                     log.error("Unable to load teacher dashboard assessments", error);
-                    updateCard(root, "My Students", "My Students", "—",
-                            "Unable to load assessment data");
-                    updateCard(root, "My Classes", "My Classes", "—",
-                            "Unable to load assessment data");
                     updateCard(root, "Total Assessments", "Total Assessments", "—",
+                            "Unable to load assessment data");
+                    updateCard(root, "Published Assessments", "Published Assessments", "—",
                             "Unable to load assessment data");
                 });
     }
@@ -135,7 +150,21 @@ public class DashboardController {
     }
 
     private void showTeacherStats(Parent root, TeacherClassResponse[] response) {
+        showTeacherStats(root, response == null ? List.of() : Arrays.asList(response));
+    }
+
+    private void showTeacherStats(Parent root, List<TeacherClassResponse> response) {
+        TeacherClassStats stats = calculateTeacherClassStats(response);
+
+        updateCard(root, "My Students", "My Students", String.valueOf(stats.totalStudents()),
+                "Students across your classes");
+        updateCard(root, "My Classes", "My Classes", String.valueOf(stats.totalClasses()),
+                "Classes you teach");
+    }
+
+    static TeacherClassStats calculateTeacherClassStats(List<TeacherClassResponse> response) {
         Set<ClassKey> classes = new HashSet<>();
+        Set<ClassKey> wholeClasses = new HashSet<>();
         Set<ClassStreamKey> classStreams = new HashSet<>();
         int studentCount = 0;
 
@@ -144,12 +173,31 @@ public class DashboardController {
                 if (teacherClass == null) {
                     continue;
                 }
-
-                String className = teacherClass.getClassName();
-                String streamName = teacherClass.getStreamName();
                 Long classId = teacherClass.getClassId();
+                String className = teacherClass.getClassName();
                 Long streamId = teacherClass.getStreamId();
-                classes.add(new ClassKey(classId, classId == null ? className : null));
+                String streamName = teacherClass.getStreamName();
+                ClassKey classKey = new ClassKey(classId, classId == null ? className : null);
+                classes.add(classKey);
+                if (streamId == null && (streamName == null || streamName.isBlank())) {
+                    wholeClasses.add(classKey);
+                }
+            }
+
+            for (TeacherClassResponse teacherClass : response) {
+                if (teacherClass == null) {
+                    continue;
+                }
+                Long classId = teacherClass.getClassId();
+                String className = teacherClass.getClassName();
+                Long streamId = teacherClass.getStreamId();
+                String streamName = teacherClass.getStreamName();
+                ClassKey classKey = new ClassKey(classId, classId == null ? className : null);
+                boolean isStreamSpecific = streamId != null
+                        || (streamName != null && !streamName.isBlank());
+                if (isStreamSpecific && wholeClasses.contains(classKey)) {
+                    continue;
+                }
 
                 ClassStreamKey classStream = new ClassStreamKey(
                         classId, classId == null ? className : null,
@@ -160,27 +208,44 @@ public class DashboardController {
             }
         }
 
-        updateCard(root, "My Students", "My Students", String.valueOf(studentCount),
-                "Students across your classes");
-        updateCard(root, "My Classes", "My Classes", String.valueOf(classes.size()),
-                "Classes you teach");
+        return new TeacherClassStats(studentCount, classes.size());
     }
 
     private void showTeacherAssessmentStats(
             Parent root, List<AssessmentResponse> assessments) {
-        List<AssessmentResponse> data = assessments == null ? List.of() : assessments;
-        long pending = data.stream()
-                .filter(item -> item != null && "DRAFT".equalsIgnoreCase(item.status()))
-                .count();
-        long published = data.stream()
-                .filter(item -> item != null && "PUBLISHED".equalsIgnoreCase(item.status()))
-                .count();
+        TeacherAssessmentStats stats = calculateTeacherAssessmentStats(assessments);
+        String totalDesc = stats.draft() > 0
+                ? stats.draft() + " draft, " + stats.published() + " published"
+                : "All your assessments";
+        String publishedDesc = stats.draft() > 0
+                ? stats.draft() + " draft pending"
+                : "Published assessments";
         updateCard(root, "Total Assessments", "Total Assessments",
-                String.valueOf(data.size()), "All your assessments");
+                String.valueOf(stats.total()), totalDesc);
         updateCard(root, "Pending Assessments", "Pending Assessments",
-                String.valueOf(pending), "Draft assessments");
+                String.valueOf(stats.draft()), "Draft assessments");
         updateCard(root, "Published Assessments", "Published Assessments",
-                String.valueOf(published), "Published assessments");
+                String.valueOf(stats.published()), publishedDesc);
+    }
+
+    static TeacherAssessmentStats calculateTeacherAssessmentStats(
+            List<AssessmentResponse> assessments) {
+        List<AssessmentResponse> data = assessments == null ? List.of() : assessments;
+        int total = 0;
+        int draft = 0;
+        int published = 0;
+        for (AssessmentResponse item : data) {
+            if (item == null) {
+                continue;
+            }
+            total++;
+            if ("DRAFT".equalsIgnoreCase(item.status())) {
+                draft++;
+            } else if ("PUBLISHED".equalsIgnoreCase(item.status())) {
+                published++;
+            }
+        }
+        return new TeacherAssessmentStats(total, draft, published);
     }
 
     private void replaceTeacherQuickActions(Parent root) {

@@ -1,101 +1,130 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.geometry.Pos?>
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="com.musomi.desktop.controller.report.ReportPreviewController"
-            prefWidth="1000.0"
-            prefHeight="630.0">
+            prefWidth="1100.0"
+            prefHeight="760.0">
 
     <center>
-        <VBox spacing="20.0">
-            <padding>
-                <Insets top="24.0" right="30.0" bottom="24.0" left="30.0"/>
-            </padding>
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER">
+            <content>
+                <VBox spacing="18.0">
+                    <padding>
+                        <Insets top="24.0" right="28.0" bottom="28.0" left="28.0"/>
+                    </padding>
 
-            <VBox spacing="5.0">
-                <Label text="Reports" styleClass="h1"/>
-                <Label text="See how your class is performing" styleClass="body-small"/>
-            </VBox>
+                    <VBox spacing="5.0">
+                        <Label text="Reports" styleClass="h1"/>
+                        <Label text="Generate student report cards and review class performance for a selected term."
+                               styleClass="body-small"/>
+                    </VBox>
 
-            <HBox spacing="8.0" alignment="CENTER_LEFT">
-                <Label text="LOCAL DATA" styleClass="badge-inactive"/>
-                <Label text="(not a school report)"
-                       styleClass="body-small fxml-inline-017"
-                       />
-            </HBox>
+                    <VBox spacing="10.0">
+                        <HBox spacing="12.0" alignment="CENTER_LEFT">
+                            <VBox spacing="5.0">
+                                <Label text="Class" styleClass="form-label"/>
+                                <ComboBox fx:id="classComboBox" prefWidth="210.0"
+                                          promptText="Select class"/>
+                            </VBox>
+                            <VBox spacing="5.0">
+                                <Label text="Stream" styleClass="form-label"/>
+                                <ComboBox fx:id="streamComboBox" prefWidth="180.0"
+                                          promptText="Select stream"/>
+                            </VBox>
+                            <VBox spacing="5.0">
+                                <Label text="Term" styleClass="form-label"/>
+                                <ComboBox fx:id="termComboBox" prefWidth="180.0"
+                                          promptText="Select term"/>
+                            </VBox>
+                        </HBox>
+                        <HBox alignment="CENTER_LEFT">
+                            <Button fx:id="generateButton"
+                                    text="Generate / Refresh Reports"
+                                    onAction="#handleGenerateReports"
+                                    styleClass="button-primary"/>
+                        </HBox>
+                        <Label text="Generating reports saves a new result snapshot. Partial and no-results reports are retained and are not ranked."
+                               styleClass="body-small"/>
+                    </VBox>
 
-            <HBox spacing="12.0" alignment="CENTER_LEFT">
-                <Label text="Class:" styleClass="form-label"/>
-                <ComboBox fx:id="classComboBox" prefWidth="240.0"/>
-            </HBox>
+                    <VBox spacing="10.0" styleClass="card">
+                        <Label text="CLASS PERFORMANCE SUMMARY" styleClass="section-title"/>
+                        <GridPane hgap="28.0" vgap="14.0">
+                            <VBox spacing="3.0" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                <Label fx:id="studentCountLabel" text="—" styleClass="h2"/>
+                                <Label text="Reports in summary" styleClass="body-small"/>
+                            </VBox>
+                            <VBox spacing="3.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                                <Label fx:id="classAverageLabel" text="—" styleClass="h2"/>
+                                <Label text="Class average (complete only)" styleClass="body-small"/>
+                            </VBox>
+                            <VBox spacing="3.0" GridPane.columnIndex="2" GridPane.rowIndex="0">
+                                <Label fx:id="completeCountLabel" text="—" styleClass="h2"/>
+                                <Label text="Complete" styleClass="body-small"/>
+                            </VBox>
+                            <VBox spacing="3.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                                <Label fx:id="partialCountLabel" text="—" styleClass="h2"/>
+                                <Label text="Partial" styleClass="body-small"/>
+                            </VBox>
+                            <VBox spacing="3.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                                <Label fx:id="noResultsCountLabel" text="—" styleClass="h2"/>
+                                <Label text="No published results" styleClass="body-small"/>
+                            </VBox>
+                        </GridPane>
+                        <Label text="Grade distribution (complete reports only)" styleClass="form-label"/>
+                        <Label fx:id="gradeDistributionLabel" text="—" styleClass="body-small"/>
+                    </VBox>
 
-            <HBox spacing="16.0">
-                <VBox spacing="12.0"
-                      HBox.hgrow="ALWAYS"
-                      maxWidth="1.7976931348623157E308"
-                       styleClass="fxml-inline-018">
-                    <Label text="CLASS SUMMARY"
-                            styleClass="fxml-inline-019"/>
-                    <HBox spacing="40.0">
-                        <VBox spacing="4.0">
-                            <Label fx:id="studentCountLabel"
-                                    styleClass="fxml-inline-020"/>
-                            <Label text="Students in report"
-                                    styleClass="fxml-inline-021"/>
+                    <VBox spacing="10.0">
+                        <Label text="STUDENT REPORT CARDS" styleClass="section-title"/>
+                        <TableView fx:id="reportTable" prefHeight="270.0"
+                                   visible="false" managed="false">
+                            <columns>
+                                <TableColumn fx:id="studentNameCol" text="Student" prefWidth="190.0"/>
+                                <TableColumn fx:id="statusCol" text="Report status" prefWidth="175.0"/>
+                                <TableColumn fx:id="completenessCol" text="Marks recorded / expected" prefWidth="145.0"/>
+                                <TableColumn fx:id="averageCol" text="Average" prefWidth="85.0"/>
+                                <TableColumn fx:id="gradeCol" text="Grade" prefWidth="65.0"/>
+                                <TableColumn fx:id="positionCol" text="Position" prefWidth="100.0"/>
+                                <TableColumn fx:id="downloadCol" text="PDF" prefWidth="125.0"/>
+                            </columns>
+                        </TableView>
+                        <VBox spacing="5.0" alignment="CENTER" minHeight="75.0">
+                            <Label fx:id="emptyStateTitle" text="Select a class and term"
+                                   styleClass="h3"/>
+                            <Label fx:id="emptyStateMessage"
+                                   text="Generate reports to see student results and downloadable PDFs."
+                                   styleClass="body-small" wrapText="true"/>
                         </VBox>
-                        <VBox spacing="4.0">
-                            <Label fx:id="classAverageLabel"
-                                    styleClass="fxml-inline-020"/>
-                            <Label text="Class average"
-                                    styleClass="fxml-inline-021"/>
-                        </VBox>
-                    </HBox>
-                </VBox>
-            </HBox>
+                    </VBox>
 
-            <VBox spacing="12.0" VBox.vgrow="ALWAYS">
-                <TableView fx:id="reportTable"
-                           styleClass="assessment-table"
-                           VBox.vgrow="ALWAYS">
-                    <columns>
-                        <TableColumn fx:id="studentNameCol"
-                                     text="Student Name"
-                                     prefWidth="400.0"/>
-                        <TableColumn fx:id="countCol"
-                                     text="Assessments Counted"
-                                     prefWidth="200.0"/>
-                        <TableColumn fx:id="averageCol"
-                                     text="Average %"
-                                     prefWidth="200.0"/>
-                        <TableColumn fx:id="gradeCol"
-                                     text="Grade"
-                                     prefWidth="200.0"/>
-                    </columns>
-                </TableView>
-
-                <VBox fx:id="emptyState"
-                      alignment="CENTER"
-                      spacing="8.0"
-                      visible="false"
-                      managed="false"
-                      VBox.vgrow="ALWAYS">
-                    <Label text="○"
-                           styleClass="text-muted fxml-inline-022"
-                           />
-                    <Label fx:id="emptyStateTitle" styleClass="h3"/>
-                    <Label fx:id="emptyStateMessage" styleClass="body-small"/>
+                    <VBox spacing="10.0">
+                        <Label text="SUBJECT PERFORMANCE" styleClass="section-title"/>
+                        <TableView fx:id="subjectTable" prefHeight="230.0">
+                            <columns>
+                                <TableColumn fx:id="subjectNameCol" text="Subject" prefWidth="240.0"/>
+                                <TableColumn fx:id="subjectAverageCol" text="Average" prefWidth="110.0"/>
+                                <TableColumn fx:id="studentsWithMarksCol" text="Students with marks" prefWidth="150.0"/>
+                                <TableColumn fx:id="studentsMissingMarksCol" text="Students missing marks" prefWidth="170.0"/>
+                                <TableColumn fx:id="subjectCompletenessCol" text="Recorded / expected assessments" prefWidth="210.0"/>
+                            </columns>
+                        </TableView>
+                    </VBox>
                 </VBox>
-            </VBox>
-        </VBox>
+            </content>
+        </ScrollPane>
     </center>
 </BorderPane>

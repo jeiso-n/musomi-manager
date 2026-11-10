@@ -35,6 +35,8 @@ public class MyClassesController {
     // -------------------------------------------------------------------------
 
     public static class ClassCard {
+        private final Long    classId;
+        private final Long    streamId;
         private final String  className;
         private final String  subject;
         private final int     students;
@@ -43,6 +45,13 @@ public class MyClassesController {
 
         public ClassCard(String className, String subject,
                          int students, int assessments, int draftAssessments) {
+            this(null, null, className, subject, students, assessments, draftAssessments);
+        }
+
+        public ClassCard(Long classId, Long streamId, String className, String subject,
+                         int students, int assessments, int draftAssessments) {
+            this.classId      = classId;
+            this.streamId     = streamId;
             this.className    = className;
             this.subject      = subject;
             this.students     = students;
@@ -50,6 +59,8 @@ public class MyClassesController {
             this.draftAssessments = draftAssessments;
         }
 
+        public Long   getClassId()     { return classId;      }
+        public Long   getStreamId()    { return streamId;     }
         public String getClassName()   { return className;    }
         public String getSubject()     { return subject;      }
         public int    getStudents()    { return students;     }
@@ -99,6 +110,8 @@ public class MyClassesController {
                             ? streamName : className + " " + streamName;
                 }
                 classes.add(new ClassCard(
+                        teacherClass.getClassId(),
+                        teacherClass.getStreamId(),
                         className,
                         teacherClass.getSubjectName() == null ? "" : teacherClass.getSubjectName(),
                         teacherClass.getStudentCount(),
@@ -287,11 +300,21 @@ public class MyClassesController {
             Node roster = loader.load();
 
             ClassRosterController rosterCtrl = loader.getController();
-            rosterCtrl.setClassData(
-                    cls.getClassName(),
-                    cls.getStudents(),
-                    () -> returnToMyClasses(sp)
-            );
+            if (cls.getClassId() != null) {
+                rosterCtrl.setClassData(
+                        cls.getClassId(),
+                        cls.getStreamId(),
+                        cls.getClassName(),
+                        cls.getStudents(),
+                        () -> returnToMyClasses(sp)
+                );
+            } else {
+                rosterCtrl.setClassData(
+                        cls.getClassName(),
+                        cls.getStudents(),
+                        () -> returnToMyClasses(sp)
+                );
+            }
 
             // Replace the content in the parent StackPane
             sp.getChildren().setAll(roster);

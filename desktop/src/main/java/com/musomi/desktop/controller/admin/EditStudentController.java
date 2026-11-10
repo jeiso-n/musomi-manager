@@ -5,6 +5,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 
 import java.util.List;
+import java.util.Objects;
 
 import com.musomi.desktop.api.AdminClassApi;
 import com.musomi.desktop.api.AdminStudentApi;
@@ -34,6 +35,7 @@ public class EditStudentController {
 
     @FXML
     private void initialize() {
+        configureReadOnlyAdmissionNumber(admissionNumberField);
 
         TaskRunner.run(
                 adminClassApi::getClasses,
@@ -49,10 +51,15 @@ public class EditStudentController {
                         ? "Unable to load classes." : error.getMessage())
         );
 
-        statusComboBox.getItems().addAll(
-                "Active",
-                "Inactive"
-        );
+        statusComboBox.getItems().setAll(AdminStudentApi.VALID_STATUSES);
+    }
+
+    static void configureReadOnlyAdmissionNumber(TextField field) {
+        if (field != null) {
+            field.setEditable(false);
+            field.setDisable(true);
+            field.setFocusTraversable(false);
+        }
     }
 
     public void setStudentRow(
@@ -60,6 +67,7 @@ public class EditStudentController {
     ) {
 
         this.studentRow = studentRow;
+        configureReadOnlyAdmissionNumber(admissionNumberField);
 
         nameField.setText(
                 studentRow.getName()
@@ -74,7 +82,7 @@ public class EditStudentController {
         );
 
         statusComboBox.setValue(
-                studentRow.getStatus()
+                AdminStudentApi.normalizeStatus(studentRow.getStatus())
         );
     }
 
@@ -96,11 +104,6 @@ public class EditStudentController {
         String name =
                 nameField.getText().trim();
 
-        String admissionNumber =
-                admissionNumberField
-                        .getText()
-                        .trim();
-
         String className =
                 classComboBox.getValue();
 
@@ -108,7 +111,6 @@ public class EditStudentController {
                 statusComboBox.getValue();
 
         if (name.isEmpty()
-                || admissionNumber.isEmpty()
                 || className == null
                 || status == null) {
 
@@ -120,9 +122,13 @@ public class EditStudentController {
                 .map(ClassResponse::id)
                 .findFirst()
                 .orElse(studentRow.getClassId());
-        AdminStudentApi.UpdateStudentRequest request =
-                new AdminStudentApi.UpdateStudentRequest(
-                        name, null, null, classId, null, status);
+        final AdminStudentApi.UpdateStudentRequest request;
+        try {
+            request = buildUpdateRequest(studentRow, name, classId, status);
+        } catch (IllegalArgumentException ex) {
+            Toast.error(ex.getMessage());
+            return;
+        }
         TaskRunner.run(
                 () -> adminStudentApi.updateStudent(studentRow.getId(), request),
                 ignored -> {
@@ -134,8 +140,35 @@ public class EditStudentController {
                         ? "Unable to update student." : error.getMessage()));
     }
 
+    static AdminStudentApi.UpdateStudentRequest buildUpdateRequest(
+            StudentsController.StudentRow studentRow,
+            String fullName,
+            Long selectedClassId,
+            String status) {
+        Long effectiveClassId = selectedClassId != null
+                ? selectedClassId
+                : (studentRow != null ? studentRow.getClassId() : null);
+        Long preservedStreamId = studentRow != null
+                && Objects.equals(effectiveClassId, studentRow.getClassId())
+                ? studentRow.getCurrentStreamId()
+                : null;
+        return new AdminStudentApi.UpdateStudentRequest(
+                fullName,
+                studentRow != null ? studentRow.getGender() : null,
+                studentRow != null ? studentRow.getDateOfBirth() : null,
+                effectiveClassId,
+                preservedStreamId,
+                AdminStudentApi.normalizeStatus(status)
+        );
+    }
+
     public boolean isSaved() { return saved; }
     public String getName() { return nameField.getText().trim(); }
+    public String getAdmissionNumber() {
+        return studentRow != null
+                ? studentRow.getAdmissionNumber()
+                : (admissionNumberField != null ? admissionNumberField.getText().trim() : null);
+    }
     public String getClassName() { return classComboBox.getValue(); }
     public String getStatus() { return statusComboBox.getValue(); }
 }
