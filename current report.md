@@ -509,3 +509,31 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 - Desktop clean test/package: **61 tests passed, 0 failures/errors/skips; BUILD SUCCESS**; JAR packaged.
 - No live student password was changed in this step. The three generated test password/hash pairs were not applied to the database. No database records, Docker volumes, or student data were reset.
 - Next live step after the updated backend and desktop are relaunched: sign in as ADMIN, open Students, choose a test student (e.g. STU001), click **Reset Password**, copy the displayed temporary password, then sign in at `http://localhost:8080/login` using school **Musomi Secondary School**, username **STU001**, and the new password. This must be done before claiming the live student login works.
+
+
+## STUDENT PASSWORD MANAGEMENT — ADMIN-SET PERMANENT PASSWORDS — 2026-11-10
+
+### Design decision
+- Each student retains one individual, school-scoped portal account. There is no shared/global password across students.
+- The administrator's own account remains separate. An authenticated ADMIN can set a password for an active student from Admin → Students → Reset Password.
+- The dialog asks the administrator to enter and confirm the chosen password (8–128 characters). The chosen password becomes the student's actual login password immediately; it is not a temporary password.
+- Student self-service password changes continue to update the same linked User account/hash, so the latest password is the one used for student portal login.
+
+### Backend and security
+- Added `SetStudentPasswordRequest` with request validation (non-blank, 8–128 characters).
+- Changed `POST /api/v1/admin/students/{id}/reset-password` to accept the administrator-selected password and return only a success message; it never returns or echoes the password.
+- The service checks that the student belongs to the administrator's school, is active, and has an active linked STUDENT account. It stores only the configured password encoder hash, clears failed-login lockout state, and records `STUDENT_PASSWORD_CHANGED_BY_ADMIN` in the audit log.
+- The password is not written to application logs or audit details. No common password is assigned to students.
+- The Create Student Logins flow remains available for genuinely unlinked students; it still creates a random initial credential once because those accounts need an initial secret. Existing linked students use the new admin-set password action.
+
+### Desktop integration
+- Replaced the one-time generated-password reset dialog with a password + confirmation dialog.
+- The desktop API sends the chosen password to the backend and displays a success message only; the password is not displayed again after submission.
+- The UI validates matching values and the 8–128 character length before submitting.
+
+### Regression verification
+- Backend clean test: `mvnw clean test` — **178 tests, 0 failures, 0 errors, 1 skipped; BUILD SUCCESS**. Testcontainers applied all 28 migrations through V101 on disposable PostgreSQL databases.
+- Desktop clean test/package: `mvnw clean test package` — **61 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS**.
+- `git diff --check` passed.
+- No live student password was changed, no existing user account was modified, and no persistent database, Docker volume, or student data was reset.
+- This implementation is ready for an administrator to set a chosen password for a specific student, then verify that student can sign in with their admission number and the newly chosen password.

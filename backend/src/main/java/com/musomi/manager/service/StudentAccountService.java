@@ -108,41 +108,35 @@ public class StudentAccountService {
     }
 
     /**
-     * Rotates credentials for one existing student account and returns the new
-     * temporary password exactly once to the authorized school administrator.
+     * Sets a permanent password on the student's one canonical User account.
+     * The same hash is used for student portal login and self-service changes.
      */
     @Transactional
-    public StudentAccountCredentialResponse resetStudentPassword(
-            Long studentId, Long schoolId, Long adminUserId) {
+    public void setStudentPassword(Long studentId, Long schoolId, Long adminUserId, String newPassword) {
         if (studentId == null || studentId <= 0 || schoolId == null || schoolId <= 0
                 || adminUserId == null || adminUserId <= 0) {
             throw new IllegalArgumentException("A valid student, school and administrator are required.");
         }
-
+        if (newPassword == null || newPassword.isBlank() || newPassword.length() < 8
+                || newPassword.length() > 128) {
+            throw new IllegalArgumentException("Password must be between 8 and 128 characters.");
+        }
         Student student = studentRepository.findByIdAndSchoolId(studentId, schoolId)
                 .orElseThrow(() -> new IllegalArgumentException("Student was not found in this school."));
         if (!Boolean.TRUE.equals(student.getIsActive()) || !"ACTIVE".equalsIgnoreCase(student.getStatus())) {
-            throw new IllegalArgumentException("Only active students can have portal passwords reset.");
+            throw new IllegalArgumentException("Only active students can have their portal password changed.");
         }
-
         User user = student.getUser();
         if (user == null || user.getRole() != Role.STUDENT
                 || !Boolean.TRUE.equals(user.getIsActive())
                 || user.getSchool() == null || !schoolId.equals(user.getSchool().getId())) {
             throw new IllegalArgumentException("This student does not have an active linked student login.");
         }
-
-        String temporaryPassword = generateTemporaryPassword();
-        user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setFailedLoginAttempts(0);
         user.setLockedUntil(null);
         userRepository.save(user);
-
-        auditService.log("STUDENT_PASSWORD_RESET", "Student", student.getId(), adminUserId, schoolId);
-
-        return new StudentAccountCredentialResponse(
-                student.getId(), student.getFullName(), student.getAdmissionNumber(),
-                user.getUsername(), temporaryPassword);
+        auditService.log("STUDENT_PASSWORD_CHANGED_BY_ADMIN", "Student", student.getId(), adminUserId, schoolId);
     }
 
     private String generateTemporaryPassword() {

@@ -3,9 +3,9 @@ package com.musomi.manager.controller.api;
 import java.util.List;
 
 import com.musomi.manager.dto.request.CreateStudentRequest;
+import com.musomi.manager.dto.request.SetStudentPasswordRequest;
 import com.musomi.manager.dto.request.UpdateStudentRequest;
 import com.musomi.manager.dto.response.ApiResponse;
-import com.musomi.manager.dto.response.StudentAccountCredentialResponse;
 import com.musomi.manager.dto.response.StudentAccountProvisioningResponse;
 import com.musomi.manager.dto.response.StudentResponse;
 import com.musomi.manager.service.StudentAccountService;
@@ -65,13 +65,16 @@ public class AdminStudentApiController {
     }
 
     /**
-     * Rotates an existing student's password and returns the new temporary
-     * credential once to the authorized school administrator.
+     * Sets a permanent password for one active student portal account.
+     * The password is never echoed in the response.
      */
     @PostMapping("/{id}/reset-password")
-    public ApiResponse<StudentAccountCredentialResponse> resetStudentPassword(@PathVariable Long id) {
-        return ApiResponse.success(studentAccountService.resetStudentPassword(
-                id, CurrentUser.getSchoolId(), CurrentUser.getUserId()));
+    public ApiResponse<String> resetStudentPassword(
+            @PathVariable Long id,
+            @Valid @RequestBody SetStudentPasswordRequest request) {
+        studentAccountService.setStudentPassword(
+                id, CurrentUser.getSchoolId(), CurrentUser.getUserId(), request.password());
+        return ApiResponse.success("Student password updated successfully.");
     }
 
     @GetMapping("/{id}")

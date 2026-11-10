@@ -78,15 +78,13 @@ class StudentAccountServiceTest {
         when(passwordEncoder.encode(any(String.class))).thenReturn("new-encoded-password");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var result = service.resetStudentPassword(11L, 1L, 99L);
+        service.setStudentPassword(11L, 1L, 99L, "ValidPass123");
 
-        assertThat(result.studentId()).isEqualTo(11L);
-        assertThat(result.username()).isEqualTo("STU/002");
-        assertThat(result.temporaryPassword()).hasSize(12);
         assertThat(existingUser.getPasswordHash()).isEqualTo("new-encoded-password");
         assertThat(existingUser.getFailedLoginAttempts()).isZero();
         assertThat(existingUser.getLockedUntil()).isNull();
-        verify(auditService).log("STUDENT_PASSWORD_RESET", "Student", 11L, 99L, 1L);
+        verify(passwordEncoder).encode("ValidPass123");
+        verify(auditService).log("STUDENT_PASSWORD_CHANGED_BY_ADMIN", "Student", 11L, 99L, 1L);
     }
 
     @Test
@@ -99,7 +97,7 @@ class StudentAccountServiceTest {
         when(studentRepository.findByIdAndSchoolId(13L, 1L)).thenReturn(Optional.of(student));
 
         org.assertj.core.api.Assertions.assertThatThrownBy(
-                () -> service.resetStudentPassword(13L, 1L, 99L))
+                () -> service.setStudentPassword(13L, 1L, 99L, "ValidPass123"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Only active students");
     }

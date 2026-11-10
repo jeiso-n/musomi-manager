@@ -14,6 +14,10 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.Dialog;
+import javafx.scene.layout.GridPane;
+import javafx.geometry.Insets;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.control.TableCell;
@@ -285,49 +289,49 @@ public class StudentsController {
     }
 
     private void handleResetStudentPassword(StudentRow student) {
-        if (!Modal.confirm("Generate a new temporary portal password for "
-                + student.getName() + "? Their current password will stop working immediately.")) {
-            return;
-        }
-        TaskRunner.run(
-                () -> adminStudentApi.resetStudentPassword(student.getId()),
-                this::showResetCredential,
-                error -> {
-                    log.error("Failed to reset student portal password for student {}", student.getId(), error);
-                    Toast.error(errorMessage(error));
-                }
-        );
-    }
-
-    private void showResetCredential(StudentAccountCredentialResponse credential) {
-        if (credential == null) {
-            Toast.error("The server did not return the new student credential.");
-            return;
-        }
-        String output = "STUDENT PORTAL TEMPORARY LOGIN\n\n"
-                + "Student: " + credential.fullName() + "\n"
-                + "Admission Number: " + credential.admissionNumber() + "\n"
-                + "Username: " + credential.username() + "\n"
-                + "Temporary Password: " + credential.temporaryPassword() + "\n\n"
-                + "Give this password only to the student. It is shown once.";
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Student Password Reset");
-        alert.setHeaderText("Temporary password generated");
-        alert.setContentText("Copy and securely share this credential before closing this window.");
-        TextArea details = new TextArea(output);
-        details.setEditable(false);
-        details.setWrapText(false);
-        details.setPrefRowCount(8);
-        details.setPrefColumnCount(65);
-        alert.getDialogPane().setExpandableContent(details);
-        alert.getDialogPane().setExpanded(true);
-        ButtonType copyButton = new ButtonType("Copy credential", ButtonBar.ButtonData.LEFT);
-        alert.getButtonTypes().add(copyButton);
-        alert.showAndWait().filter(copyButton::equals).ifPresent(ignored -> {
-            ClipboardContent clipboardContent = new ClipboardContent();
-            clipboardContent.putString(output);
-            Clipboard.getSystemClipboard().setContent(clipboardContent);
-            Toast.success("Student credential copied to clipboard");
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Set Student Password");
+        dialog.setHeaderText("Choose a permanent portal password for " + student.getName());
+        PasswordField passwordField = new PasswordField();
+        passwordField.setPromptText("At least 8 characters");
+        PasswordField confirmationField = new PasswordField();
+        confirmationField.setPromptText("Enter the password again");
+        javafx.scene.control.Label hint = new javafx.scene.control.Label(
+                "This becomes the student's actual login password immediately. They can change it later.");
+        GridPane fields = new GridPane();
+        fields.setHgap(10);
+        fields.setVgap(10);
+        fields.setPadding(new Insets(12));
+        fields.add(new javafx.scene.control.Label("New password"), 0, 0);
+        fields.add(passwordField, 1, 0);
+        fields.add(new javafx.scene.control.Label("Confirm password"), 0, 1);
+        fields.add(confirmationField, 1, 1);
+        fields.add(hint, 0, 2, 2, 1);
+        dialog.getDialogPane().setContent(fields);
+        ButtonType saveButton = new ButtonType("Save Password", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButton, ButtonType.CANCEL);
+        dialog.getDialogPane().lookupButton(saveButton).addEventFilter(
+                javafx.event.ActionEvent.ACTION, event -> {
+                    String password = passwordField.getText();
+                    if (password == null || password.length() < 8 || password.length() > 128) {
+                        Toast.error("Password must be between 8 and 128 characters.");
+                        event.consume();
+                    } else if (!password.equals(confirmationField.getText())) {
+                        Toast.error("The password and confirmation do not match.");
+                        event.consume();
+                    }
+                });
+        dialog.showAndWait().filter(saveButton::equals).ifPresent(button -> {
+            String chosenPassword = passwordField.getText();
+            TaskRunner.run(
+                    () -> adminStudentApi.resetStudentPassword(student.getId(), chosenPassword),
+                    message -> Toast.success(message == null ? "Student password updated." : message),
+                    error -> {
+                        log.error("Failed to set student portal password for student {}", student.getId(), error);
+                        Toast.error(errorMessage(error));
+                    });
+            passwordField.clear();
+            confirmationField.clear();
         });
     }
 
