@@ -3,7 +3,6 @@ package com.musomi.manager.integration;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.musomi.manager.AbstractIntegrationTest;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -97,10 +96,32 @@ class AssessmentIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @Disabled("Creating an assessment initializes empty score rows for the seeded roster, so publishing fails with CANNOT_PUBLISH_EMPTY.")
     @DisplayName("should throw when updating published assessment")
     void shouldThrowWhenUpdatingPublishedAssessment() throws Exception {
         long id = createAssessment().path("data").path("id").asLong();
+
+        MvcResult gridResult = mockMvc.perform(get("/api/v1/teacher/assessments/{id}/grid", id)
+                        .with(withAuthenticatedUser("TEACHER", 2L, 1L)))
+                .andExpect(status().isOk())
+                .andReturn();
+        JsonNode students = objectMapper.readTree(gridResult.getResponse().getContentAsString())
+                .path("data").path("students");
+        org.assertj.core.api.Assertions.assertThat(students.isArray()).isTrue();
+        org.assertj.core.api.Assertions.assertThat(students.size()).isGreaterThan(0);
+
+        java.util.List<Map<String, Object>> entries = new java.util.ArrayList<>();
+        for (JsonNode student : students) {
+            entries.add(Map.of(
+                    "studentId", student.path("id").asLong(),
+                    "score", 75,
+                    "feedback", "Integration test"));
+        }
+        mockMvc.perform(post("/api/v1/teacher/assessments/{id}/scores/batch", id)
+                        .with(withAuthenticatedUser("TEACHER", 2L, 1L))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("scores", entries))))
+                .andExpect(status().isOk());
+
         mockMvc.perform(post("/api/v1/teacher/assessments/{id}/publish", id)
                         .with(withAuthenticatedUser("TEACHER", 2L, 1L)))
                 .andExpect(status().isOk());
