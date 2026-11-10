@@ -2,7 +2,7 @@
 
 _Last reviewed: 10 November 2026_
 _Branch: main_
-_Release assessment: V1 release candidate; pilot acceptance and deployment sign-off remain._
+_Release assessment: V1.0.0-rc2 pushed to GitHub; pilot acceptance and deployment sign-off remain._
 
 > This file supersedes the October 23, 2026 status snapshot. Older audit reports remain historical records and must not be treated as current implementation status.
 
@@ -18,7 +18,8 @@ Fresh verification on 10 November 2026:
 | Desktop | `mvnw clean verify`, JDK 21 | **61 tests, 0 failures, 0 errors, 0 skipped — BUILD SUCCESS** |
 | Database migrations | Fresh Testcontainers PostgreSQL databases | Migrations through V101 applied in integration runs |
 | Backup and restore | Local PostgreSQL custom-format dump restored into isolated temporary database | **Passed** |
-| Git | Final pre-release review | Changes pending commit; no force-push or history rewrite |
+| Git | Final pre-release review | `main` clean and pushed; tags `v1.0.0-rc1` and `v1.0.0-rc2` pushed |
+| GitHub Actions | Run #90 for commit `7b81dce` | **Passed** — backend, desktop, and artifact upload succeeded |
 
 ## 2. Implemented V1 areas
 
@@ -67,11 +68,14 @@ These are not all code defects; several require a real deployment or real-user e
 1. Execute the complete admin → teacher assignment → assessment → mark entry → publish → student results → report download flow on the running application with authorized accounts.
 2. Verify administrator, teacher, and student access boundaries in the actual deployed environment.
 3. Confirm production secrets and database configuration on the actual pilot server. No school server or production database was provided during this review.
-4. Configure and test HTTPS, desktop API URL, report-file persistence, and a distributable Windows desktop package for the pilot environment.
-5. Schedule automated backups and perform a restore drill on the pilot server.
-6. Obtain pilot-school acceptance and user review of the quick guides.
+4. Configure and test HTTPS, desktop API URL, and report-file persistence on the pilot environment.
+5. Create a tested desktop distribution/installer for the target Windows school computers; the current Maven JAR is not a self-contained installer.
+6. Schedule automated backups and perform a restore drill on the pilot server.
+7. Obtain pilot-school acceptance and user review of the quick guides.
 
 Class-summary PDF export and a desktop stream filter in the Reports screen remain known reporting enhancements. Decide whether they are required for the first pilot; do not silently represent them as complete.
+
+The existing local development administrator's stored password hash had already been changed from the original seed hash. The repeatable development seed correction intentionally preserved that custom hash; do not assume `admin/password123` works in the current database. No administrator or student password was reset during this release-closure review. Student `STU001` (Alice Nakato) remains active and linked to a student login; use the Admin → Students → Reset Password workflow to set her individual password once signed in with the existing administrator credential.
 
 ## 6. How to run locally
 
@@ -79,6 +83,6 @@ See the repository README. Start PostgreSQL with `docker compose up -d postgres`
 
 ## 7. Release decision
 
-**Current decision: V1 release candidate, not yet production/pilot signed off.**
+**Current decision: V1.0.0-rc2 is ready for controlled pilot preparation, but is not yet production/pilot signed off.**
 
 The backend and desktop verification suites now pass with zero skipped tests, and a local backup has been restored successfully. Final V1 sign-off requires the real application acceptance workflow and deployment gates in `docs/07-operations/V1_RELEASE_CHECKLIST.md`.
