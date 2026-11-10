@@ -1,7 +1,5 @@
 package com.musomi.desktop.controller;
 
-import com.musomi.desktop.controller.teacher.AssessmentStore.Assessment;
-import com.musomi.desktop.controller.teacher.MarkEntryController;
 import com.musomi.desktop.config.SceneManager;
 import com.musomi.desktop.config.Session;
 import com.musomi.desktop.model.GlobalSearchResult;
@@ -540,14 +538,14 @@ public class MainLayoutController {
 
     @FXML
     private void showMarkEntry() {
-        openMarkEntry(null);
+        openMarkEntry();
     }
 
-    private void openMarkEntry(Assessment assessment) {
+    private void openMarkEntry() {
 
         setActiveButton(markEntryButton);
 
-        loadView("/fxml/teacher/mark-entry.fxml", assessment);
+        loadView("/fxml/teacher/mark-entry.fxml");
     }
 
     @FXML
@@ -726,10 +724,6 @@ public class MainLayoutController {
     // =========================================================
 
     private void loadView(String fxmlPath) {
-        loadView(fxmlPath, null);
-    }
-
-    private void loadView(String fxmlPath, Assessment assessment) {
 
         if (!Session.getInstance().isAuthenticated()) {
 
@@ -759,11 +753,6 @@ public class MainLayoutController {
                 dashboardController.setOnOpenAdminView(this::loadView);
 
                 dashboardController.configureDashboard(view);
-
-            } else if (loader.getController() instanceof MarkEntryController markEntryController
-                    && assessment != null) {
-
-                markEntryController.setData(assessment);
 
             } else if (loader.getController() instanceof ProfileController profileController) {
 

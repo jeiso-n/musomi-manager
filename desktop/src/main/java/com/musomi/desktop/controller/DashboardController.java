@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import com.musomi.desktop.api.ApiClient;
 import com.musomi.desktop.api.TeacherAssessmentApi;
 import com.musomi.desktop.config.Session;
-import com.musomi.desktop.controller.teacher.AssessmentStore.Assessment;
 import com.musomi.desktop.model.AssessmentResponse;
 import com.musomi.desktop.model.dto.TeacherClassResponse;
 import com.musomi.desktop.model.dto.UserResponse;
@@ -40,10 +39,10 @@ public class DashboardController {
 
     record TeacherAssessmentStats(int total, int draft, int published) {}
 
-    private Consumer<Assessment> onOpenMarkEntry;
+    private Runnable onOpenMarkEntry;
     private Consumer<String> onOpenAdminView;
 
-    public void setOnOpenMarkEntry(Consumer<Assessment> onOpenMarkEntry) {
+    public void setOnOpenMarkEntry(Runnable onOpenMarkEntry) {
         this.onOpenMarkEntry = onOpenMarkEntry;
     }
 
@@ -258,7 +257,7 @@ public class DashboardController {
         markEntry.setMaxWidth(Double.MAX_VALUE);
         markEntry.setOnAction(event -> {
             if (onOpenMarkEntry != null) {
-                onOpenMarkEntry.accept(null);
+                onOpenMarkEntry.run();
             }
         });
         panel.getChildren().setAll(heading, markEntry);
