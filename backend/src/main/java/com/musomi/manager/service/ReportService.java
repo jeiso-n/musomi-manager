@@ -46,6 +46,7 @@ import com.musomi.manager.repository.TeacherAssignmentRepository;
 import com.musomi.manager.util.SchoolScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,6 +68,9 @@ public class ReportService {
     private final SchoolSettingsRepository schoolSettingsRepository;
     private final SchoolRepository schoolRepository;
     private final PdfService pdfService;
+
+    @Value("${musomi.reports.storage-dir:data/reports}")
+    private String reportStorageDirectory = "data/reports";
 
     /** Generates PDF report cards for active students in a class and stream. */
     @Transactional
@@ -585,7 +589,7 @@ public class ReportService {
         String admissionNumber = student.getAdmissionNumber() == null || student.getAdmissionNumber().isBlank()
                 ? "student-" + student.getId()
                 : student.getAdmissionNumber().replaceAll("[^A-Za-z0-9._-]", "_");
-        return Path.of("data", "reports", schoolId.toString(), year, termId.toString(), admissionNumber + ".pdf");
+        return Path.of(reportStorageDirectory, schoolId.toString(), year, termId.toString(), admissionNumber + ".pdf");
     }
 
     private record StudentReport(Student student, List<PdfService.SubjectAverage> subjects,
