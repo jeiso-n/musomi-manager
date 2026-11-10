@@ -66,6 +66,45 @@ class StudentAccountServiceTest {
     }
 
     @Test
+    void resetsAnExistingStudentPasswordAndReturnsOneTimeCredential() {
+        School school = School.builder().id(1L).build();
+        User existingUser = User.builder().id(20L).school(school)
+                .username("STU/002").role(Role.STUDENT).isActive(true)
+                .failedLoginAttempts(5).build();
+        Student student = Student.builder().id(11L).school(school)
+                .admissionNumber("STU/002").fullName("Existing Student")
+                .status("ACTIVE").isActive(true).user(existingUser).build();
+        when(studentRepository.findByIdAndSchoolId(11L, 1L)).thenReturn(Optional.of(student));
+        when(passwordEncoder.encode(any(String.class))).thenReturn("new-encoded-password");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var result = service.resetStudentPassword(11L, 1L, 99L);
+
+        assertThat(result.studentId()).isEqualTo(11L);
+        assertThat(result.username()).isEqualTo("STU/002");
+        assertThat(result.temporaryPassword()).hasSize(12);
+        assertThat(existingUser.getPasswordHash()).isEqualTo("new-encoded-password");
+        assertThat(existingUser.getFailedLoginAttempts()).isZero();
+        assertThat(existingUser.getLockedUntil()).isNull();
+        verify(auditService).log("STUDENT_PASSWORD_RESET", "Student", 11L, 99L, 1L);
+    }
+
+    @Test
+    void doesNotResetPasswordForAnInactiveStudent() {
+        Student student = Student.builder().id(13L).school(School.builder().id(1L).build())
+                .admissionNumber("STU/003").fullName("Inactive Student")
+                .status("INACTIVE").isActive(false)
+                .user(User.builder().id(21L).role(Role.STUDENT).isActive(true).build())
+                .build();
+        when(studentRepository.findByIdAndSchoolId(13L, 1L)).thenReturn(Optional.of(student));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> service.resetStudentPassword(13L, 1L, 99L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Only active students");
+    }
+
+    @Test
     void doesNotRecreateAnAlreadyLinkedStudentAccount() {
         School school = School.builder().id(1L).build();
         User existingUser = User.builder().id(20L).school(school)

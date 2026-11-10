@@ -18,6 +18,8 @@ class StudentsFxmlContractTest {
             String fxml = new String(input.readAllBytes(), StandardCharsets.UTF_8);
             assertTrue(fxml.contains("text=\"Create Student Logins\""));
             assertTrue(fxml.contains("onAction=\"#provisionStudentAccounts\""));
+            assertTrue(fxml.contains("fx:id=\"actionsColumn\""),
+                    "Student row actions must have a visible table column.");
         }
     }
 }

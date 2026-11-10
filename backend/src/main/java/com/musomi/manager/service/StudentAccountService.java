@@ -107,6 +107,44 @@ public class StudentAccountService {
                 created.size(), alreadyLinked, skipped.size(), List.copyOf(created), List.copyOf(skipped));
     }
 
+    /**
+     * Rotates credentials for one existing student account and returns the new
+     * temporary password exactly once to the authorized school administrator.
+     */
+    @Transactional
+    public StudentAccountCredentialResponse resetStudentPassword(
+            Long studentId, Long schoolId, Long adminUserId) {
+        if (studentId == null || studentId <= 0 || schoolId == null || schoolId <= 0
+                || adminUserId == null || adminUserId <= 0) {
+            throw new IllegalArgumentException("A valid student, school and administrator are required.");
+        }
+
+        Student student = studentRepository.findByIdAndSchoolId(studentId, schoolId)
+                .orElseThrow(() -> new IllegalArgumentException("Student was not found in this school."));
+        if (!Boolean.TRUE.equals(student.getIsActive()) || !"ACTIVE".equalsIgnoreCase(student.getStatus())) {
+            throw new IllegalArgumentException("Only active students can have portal passwords reset.");
+        }
+
+        User user = student.getUser();
+        if (user == null || user.getRole() != Role.STUDENT
+                || !Boolean.TRUE.equals(user.getIsActive())
+                || user.getSchool() == null || !schoolId.equals(user.getSchool().getId())) {
+            throw new IllegalArgumentException("This student does not have an active linked student login.");
+        }
+
+        String temporaryPassword = generateTemporaryPassword();
+        user.setPasswordHash(passwordEncoder.encode(temporaryPassword));
+        user.setFailedLoginAttempts(0);
+        user.setLockedUntil(null);
+        userRepository.save(user);
+
+        auditService.log("STUDENT_PASSWORD_RESET", "Student", student.getId(), adminUserId, schoolId);
+
+        return new StudentAccountCredentialResponse(
+                student.getId(), student.getFullName(), student.getAdmissionNumber(),
+                user.getUsername(), temporaryPassword);
+    }
+
     private String generateTemporaryPassword() {
         StringBuilder password = new StringBuilder(TEMP_PASSWORD_LENGTH);
         for (int index = 0; index < TEMP_PASSWORD_LENGTH; index++) {

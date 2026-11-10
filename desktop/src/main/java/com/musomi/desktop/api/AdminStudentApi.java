@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import com.musomi.desktop.model.PageResult;
 import com.musomi.desktop.model.StudentResponse;
+import com.musomi.desktop.model.StudentAccountCredentialResponse;
 import com.musomi.desktop.model.StudentAccountProvisioningResponse;
 
 @RequiredArgsConstructor
@@ -68,6 +69,11 @@ public class AdminStudentApi {
     public StudentAccountProvisioningResponse provisionStudentAccounts() {
         return client.post("/admin/students/provision-accounts", java.util.Map.of(),
                 StudentAccountProvisioningResponse.class);
+    }
+
+    public StudentAccountCredentialResponse resetStudentPassword(Long studentId) {
+        return client.post("/admin/students/" + studentId + "/reset-password",
+                java.util.Map.of(), StudentAccountCredentialResponse.class);
     }
 
     public void deactivateStudent(Long studentId) {

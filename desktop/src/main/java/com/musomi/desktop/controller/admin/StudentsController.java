@@ -96,6 +96,9 @@ public class StudentsController {
                     private final Button editButton =
                             new Button("Edit");
 
+                    private final Button resetPasswordButton =
+                            new Button("Reset Password");
+
                     private final Button deactivateButton =
                             new Button("Deactivate");
 
@@ -103,6 +106,7 @@ public class StudentsController {
                             new HBox(
                                     8,
                                     editButton,
+                                    resetPasswordButton,
                                     deactivateButton
                             );
 
@@ -114,10 +118,20 @@ public class StudentsController {
                                 "table-action-button"
                         );
 
+                        resetPasswordButton.getStyleClass().add("table-action-button");
+
                         deactivateButton.getStyleClass().addAll(
                                 "table-action-button",
                                 "table-action-danger"
                         );
+
+                        /*
+                         * Reset student portal password
+                         */
+                        resetPasswordButton.setOnAction(event -> {
+                            StudentRow student = getTableView().getItems().get(getIndex());
+                            handleResetStudentPassword(student);
+                        });
 
                         /*
                          * Edit student
@@ -268,6 +282,53 @@ public class StudentsController {
                     Toast.error(errorMessage(error));
                 }
         );
+    }
+
+    private void handleResetStudentPassword(StudentRow student) {
+        if (!Modal.confirm("Generate a new temporary portal password for "
+                + student.getName() + "? Their current password will stop working immediately.")) {
+            return;
+        }
+        TaskRunner.run(
+                () -> adminStudentApi.resetStudentPassword(student.getId()),
+                this::showResetCredential,
+                error -> {
+                    log.error("Failed to reset student portal password for student {}", student.getId(), error);
+                    Toast.error(errorMessage(error));
+                }
+        );
+    }
+
+    private void showResetCredential(StudentAccountCredentialResponse credential) {
+        if (credential == null) {
+            Toast.error("The server did not return the new student credential.");
+            return;
+        }
+        String output = "STUDENT PORTAL TEMPORARY LOGIN\n\n"
+                + "Student: " + credential.fullName() + "\n"
+                + "Admission Number: " + credential.admissionNumber() + "\n"
+                + "Username: " + credential.username() + "\n"
+                + "Temporary Password: " + credential.temporaryPassword() + "\n\n"
+                + "Give this password only to the student. It is shown once.";
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Student Password Reset");
+        alert.setHeaderText("Temporary password generated");
+        alert.setContentText("Copy and securely share this credential before closing this window.");
+        TextArea details = new TextArea(output);
+        details.setEditable(false);
+        details.setWrapText(false);
+        details.setPrefRowCount(8);
+        details.setPrefColumnCount(65);
+        alert.getDialogPane().setExpandableContent(details);
+        alert.getDialogPane().setExpanded(true);
+        ButtonType copyButton = new ButtonType("Copy credential", ButtonBar.ButtonData.LEFT);
+        alert.getButtonTypes().add(copyButton);
+        alert.showAndWait().filter(copyButton::equals).ifPresent(ignored -> {
+            ClipboardContent clipboardContent = new ClipboardContent();
+            clipboardContent.putString(output);
+            Clipboard.getSystemClipboard().setContent(clipboardContent);
+            Toast.success("Student credential copied to clipboard");
+        });
     }
 
     private void showProvisionedCredentials(StudentAccountProvisioningResponse result) {

@@ -70,7 +70,7 @@
 
                 <TableColumn fx:id="actionsColumn"
                              text="Actions"
-                             prefWidth="220.0"/>
+                             prefWidth="340.0"/>
 
             </columns>
 

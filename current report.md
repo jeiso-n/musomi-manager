@@ -496,3 +496,16 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 - Start the updated backend and desktop application, then sign in as an administrator.
 - In Admin → Students, use **Create Student Logins** once and securely distribute the one-time credentials to students. This action will create linked accounts for active students that do not already have them.
 - Open `http://localhost:8080/login`, select the school, and verify a provisioned student can sign in using their admission number and temporary password. Verify dashboard, marks, results, report cards, profile, and password change using that student account.
+
+
+## STUDENT PASSWORD RESET SUPPORT — 2026-11-10
+
+- Re-audited the live local database after the student-portal repair. The current state differs from the earlier audit: **51 active students are now linked to 51 active STUDENT login accounts** in school ID 1. The previous “0 linked accounts” note is superseded for the current database snapshot.
+- Existing passwords cannot be recovered because only BCrypt hashes are stored. The existing **Create Student Logins** action correctly skips already-linked accounts, so it cannot help students whose credentials are unknown.
+- Added an administrator-only `POST /api/v1/admin/students/{id}/reset-password` endpoint. It is school-scoped, only permits active students with an active linked STUDENT account, generates a cryptographically random 12-character temporary password, stores only the BCrypt hash, clears failed-login lockout state, and writes an audit event. The plaintext is returned only once in the response.
+- Added a **Reset Password** action to each Admin → Students table row. It confirms that the old password will stop working, then shows the new temporary credential in a one-time dialog with a Copy Credential action. The existing Create Student Logins action remains for students who do not yet have accounts.
+- Added backend service tests for successful password rotation and rejection of inactive students. Updated the desktop Students FXML contract test to keep checking the actions column.
+- Backend targeted clean test: `StudentAccountServiceTest` — **5 tests passed, 0 failures/errors**. Full backend clean test: **178 tests, 0 failures, 0 errors, 1 skipped; BUILD SUCCESS**. Testcontainers applied all 28 migrations through V101 on disposable PostgreSQL databases.
+- Desktop clean test/package: **61 tests passed, 0 failures/errors/skips; BUILD SUCCESS**; JAR packaged.
+- No live student password was changed in this step. The three generated test password/hash pairs were not applied to the database. No database records, Docker volumes, or student data were reset.
+- Next live step after the updated backend and desktop are relaunched: sign in as ADMIN, open Students, choose a test student (e.g. STU001), click **Reset Password**, copy the displayed temporary password, then sign in at `http://localhost:8080/login` using school **Musomi Secondary School**, username **STU001**, and the new password. This must be done before claiming the live student login works.
