@@ -39,6 +39,9 @@ public class ReportApiController {
 
     private final ReportService reportService;
 
+    @org.springframework.beans.factory.annotation.Value("${musomi.reports.storage-dir:data/reports}")
+    private String reportStorageDirectory;
+
     /** Starts report generation for a class and term. */
     @PostMapping("/generate")
     public ApiResponse<List<ReportResponse>> generateReports(
@@ -76,7 +79,8 @@ public class ReportApiController {
         }
         try {
             Path filePath = Path.of(report.getFilePath().replace('\\', '/')).toAbsolutePath().normalize();
-            if (!filePath.startsWith(Path.of(System.getProperty("user.dir")).toAbsolutePath().normalize())) {
+            Path storageRoot = Path.of(reportStorageDirectory).toAbsolutePath().normalize();
+            if (!filePath.startsWith(storageRoot)) {
                 throw new ResourceNotFoundException(ErrorCode.REPORT_NOT_FOUND);
             }
             byte[] file = Files.readAllBytes(filePath);
