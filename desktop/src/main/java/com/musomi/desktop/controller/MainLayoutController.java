@@ -9,6 +9,7 @@ import com.musomi.desktop.service.GlobalSearchService;
 import com.musomi.desktop.util.TaskRunner;
 import com.musomi.desktop.controller.admin.EditUserController;
 import com.musomi.desktop.controller.admin.UsersController;
+import com.musomi.desktop.controller.teacher.ClassRosterController;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Modality;
@@ -164,6 +165,9 @@ public class MainLayoutController {
 
             globalSearchField.setDisable(false);
             globalSearchField.setEditable(true);
+            globalSearchField.setPromptText(isTeacher
+                    ? "Search my classes, students, subjects, assessments..."
+                    : "Search students, subjects, topics, users...");
 
             globalSearchField.setOnAction(event -> {
                 log.info("Global search Enter key detected.");
@@ -257,17 +261,17 @@ public class MainLayoutController {
             return;
         }
 
-        if (!"ADMIN".equals(currentRole)) {
-
+        if (!"ADMIN".equals(currentRole)
+                && !"TEACHER".equals(currentRole)) {
             new Alert(
                     Alert.AlertType.INFORMATION,
-                    "Global search is currently available to administrators only."
+                    "Global search is not available for this account role."
             ).showAndWait();
-
             return;
         }
 
-        log.info("Starting global search for: {}", query);
+        log.info("Starting role-scoped global search for role={} query={}",
+                currentRole, query);
 
         globalSearchField.setDisable(true);
 
@@ -302,18 +306,26 @@ public class MainLayoutController {
 
                     dialog.showAndWait().ifPresent(result -> {
 
+                        if ("TEACHER".equals(currentRole)) {
+                            switch (result.category()) {
+                                case "Student" -> openTeacherStudentResult(result);
+                                case "Class", "Subject" -> showMyClasses();
+                                case "Topic" -> showAssessments();
+                                case "Assessment" -> showAssessments();
+                                default -> log.warn(
+                                        "Unsupported teacher search result category: {}",
+                                        result.category()
+                                );
+                            }
+                            return;
+                        }
+
                         switch (result.category()) {
-
                             case "Student" -> showStudents();
-
                             case "User" -> openUserRecord(result.id());
-
                             case "Class" -> showClasses();
-
                             case "Subject" -> showSubjects();
-
                             case "Topic" -> showTopics();
-
                             default -> log.warn(
                                     "Unknown search result category: {}",
                                     result.category()
@@ -336,6 +348,40 @@ public class MainLayoutController {
         );
     }
 
+
+    private void openTeacherStudentResult(GlobalSearchResult result) {
+        if (result.contextId() == null || result.contextStreamId() == null) {
+            showMyClasses();
+            return;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/fxml/teacher/class-roster.fxml")
+            );
+            Node roster = loader.load();
+
+            ClassRosterController controller = loader.getController();
+            controller.setClassData(
+                    result.contextId(),
+                    result.contextStreamId(),
+                    result.contextName() == null ? "My Class" : result.contextName(),
+                    result.contextCount(),
+                    this::showMyClasses
+            );
+            controller.setSearchQuery(result.title());
+
+            contentArea.getChildren().setAll(roster);
+            setActiveButton(myClassesButton);
+
+        } catch (Exception exception) {
+            log.error("Unable to open student search result", exception);
+            new Alert(
+                    Alert.AlertType.ERROR,
+                    "Unable to open the selected student: " + exception.getMessage()
+            ).showAndWait();
+        }
+    }
 
     private void openUserRecord(Long userId) {
 

@@ -140,6 +140,16 @@ public class ClassRosterController {
         loadStudents(classId, streamId);
     }
 
+    /**
+     * Applies a name/admission-number filter after this roster is opened from
+     * a teacher global-search result.
+     */
+    public void setSearchQuery(String query) {
+        if (searchField != null) {
+            searchField.setText(query == null ? "" : query);
+        }
+    }
+
     private void updateClassLabels(String className, int studentCount) {
         if (classNameLabel != null) {
             classNameLabel.setText(className);

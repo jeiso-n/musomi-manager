@@ -13,10 +13,12 @@ import java.net.URL;
 
 import com.musomi.desktop.api.AdminClassApi;
 import com.musomi.desktop.api.AdminSettingsApi;
+import com.musomi.desktop.api.AdminStreamApi;
 import com.musomi.desktop.api.TeacherClassApi;
 import com.musomi.desktop.config.Session;
 import com.musomi.desktop.model.ClassPerformanceSummaryResponse;
 import com.musomi.desktop.model.ClassResponse;
+import com.musomi.desktop.model.AcademicYearResponse;
 import com.musomi.desktop.model.ReportResponse;
 import com.musomi.desktop.model.TermResponse;
 import com.musomi.desktop.model.dto.TeacherClassResponse;
@@ -34,6 +36,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
@@ -50,6 +53,7 @@ public class ReportPreviewController implements Initializable {
     @FXML private ComboBox<StreamOption> streamComboBox;
     @FXML private ComboBox<TermResponse> termComboBox;
     @FXML private Button generateButton;
+    @FXML private Button addStreamButton;
     @FXML private Label studentCountLabel;
     @FXML private Label completeCountLabel;
     @FXML private Label partialCountLabel;
@@ -75,6 +79,7 @@ public class ReportPreviewController implements Initializable {
 
     private final AdminClassApi classApi = new AdminClassApi();
     private final AdminSettingsApi settingsApi = AdminSettingsApi.getInstance();
+    private final AdminStreamApi streamApi = new AdminStreamApi();
     private final TeacherClassApi teacherClassApi = new TeacherClassApi();
     private final ReportService reportService = new ReportService();
     private List<TeacherClassResponse> teacherAssignments = List.of();
@@ -83,6 +88,11 @@ public class ReportPreviewController implements Initializable {
     public void initialize(URL url, ResourceBundle resources) {
         configureTables();
         generateButton.setDisable(true);
+        if (addStreamButton != null) addStreamButton.setVisible(!isTeacher());
+        if (addStreamButton != null) {
+            addStreamButton.setManaged(!isTeacher());
+            addStreamButton.setDisable(true);
+        }
         classComboBox.setDisable(true);
         streamComboBox.setDisable(true);
         termComboBox.setDisable(true);
@@ -133,60 +143,121 @@ public class ReportPreviewController implements Initializable {
     }
 
     private void loadReferenceData() {
-        boolean teacher = isTeacher();
-        TaskRunner.run(() -> {
-            List<ClassResponse> classes = classApi.getClasses();
-            List<TermResponse> terms = settingsApi.getTerms();
-            List<TeacherClassResponse> assignments = teacher
-                    ? teacherClassApi.getMyClasses() : List.of();
-            return new ReferenceData(classes, terms, assignments);
-        }, data -> {
-            teacherAssignments = data.assignments();
-            List<ClassResponse> availableClasses = data.classes().stream()
-                    .filter(Objects::nonNull)
-                    .filter(ClassResponse::isActive)
-                    .filter(item -> !teacher || teacherAssignments.stream()
-                            .anyMatch(assignment -> Objects.equals(assignment.classId(), item.id())))
-                    .sorted(Comparator.comparing(ClassResponse::name,
-                            Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
-                    .toList();
-            classComboBox.setItems(FXCollections.observableArrayList(
-                    availableClasses.stream().map(ClassOption::new).toList()));
-            termComboBox.setItems(FXCollections.observableArrayList(
-                    data.terms().stream().filter(Objects::nonNull)
-                            .sorted(Comparator.comparing(TermResponse::isCurrent,
-                                    Comparator.nullsLast(Comparator.reverseOrder()))
-                                    .thenComparing(TermResponse::startDate,
-                                            Comparator.nullsLast(Comparator.reverseOrder())))
-                            .toList()));
+        if (isTeacher()) {
+            // Use the teacher-scoped endpoint so only assigned classes/streams
+            // are offered in the report filters.
+            TaskRunner.run(teacherClassApi::getMyClasses, assignments -> {
+                teacherAssignments = assignments == null ? List.of() : assignments;
+                List<ClassOption> classes = teacherAssignments.stream()
+                        .filter(Objects::nonNull)
+                        .filter(item -> item.classId() != null)
+                        .collect(java.util.stream.Collectors.toMap(
+                                TeacherClassResponse::classId,
+                                item -> new ClassOption(item.classId(), displayClassName(item.className())),
+                                (first, ignored) -> first, LinkedHashMap::new))
+                        .values().stream()
+                        .sorted(Comparator.comparing(ClassOption::name,
+                                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                        .toList();
+                populateClasses(classes);
+            }, error -> {
+                log.error("Unable to load teacher report assignments", error);
+                showEmpty("Classes unavailable", errorMessage(error));
+                Toast.error("Unable to load your assigned classes.");
+            });
+        } else {
+            TaskRunner.run(() -> {
+                var years = settingsApi.getAcademicYears();
+                var currentYear = years.stream()
+                        .filter(year -> Boolean.TRUE.equals(year.isCurrent()))
+                        .findFirst()
+                        .orElseGet(() -> years.stream()
+                                .filter(year -> year.year() != null)
+                                .max(Comparator.comparing(AcademicYearResponse::year))
+                                .orElse(null));
+                return classApi.getClasses(currentYear == null ? null : currentYear.id());
+            }, classes -> {
+                List<ClassOption> options = classes.stream()
+                        .filter(Objects::nonNull)
+                        .filter(ClassResponse::isActive)
+                        .map(item -> new ClassOption(item.id(), displayClassName(item.name())))
+                        .sorted(Comparator.comparing(ClassOption::name,
+                                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                        .toList();
+                populateClasses(options);
+            }, error -> {
+                log.error("Unable to load report classes", error);
+                showEmpty("Classes unavailable", errorMessage(error));
+                Toast.error("Unable to load classes.");
+            });
+        }
 
-            classComboBox.setDisable(false);
-            termComboBox.setDisable(false);
-            if (!termComboBox.getItems().isEmpty()) {
-                TermResponse current = termComboBox.getItems().stream()
+        // Load only the three terms belonging to the current academic year. This avoids
+        // showing Term 1/2/3 repeatedly for every historical year.
+        TaskRunner.run(() -> {
+            if (isTeacher()) {
+                // Teachers may list terms, but the academic-year administration endpoint
+                // is admin-only. Determine the latest academic year from their term list.
+                List<TermResponse> allTerms = settingsApi.getTerms();
+                Long latestYearId = allTerms.stream()
+                        .filter(Objects::nonNull)
+                        .filter(term -> term.academicYearId() != null && term.startDate() != null)
+                        .max(Comparator.comparing(TermResponse::startDate))
+                        .map(TermResponse::academicYearId).orElse(null);
+                return latestYearId == null ? allTerms : allTerms.stream()
+                        .filter(term -> Objects.equals(term.academicYearId(), latestYearId)).toList();
+            }
+            var years = settingsApi.getAcademicYears();
+            var currentYear = years.stream()
+                    .filter(year -> Boolean.TRUE.equals(year.isCurrent()))
+                    .findFirst()
+                    .orElseGet(() -> years.stream()
+                            .filter(year -> year.year() != null)
+                            .max(Comparator.comparing(AcademicYearResponse::year))
+                            .orElse(null));
+            return currentYear == null ? settingsApi.getTerms() : settingsApi.getTerms(currentYear.id());
+        }, terms -> {
+            List<TermResponse> availableTerms = terms.stream()
+                    .filter(Objects::nonNull)
+                    .sorted(Comparator.comparing(TermResponse::startDate,
+                            Comparator.nullsLast(Comparator.naturalOrder())))
+                    .limit(3)
+                    .toList();
+            termComboBox.setItems(FXCollections.observableArrayList(availableTerms));
+            termComboBox.setDisable(availableTerms.isEmpty());
+            if (!availableTerms.isEmpty()) {
+                TermResponse current = availableTerms.stream()
                         .filter(term -> Boolean.TRUE.equals(term.isCurrent()))
-                        .findFirst().orElse(termComboBox.getItems().get(0));
+                        .findFirst().orElse(availableTerms.get(0));
                 termComboBox.getSelectionModel().select(current);
-            }
-            if (!classComboBox.getItems().isEmpty()) {
-                classComboBox.getSelectionModel().selectFirst();
             } else {
-                showEmpty("No classes available",
-                        teacher ? "No classes are currently assigned to your teacher account."
-                                : "Create or activate a class before generating reports.");
-            }
-            if (termComboBox.getItems().isEmpty()) {
-                showEmpty("No terms configured", "Create a school term before generating reports.");
+                showEmpty("No terms configured", "Create the three school terms for the current academic year in Settings.");
             }
             updateGenerateAvailability();
         }, error -> {
-            log.error("Unable to load report selectors", error);
-            showEmpty("Reports unavailable", errorMessage(error));
-            Toast.error("Unable to load classes and terms.");
+            log.error("Unable to load current academic year terms", error);
+            termComboBox.getItems().clear();
+            termComboBox.setDisable(true);
+            showEmpty("Terms unavailable", errorMessage(error));
+            Toast.error("Unable to load school terms.");
         });
     }
 
+    private void populateClasses(List<ClassOption> classes) {
+        classComboBox.setItems(FXCollections.observableArrayList(classes));
+        classComboBox.setDisable(false);
+        if (!classes.isEmpty()) {
+            classComboBox.getSelectionModel().selectFirst();
+        } else {
+            showEmpty("No classes available", isTeacher()
+                    ? "No classes are currently assigned to your teacher account."
+                    : "Create or activate a class before generating reports.");
+        }
+        updateGenerateAvailability();
+    }
+
     private void updateStreamOptions(ClassOption selectedClass) {
+        if (addStreamButton != null) addStreamButton.setDisable(selectedClass == null || isTeacher());
         if (selectedClass == null) {
             streamComboBox.getItems().clear();
             streamComboBox.setDisable(true);
@@ -194,10 +265,10 @@ public class ReportPreviewController implements Initializable {
             return;
         }
 
-        List<StreamOption> options;
         if (isTeacher()) {
             Map<String, StreamOption> unique = new LinkedHashMap<>();
             teacherAssignments.stream()
+                    .filter(Objects::nonNull)
                     .filter(item -> Objects.equals(item.classId(), selectedClass.id()))
                     .forEach(item -> {
                         StreamOption option = new StreamOption(item.streamId(),
@@ -205,17 +276,59 @@ public class ReportPreviewController implements Initializable {
                                         ? "All streams" : item.streamName());
                         unique.putIfAbsent(item.streamId() == null ? "ALL" : item.streamId().toString(), option);
                     });
-            options = new ArrayList<>(unique.values());
-        } else {
-            options = List.of(new StreamOption(null, "All streams"));
+            List<StreamOption> options = new ArrayList<>(unique.values());
+            streamComboBox.setItems(FXCollections.observableArrayList(options));
+            streamComboBox.setDisable(options.isEmpty());
+            if (!options.isEmpty()) streamComboBox.getSelectionModel().selectFirst();
+            updateGenerateAvailability();
+            return;
         }
 
-        streamComboBox.setItems(FXCollections.observableArrayList(options));
-        streamComboBox.setDisable(options.isEmpty());
-        if (!options.isEmpty()) {
+        streamComboBox.setDisable(true);
+        streamComboBox.getItems().clear();
+        TaskRunner.run(() -> streamApi.getStreams(selectedClass.id()), streams -> {
+            List<StreamOption> options = new ArrayList<>();
+            options.add(new StreamOption(null, "All streams"));
+            streams.stream().filter(Objects::nonNull)
+                    .filter(stream -> !Boolean.FALSE.equals(stream.isActive()))
+                    .sorted(Comparator.comparing(AdminStreamApi.StreamResponse::name,
+                            Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                    .forEach(stream -> options.add(new StreamOption(stream.id(), stream.name())));
+            streamComboBox.setItems(FXCollections.observableArrayList(options));
+            streamComboBox.setDisable(false);
             streamComboBox.getSelectionModel().selectFirst();
-        }
-        updateGenerateAvailability();
+            updateGenerateAvailability();
+        }, error -> {
+            log.error("Unable to load streams for class {}", selectedClass.id(), error);
+            streamComboBox.setItems(FXCollections.observableArrayList(
+                    new StreamOption(null, "All streams")));
+            streamComboBox.setDisable(false);
+            streamComboBox.getSelectionModel().selectFirst();
+            updateGenerateAvailability();
+            Toast.error("Unable to load class streams: " + errorMessage(error));
+        });
+    }
+
+    @FXML
+    private void handleAddStream() {
+        ClassOption selectedClass = classComboBox.getValue();
+        if (selectedClass == null || isTeacher()) return;
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Add Stream");
+        dialog.setHeaderText("Add a stream to " + selectedClass.name());
+        dialog.setContentText("Stream name:");
+        dialog.showAndWait().ifPresent(name -> {
+            String cleanName = name.trim();
+            if (cleanName.isEmpty()) {
+                Toast.warning("Enter a stream name.");
+                return;
+            }
+            TaskRunner.run(() -> streamApi.createStream(selectedClass.id(), cleanName),
+                    created -> {
+                        Toast.success("Stream '" + created.name() + "' added.");
+                        updateStreamOptions(selectedClass);
+                    }, error -> Toast.error("Unable to add stream: " + errorMessage(error)));
+        });
     }
 
     private void updateGenerateAvailability() {
@@ -325,6 +438,19 @@ public class ReportPreviewController implements Initializable {
         return "TEACHER".equalsIgnoreCase(Session.getInstance().getRole());
     }
 
+    private static String displayClassName(String name) {
+        if (name == null) return "Class";
+        return switch (name.trim().toUpperCase(java.util.Locale.ROOT)) {
+            case "S1" -> "Senior One";
+            case "S2" -> "Senior Two";
+            case "S3" -> "Senior Three";
+            case "S4" -> "Senior Four";
+            case "S5" -> "Senior Five";
+            case "S6" -> "Senior Six";
+            default -> name;
+        };
+    }
+
     private static String formatAverage(BigDecimal value) {
         return value.stripTrailingZeros().toPlainString();
     }
@@ -345,15 +471,15 @@ public class ReportPreviewController implements Initializable {
                 : error.getMessage();
     }
 
-    private record ReferenceData(List<ClassResponse> classes, List<TermResponse> terms,
-                                 List<TeacherClassResponse> assignments) {}
     private record GeneratedData(List<ReportResponse> reports, ClassPerformanceSummaryResponse summary) {}
 
     public static final class ClassOption {
-        private final ClassResponse value;
-        private ClassOption(ClassResponse value) { this.value = value; }
-        public Long id() { return value.id(); }
-        @Override public String toString() { return value.name(); }
+        private final Long id;
+        private final String name;
+        private ClassOption(Long id, String name) { this.id = id; this.name = name; }
+        public Long id() { return id; }
+        public String name() { return name; }
+        @Override public String toString() { return name == null || name.isBlank() ? "Class" : name; }
     }
 
     public record StreamOption(Long id, String name) {

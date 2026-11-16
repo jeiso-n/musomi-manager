@@ -41,8 +41,12 @@
                             </VBox>
                             <VBox spacing="5.0">
                                 <Label text="Stream" styleClass="form-label"/>
-                                <ComboBox fx:id="streamComboBox" prefWidth="180.0"
-                                          promptText="Select stream"/>
+                                <HBox spacing="6.0" alignment="CENTER_LEFT">
+                                    <ComboBox fx:id="streamComboBox" prefWidth="180.0"
+                                              promptText="Select stream"/>
+                                    <Button fx:id="addStreamButton" text="+ Stream"
+                                            onAction="#handleAddStream" styleClass="secondary-button"/>
+                                </HBox>
                             </VBox>
                             <VBox spacing="5.0">
                                 <Label text="Term" styleClass="form-label"/>

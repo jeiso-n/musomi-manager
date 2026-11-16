@@ -32,9 +32,9 @@ public class AddUserController {
     private void initialize() {
 
         roleComboBox.getItems().addAll(
-                "ADMIN",
-                "TEACHER",
-                "STUDENT"
+                "Administrator",
+                "Teacher",
+                "Student"
         );
     }
 
@@ -52,7 +52,13 @@ public class AddUserController {
         String fullName = fullNameField.getText().trim();
         String username = usernameField.getText().trim();
         String password = passwordField.getText();
-        String role = roleComboBox.getValue();
+        String selectedRole = roleComboBox.getValue();
+        String role = selectedRole == null ? null : switch (selectedRole) {
+            case "Administrator" -> "ADMIN";
+            case "Teacher" -> "TEACHER";
+            case "Student" -> "STUDENT";
+            default -> null;
+        };
 
         if (fullName.isEmpty()
                 || username.isEmpty()

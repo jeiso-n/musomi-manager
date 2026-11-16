@@ -1266,3 +1266,40 @@
 .content-area {
     -fx-background-color: #F8FAFC;
 }
+
+
+/* Sidebar navigation scrolls independently; the profile menu stays anchored. */
+.sidebar-nav-scroll,
+.sidebar-nav-scroll > .viewport {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+
+.sidebar-nav-scroll {
+    -fx-padding: 0;
+    -fx-fit-to-width: true;
+}
+
+.sidebar-nav-scroll .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 7px;
+}
+
+.sidebar-nav-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: #6366F1;
+    -fx-background-radius: 8px;
+}
+
+/* Teacher Assignments can scroll as a page while its table scrolls its own rows. */
+.page-scroll,
+.page-scroll > .viewport {
+    -fx-background-color: #F8FAFC;
+    -fx-background: #F8FAFC;
+    -fx-border-color: transparent;
+}
+
+.page-scroll {
+    -fx-padding: 0;
+}
+

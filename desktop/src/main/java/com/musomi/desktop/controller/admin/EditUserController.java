@@ -24,9 +24,12 @@ public class EditUserController {
     @FXML
     private void initialize() {
 
+        // Keep the edit form aligned with the roles supported by Add User
+        // and the backend Role enum.
         roleComboBox.getItems().addAll(
                 "Administrator",
-                "Teacher"
+                "Teacher",
+                "Student"
         );
 
         statusComboBox.getItems().addAll(

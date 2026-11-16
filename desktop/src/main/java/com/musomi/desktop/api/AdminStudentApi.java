@@ -54,6 +54,17 @@ public class AdminStudentApi {
         return normalized;
     }
 
+    /** Returns every student currently assigned to the supplied class. The backend endpoint
+     * applies classId filtering and returns a complete list (not a paginated page). */
+    public List<StudentResponse> getStudentsByClass(Long classId) {
+        if (classId == null) {
+            return List.of();
+        }
+        StudentResponse[] students = client.get(
+                "/admin/students?classId=" + classId, StudentResponse[].class);
+        return students == null ? List.of() : Arrays.asList(students);
+    }
+
     public PageResult<StudentResponse> getStudents(int page, int size, String search) {
         String encodedSearch = URLEncoder.encode(search == null ? "" : search, StandardCharsets.UTF_8);
         String path = "/admin/students?page=" + page + "&size=" + size

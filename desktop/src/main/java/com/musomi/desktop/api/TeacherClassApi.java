@@ -6,18 +6,13 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.musomi.desktop.model.StudentResponse;
 import com.musomi.desktop.model.dto.TeacherClassResponse;
 
 /**
  * API client for teacher-facing class endpoints.
  *
- * <p>Covers the endpoint defined in API_CONTRACT.md section 12:
- * <ul>
- *   <li>GET /teacher/classes — list classes assigned to the authenticated teacher</li>
- * </ul>
- *
- * <p>Uses the {@link ApiClient} singleton for all HTTP communication.
- * The JWT token is injected automatically by {@link ApiClient} from the active {@link com.musomi.desktop.config.Session}.
+ * Uses endpoints that restrict data to the currently authenticated teacher.
  */
 public class TeacherClassApi {
 
@@ -27,31 +22,34 @@ public class TeacherClassApi {
 
     private final ApiClient client;
 
-    /**
-     * Creates a {@code TeacherClassApi} backed by the shared {@link ApiClient} singleton.
-     */
     public TeacherClassApi() {
         this.client = ApiClient.getInstance();
     }
 
-    // -------------------------------------------------------------------------
-    // Endpoints
-    // -------------------------------------------------------------------------
-
     /**
-     * Returns the list of class assignments for the currently authenticated teacher.
-     *
-     * <p>Corresponds to: {@code GET /teacher/classes}
-     *
-     * @return list of {@link TeacherClassResponse} entries; never null, may be empty
-     * @throws ApiException on HTTP 401 (session expired), 403 (not a teacher), or network error
+     * Returns class, stream and subject assignments belonging to the logged-in teacher.
      */
     public List<TeacherClassResponse> getMyClasses() {
         log.debug("Fetching teacher classes from {}", CLASSES_PATH);
-        TeacherClassResponse[] array = client.get(CLASSES_PATH, TeacherClassResponse[].class);
-        if (array == null) {
+        TeacherClassResponse[] array =
+                client.get(CLASSES_PATH, TeacherClassResponse[].class);
+        return array == null ? List.of() : Arrays.asList(array);
+    }
+
+    /**
+     * Returns active students in one class stream assigned to the logged-in teacher.
+     * The backend verifies the teacher's assignment before returning the roster.
+     */
+    public List<StudentResponse> getMyStudents(Long classId, Long streamId) {
+        if (classId == null || streamId == null) {
             return List.of();
         }
-        return Arrays.asList(array);
+
+        String path = CLASSES_PATH + "/" + classId
+                + "/streams/" + streamId + "/students";
+
+        log.debug("Fetching assigned class roster from {}", path);
+        StudentResponse[] array = client.get(path, StudentResponse[].class);
+        return array == null ? List.of() : Arrays.asList(array);
     }
 }

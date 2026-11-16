@@ -1,6 +1,9 @@
 package com.musomi.desktop.controller.admin;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -22,6 +25,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import com.musomi.desktop.api.AdminClassApi;
+import com.musomi.desktop.api.AdminStudentApi;
+import com.musomi.desktop.model.StudentResponse;
 import com.musomi.desktop.model.ClassResponse;
 import com.musomi.desktop.util.TaskRunner;
 import com.musomi.desktop.util.Toast;
@@ -31,6 +36,7 @@ import com.musomi.desktop.util.Toast;
 public class ClassesController {
 
     private final AdminClassApi adminClassApi = new AdminClassApi();
+    private final AdminStudentApi adminStudentApi = new AdminStudentApi();
 
     @FXML
     private TableView<ClassRow> classesTable;
@@ -91,31 +97,52 @@ public class ClassesController {
     }
 
     private void loadClassesFromBackend() {
-        TaskRunner.run(
-                adminClassApi::getClasses,
-                classes -> {
-                    List<ClassRow> rows = classes.stream()
-                            .map(this::toClassRow)
-                            .toList();
-                    allClasses.setAll(rows);
-                    filterClasses(searchField.getText());
-                },
-                error -> {
-                    log.error("Failed to load classes", error);
-                    Toast.error(errorMessage(error));
-                });
+        TaskRunner.run(() -> {
+            List<ClassResponse> classes = adminClassApi.getClasses();
+            Map<Long, String> levelNames = adminClassApi.getClassLevels().stream()
+                    .filter(level -> level.id() != null)
+                    .collect(Collectors.toMap(
+                            AdminClassApi.ClassLevelResponse::id,
+                            level -> level.name() == null ? "" : level.name(),
+                            (first, ignored) -> first));
+            Map<Long, Long> studentCounts = classes.stream()
+                    .filter(item -> item.id() != null)
+                    .collect(Collectors.toMap(
+                            ClassResponse::id,
+                            item -> (long) adminStudentApi.getStudentsByClass(item.id()).size(),
+                            (first, ignored) -> first));
+            return classes.stream()
+                    .map(item -> toClassRow(item, levelNames, studentCounts))
+                    .toList();
+        }, rows -> {
+            allClasses.setAll(rows);
+            filterClasses(searchField.getText());
+        }, error -> {
+            log.error("Failed to load classes and class reference data", error);
+            Toast.error(errorMessage(error));
+        });
     }
 
-    private ClassRow toClassRow(ClassResponse classResponse) {
+    private ClassRow toClassRow(ClassResponse classResponse,
+                                Map<Long, String> levelNames,
+                                Map<Long, Long> studentCounts) {
+        String levelName = classResponse.classLevelId() == null ? ""
+                : displayLevelName(levelNames.getOrDefault(
+                        classResponse.classLevelId(), "Unknown level"));
+        String students = classResponse.id() == null ? "—"
+                : String.valueOf(studentCounts.getOrDefault(classResponse.id(), 0L));
         return new ClassRow(
-                classResponse.id(),
-                classResponse.name(),
-                classResponse.classLevelId() == null
-                        ? ""
-                        : String.valueOf(classResponse.classLevelId()),
-                "",
+                classResponse.id(), classResponse.name(), levelName, students,
                 classResponse.isActive() ? "Active" : "Inactive",
                 classResponse.classLevelId(), classResponse.academicYearId());
+    }
+
+    private static String displayLevelName(String backendLevelName) {
+        if (backendLevelName == null) return "";
+        String normalized = backendLevelName.trim().toUpperCase(java.util.Locale.ROOT);
+        if (normalized.matches("S[1-4]")) return "O-Level";
+        if (normalized.matches("S[5-6]")) return "A-Level";
+        return backendLevelName;
     }
 
     private static String errorMessage(Exception error) {
@@ -133,9 +160,9 @@ public class ClassesController {
 
         ObservableList<ClassRow> filteredClasses = FXCollections.observableArrayList();
         for (ClassRow classRow : allClasses) {
-            if (classRow.getName().toLowerCase().contains(search)
-                    || classRow.getLevel().toLowerCase().contains(search)
-                    || classRow.getStatus().toLowerCase().contains(search)) {
+            if ((classRow.getName() != null && classRow.getName().toLowerCase().contains(search))
+                    || (classRow.getLevel() != null && classRow.getLevel().toLowerCase().contains(search))
+                    || (classRow.getStatus() != null && classRow.getStatus().toLowerCase().contains(search))) {
                 filteredClasses.add(classRow);
             }
         }
@@ -181,7 +208,6 @@ public class ClassesController {
             log.error("Unable to open edit-class dialog", e);
             Toast.error(errorMessage(e));
         }
-        loadClassesFromBackend();
     }
 
     private Scene createStyledScene(Parent root) {

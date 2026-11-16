@@ -36,7 +36,7 @@ public class AddClassController {
                     levels = data.levels() == null ? List.of() : List.of(data.levels());
                     academicYears = data.years() == null ? List.of() : List.of(data.years());
                     levelComboBox.getItems().setAll(
-                            levels.stream().map(ClassLevel::name).toList());
+                            levels.stream().map(AddClassController::displayLevelOption).toList());
                 },
                 error -> showAlert("Unable to load class data", errorMessage(error))
         );
@@ -68,7 +68,7 @@ public class AddClassController {
         }
 
         ClassLevel levelData = levels.stream()
-                .filter(levelItem -> levelItem.name().equals(level))
+                .filter(levelItem -> displayLevelOption(levelItem).equals(level))
                 .findFirst()
                 .orElse(null);
         AcademicYear currentYear = academicYears.stream()
@@ -101,6 +101,21 @@ public class AddClassController {
         alert.setContentText(message);
 
         alert.showAndWait();
+    }
+
+    private static String displayLevelOption(ClassLevel level) {
+        if (level == null || level.name() == null) return "Unknown level";
+        String name = level.name().trim();
+        String normalized = name.toUpperCase(java.util.Locale.ROOT);
+        return switch (normalized) {
+            case "S1" -> "Senior One (O-Level)";
+            case "S2" -> "Senior Two (O-Level)";
+            case "S3" -> "Senior Three (O-Level)";
+            case "S4" -> "Senior Four (O-Level)";
+            case "S5" -> "Senior Five (A-Level)";
+            case "S6" -> "Senior Six (A-Level)";
+            default -> name;
+        };
     }
 
     private static String errorMessage(Exception error) {

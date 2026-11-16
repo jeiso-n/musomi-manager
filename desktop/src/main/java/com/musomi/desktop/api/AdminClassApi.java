@@ -3,6 +3,7 @@ package com.musomi.desktop.api;
 import java.util.Arrays;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -19,6 +20,24 @@ public class AdminClassApi {
         ClassResponse[] classes = client.get("/admin/classes", ClassResponse[].class);
         return classes == null ? List.of() : Arrays.asList(classes);
     }
+
+    public List<ClassResponse> getClasses(Long academicYearId) {
+        if (academicYearId == null) return getClasses();
+        ClassResponse[] classes = client.get(
+                "/admin/classes?yearId=" + academicYearId, ClassResponse[].class);
+        return classes == null ? List.of() : Arrays.asList(classes);
+    }
+
+    public List<ClassLevelResponse> getClassLevels() {
+        ClassLevelResponse[] levels = client.get("/admin/class-levels", ClassLevelResponse[].class);
+        return levels == null ? List.of() : Arrays.asList(levels);
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record ClassLevelResponse(
+            Long id,
+            String name
+    ) {}
 
     public ClassResponse createClass(
             String name, Long classLevelId, Long academicYearId, Long classTeacherId) {
