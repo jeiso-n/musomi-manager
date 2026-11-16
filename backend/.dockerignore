@@ -1,0 +1,9 @@
+target/
+.idea/
+.vscode/
+data/
+reports/
+*.log
+HELP.md
+classpath.txt
+.attachments/
