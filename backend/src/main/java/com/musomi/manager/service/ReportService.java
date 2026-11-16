@@ -565,7 +565,7 @@ public class ReportService {
                 .rankingCohortSize(position == null ? null : classSize)
                 .build());
         GeneratedReport parentReport = saved;
-        List<GeneratedReportSubject> subjectSnapshots = report.subjects().stream()
+        List<GeneratedReportSubject> subjectSnapshots = new ArrayList<>(report.subjects().stream()
                 .map(subject -> GeneratedReportSubject.builder()
                         .generatedReport(parentReport)
                         .subjectName(subject.subjectName())
@@ -574,7 +574,7 @@ public class ReportService {
                         .expectedAssessmentCount(subject.expectedAssessmentCount())
                         .recordedAssessmentCount(subject.assessmentCount())
                         .build())
-                .toList();
+                .toList());
         saved.setSubjectResults(subjectSnapshots);
         saved = generatedReportRepository.save(saved);
         log.info("Generated report {} for student {} in term {}", saved.getId(),
