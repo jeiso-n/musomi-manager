@@ -6,12 +6,14 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.ButtonBase;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Region;
 import javafx.util.Duration;
 
 /**
  * Lightweight interaction polish for the desktop client: buttons gently scale
- * up on hover and press in on click. Installed once per scene root after
- * navigation; nodes loaded later can call {@link #install(Node)} themselves.
+ * up on hover and press in on click, and dashboard cards lift slightly.
+ * Installed once per scene root after navigation; nodes loaded later can call
+ * {@link #install(Node)} themselves.
  */
 public final class UiMotion {
 
@@ -22,13 +24,16 @@ public final class UiMotion {
     private UiMotion() {
     }
 
-    /** Walks {@code root} and installs motion on every button found. */
+    /** Walks {@code root} and installs motion on buttons and dashboard cards. */
     public static void install(Node root) {
         if (root == null) {
             return;
         }
         if (root instanceof ButtonBase button) {
             installButton(button);
+        } else if (root instanceof Region card
+                && card.getStyleClass().contains("dashboard-card")) {
+            installCard(card);
         }
         if (root instanceof Parent parent) {
             for (Node child : parent.getChildrenUnmodifiable()) {
@@ -56,6 +61,16 @@ public final class UiMotion {
             double target = isPressed ? 0.97 : (button.isHover() ? 1.02 : 1.0);
             scale(button, target, PRESS);
         });
+    }
+
+    private static void installCard(Region card) {
+        if (card.getProperties().containsKey(MARKER)) {
+            return;
+        }
+        card.getProperties().put(MARKER, Boolean.TRUE);
+
+        card.addEventHandler(MouseEvent.MOUSE_ENTERED, event -> scale(card, 1.008, HOVER));
+        card.addEventHandler(MouseEvent.MOUSE_EXITED, event -> scale(card, 1.0, HOVER));
     }
 
     private static void scale(Node node, double target, Duration duration) {

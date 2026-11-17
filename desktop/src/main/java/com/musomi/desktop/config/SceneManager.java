@@ -8,6 +8,7 @@ import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
+import javafx.scene.control.TableView;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -166,6 +167,7 @@ public final class SceneManager {
             currentFxmlPath = destination;
             playEntrance(root);
             UiMotion.install(root);
+            applyTablePolicies(root);
             log.debug("Navigation complete: {}", destination);
 
         } catch (IOException ex) {
@@ -223,6 +225,15 @@ public final class SceneManager {
      *
      * @param root the newly loaded scene root
      */
+    /** Keeps every table within its viewport instead of showing a horizontal bar. */
+    private void applyTablePolicies(Parent root) {
+        root.lookupAll(".table-view").forEach(node -> {
+            if (node instanceof TableView<?> table) {
+                table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+            }
+        });
+    }
+
     private void playEntrance(Parent root) {
         if (!Platform.isFxApplicationThread()) {
             return;

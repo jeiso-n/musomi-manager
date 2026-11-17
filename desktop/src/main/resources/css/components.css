@@ -1,3 +1,84 @@
+/* ========================================================================= */
+/* Base controls — flat, modern defaults; .btn-* classes below override      */
+/* ========================================================================= */
+.button {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #CBD5E1;
+    -fx-border-width: 1px;
+    -fx-border-radius: 9px;
+    -fx-background-radius: 9px;
+    -fx-text-fill: #1E293B;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-padding: 8px 14px;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: #F8FAFC;
+    -fx-border-color: #94A3B8;
+}
+
+.button:pressed {
+    -fx-background-color: #E2E8F0;
+}
+
+.button:focused {
+    -fx-border-color: #2563EB;
+    -fx-effect: dropshadow(gaussian, rgba(37, 99, 235, 0.28), 8, 0, 0, 0);
+}
+
+.button:disabled {
+    -fx-opacity: 0.55;
+}
+
+.combo-box {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #CBD5E1;
+    -fx-border-width: 1px;
+    -fx-border-radius: 9px;
+    -fx-background-radius: 9px;
+    -fx-padding: 2px 6px;
+    -fx-cursor: hand;
+}
+
+.combo-box:hover {
+    -fx-border-color: #94A3B8;
+}
+
+.combo-box:focused {
+    -fx-border-color: #2563EB;
+    -fx-effect: dropshadow(gaussian, rgba(37, 99, 235, 0.22), 8, 0, 0, 0);
+}
+
+.combo-box .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #1E293B;
+    -fx-font-size: 13px;
+    -fx-padding: 5px 8px;
+}
+
+.combo-box .arrow {
+    -fx-background-color: #64748B;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.14), 18, 0, 0, 6);
+}
+
+.combo-box-popup .list-cell {
+    -fx-padding: 8px 12px;
+    -fx-background-color: #FFFFFF;
+}
+
+.combo-box-popup .list-cell:hover {
+    -fx-background-color: #EFF6FF;
+    -fx-text-fill: #1D4ED8;
+}
 /* =============================================================================
    components.css — Musomi Manager Desktop Component Stylesheet
    UI Components & Badges matching DESIGN_SYSTEM.md
@@ -562,3 +643,151 @@
 .button {
     -fx-cursor: hand;
 }
+/* Inline field affordances keep a borderless look */
+.fxml-inline-005 {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.fxml-inline-005:hover {
+    -fx-background-color: #F1F5F9;
+    -fx-background-radius: 8px;
+}
+
+
+/* Dashboard hero and quick-action badges */
+.page-hero {
+    -fx-background-color: linear-gradient(to bottom right, #1D4ED8, #2563EB);
+    -fx-background-radius: 14px;
+    -fx-padding: 22px 26px;
+    -fx-effect: dropshadow(gaussian, rgba(29, 78, 216, 0.25), 18, 0, 0, 6);
+}
+
+.hero-title {
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 24px;
+    -fx-font-weight: 700;
+}
+
+.hero-subtitle {
+    -fx-text-fill: #DBEAFE;
+    -fx-font-size: 13px;
+}
+
+.quick-action {
+    -fx-graphic-text-gap: 12px;
+    -fx-padding: 10px 14px;
+}
+
+.quick-action-badge {
+    -fx-min-width: 28px;
+    -fx-min-height: 28px;
+    -fx-alignment: center;
+    -fx-background-radius: 8px;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+}
+
+.badge-blue {
+    -fx-background-color: #EFF6FF;
+    -fx-text-fill: #2563EB;
+}
+
+.badge-emerald {
+    -fx-background-color: #ECFDF5;
+    -fx-text-fill: #059669;
+}
+
+.badge-amber {
+    -fx-background-color: #FFFBEB;
+    -fx-text-fill: #D97706;
+}
+
+
+/* Slim, translucent sidebar scrollbar */
+.sidebar .scroll-bar:vertical,
+.sidebar-nav-scroll .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 6px;
+    -fx-padding: 0;
+}
+
+.sidebar .scroll-bar:vertical .thumb,
+.sidebar-nav-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: rgba(255, 255, 255, 0.28);
+    -fx-background-radius: 3px;
+}
+
+.sidebar .scroll-bar:vertical .thumb:hover,
+.sidebar-nav-scroll .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.45);
+}
+
+.sidebar .scroll-bar .increment-button,
+.sidebar .scroll-bar .decrement-button,
+.sidebar-nav-scroll .scroll-bar .increment-button,
+.sidebar-nav-scroll .scroll-bar .decrement-button {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+}
+
+
+/* Tables: soft header, zebra rows, slim scrollbars */
+.table-view {
+    -fx-background-color: transparent;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #F8FAFC;
+    -fx-background-radius: 12px 12px 0 0;
+}
+
+.table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent #E2E8F0 transparent;
+    -fx-size: 40px;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: #64748B;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+}
+
+.table-row-cell {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: transparent transparent #F1F5F9 transparent;
+}
+
+.table-row-cell:odd {
+    -fx-background-color: #FCFDFF;
+}
+
+.table-row-cell:hover {
+    -fx-background-color: #EFF6FF;
+}
+
+.table-row-cell:selected {
+    -fx-background-color: #DBEAFE;
+}
+
+.table-cell {
+    -fx-padding: 0 12px;
+    -fx-text-fill: #1E293B;
+    -fx-font-size: 13px;
+}
+
+.table-view .scroll-bar:vertical,
+.table-view .scroll-bar:horizontal {
+    -fx-pref-width: 8px;
+    -fx-pref-height: 8px;
+}
+
+.table-view .scroll-bar .thumb {
+    -fx-background-color: #CBD5E1;
+    -fx-background-radius: 4px;
+}
+

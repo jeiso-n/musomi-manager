@@ -280,12 +280,28 @@ public class DashboardController {
         Button button = new Button(text);
         button.setMaxWidth(Double.MAX_VALUE);
         button.getStyleClass().add("quick-action");
+        button.setGraphic(createActionBadge(text));
+        button.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
         button.setOnAction(event -> {
             if (onOpenAdminView != null) {
                 onOpenAdminView.accept(viewPath);
             }
         });
         return button;
+    }
+
+    /** Small colour-coded letter tile shown inside a quick-action button. */
+    private Label createActionBadge(String text) {
+        String word = text.substring(text.lastIndexOf(' ') + 1);
+        Label badge = new Label(word.substring(0, 1).toUpperCase());
+        badge.getStyleClass().add("quick-action-badge");
+        String tone = switch (word) {
+            case "Students" -> "badge-blue";
+            case "Classes" -> "badge-emerald";
+            default -> "badge-amber";
+        };
+        badge.getStyleClass().add(tone);
+        return badge;
     }
 
     private void updateCard(Parent root, String currentTitle, String title,
