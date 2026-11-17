@@ -1,10 +1,15 @@
 package com.musomi.desktop.config;
 
+import javafx.animation.FadeTransition;
+import javafx.animation.Interpolator;
+import javafx.animation.ParallelTransition;
+import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -158,6 +163,7 @@ public final class SceneManager {
 
             primaryStage.setScene(scene);
             currentFxmlPath = destination;
+            playEntrance(root);
             log.debug("Navigation complete: {}", destination);
 
         } catch (IOException ex) {
@@ -205,6 +211,44 @@ public final class SceneManager {
                             + "Call SceneManager.getInstance().setPrimaryStage(stage) "
                             + "in Application.start() before navigating."
             );
+        }
+    }
+
+    /**
+     * Plays a short, subtle entrance animation (fade + 6px lift) on a freshly
+     * loaded view. Runs only on the JavaFX application thread; any failure is
+     * logged at debug level and leaves the view fully visible.
+     *
+     * @param root the newly loaded scene root
+     */
+    private void playEntrance(Parent root) {
+        if (!Platform.isFxApplicationThread()) {
+            return;
+        }
+        try {
+            root.setOpacity(0);
+            root.setTranslateY(6);
+
+            FadeTransition fade = new FadeTransition(Duration.millis(220), root);
+            fade.setFromValue(0);
+            fade.setToValue(1);
+            fade.setInterpolator(Interpolator.EASE_OUT);
+
+            TranslateTransition lift = new TranslateTransition(Duration.millis(220), root);
+            lift.setFromY(6);
+            lift.setToY(0);
+            lift.setInterpolator(Interpolator.EASE_OUT);
+
+            ParallelTransition intro = new ParallelTransition(fade, lift);
+            intro.setOnFinished(e -> {
+                root.setTranslateY(0);
+                root.setOpacity(1);
+            });
+            intro.play();
+        } catch (RuntimeException ex) {
+            root.setOpacity(1);
+            root.setTranslateY(0);
+            log.debug("Entrance animation unavailable: {}", ex.getMessage());
         }
     }
 

@@ -6,10 +6,10 @@
 </head>
 <body>
 <main>
-    <div class="bg-white p-7 sm:p-8 rounded-xl shadow-md border border-slate-200">
+    <div class="bg-white p-7 sm:p-8 rounded-2xl shadow-xl shadow-slate-900/5 border border-slate-200/80">
         <!-- Logo & Header -->
-        <div class="flex flex-col items-center mb-6 text-center">
-            <div class="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center font-semibold text-white text-xl shadow-md mb-3">
+        <div class="flex flex-col items-center mb-7 text-center">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center font-bold text-white text-xl shadow-lg shadow-blue-600/25 mb-3">
                 M
             </div>
             <h1 class="text-xl font-semibold text-slate-900 tracking-tight" th:text="${schoolName != null ? schoolName : 'Musomi Manager'}">Musomi Manager</h1>
@@ -17,7 +17,7 @@
         </div>
 
         <!-- Error Notification -->
-        <div th:if="${errorMessage}" class="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-medium flex items-start gap-2.5">
+        <div th:if="${errorMessage}" class="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-medium flex items-start gap-2.5" role="alert">
             <i data-lucide="alert-circle" class="w-4 h-4 shrink-0 text-red-600 mt-0.5"></i>
             <span th:text="${errorMessage}">Invalid username or password.</span>
         </div>
@@ -25,31 +25,27 @@
         <!-- Login Form -->
         <form th:action="@{/login}" method="post" class="space-y-4" onsubmit="const schoolId = document.getElementById('schoolId').value; const username = document.getElementById('username'); if (!schoolId || !username.value.trim()) return false; username.value = schoolId + '::' + username.value.trim(); document.getElementById('login-btn').classList.add('opacity-75', 'pointer-events-none');">
             <div>
-                <label for="schoolId" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">School</label>
-                <select id="schoolId" required class="block w-full rounded-lg border border-slate-200 shadow-sm px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500 transition">
+                <label for="schoolId" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">School</label>
+                <select id="schoolId" required class="input appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22none%22%20stroke%3D%22%2364748B%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m4%206%204%204%204-4%22%2F%3E%3C%2Fsvg%3E')] bg-[right_0.75rem_center] bg-no-repeat pr-9">
                     <option value="" disabled selected>Select your school</option>
                     <option th:each="school : ${schools}" th:value="${school.id}" th:text="${school.name}">School name</option>
                 </select>
             </div>
             <div>
-                <label for="username" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Admission No. or Username</label>
-                <div class="relative">
-                    <input type="text" id="username" name="username" required autocomplete="username" autofocus
-                           placeholder="e.g. SMSS/2024/0142"
-                           class="block w-full rounded-lg border border-slate-200 shadow-sm px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500 transition">
-                </div>
-                <p class="mt-1 text-[11px] text-slate-400">Use the student admission number provided by the school.</p>
+                <label for="username" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Admission No. or Username</label>
+                <input type="text" id="username" name="username" required autocomplete="username" autofocus
+                       placeholder="e.g. SMSS/2024/0142" class="input">
+                <p class="mt-1.5 text-[11px] text-slate-400">Use the student admission number provided by the school.</p>
             </div>
 
             <div>
-                <label for="password" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Password</label>
+                <label for="password" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Password</label>
                 <div class="relative">
                     <input type="password" id="password" name="password" required autocomplete="current-password"
-                           placeholder="••••••••"
-                           class="block w-full rounded-lg border border-slate-200 shadow-sm px-3.5 py-2 pr-10 text-sm text-slate-900 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500 transition">
-                    <button type="button" 
-                            class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 focus:outline-none" 
-                            onclick="const p = document.getElementById('password'); const isPwd = p.type === 'password'; p.type = isPwd ? 'text' : 'password'; this.innerHTML = isPwd ? '<i data-lucide=\'eye-off\' class=\'w-4 h-4\'></i>' : '<i data-lucide=\'eye\' class=\'w-4 h-4\'></i>'; lucide.createIcons({root: this});" 
+                           placeholder="••••••••" class="input pr-10">
+                    <button type="button"
+                            class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 focus:outline-none focus-visible:text-blue-600"
+                            onclick="const p = document.getElementById('password'); const isPwd = p.type === 'password'; p.type = isPwd ? 'text' : 'password'; this.innerHTML = isPwd ? '<i data-lucide=\'eye-off\' class=\'w-4 h-4\'></i>' : '<i data-lucide=\'eye\' class=\'w-4 h-4\'></i>'; lucide.createIcons({root: this});"
                             aria-label="Toggle password visibility">
                         <i data-lucide="eye" class="w-4 h-4"></i>
                     </button>
@@ -57,9 +53,9 @@
             </div>
 
             <div class="pt-2">
-                <button type="submit" id="login-btn" 
-                        class="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
+                <button type="submit" id="login-btn" class="btn btn-primary w-full">
                     Sign In
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
             </div>
         </form>

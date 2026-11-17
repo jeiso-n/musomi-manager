@@ -13,7 +13,7 @@
 
 /* Primary Button */
 .btn-primary {
-    -fx-background-color: #4F46E5;
+    -fx-background-color: #2563EB;
     -fx-text-fill: #FFFFFF;
     -fx-background-radius: 8px;
     -fx-padding: 10 20;
@@ -23,7 +23,7 @@
 }
 
 .btn-primary:hover {
-    -fx-background-color: #4338CA;
+    -fx-background-color: #1D4ED8;
 }
 
 .btn-primary:disabled {
@@ -90,7 +90,7 @@
 }
 
 .input:focused {
-    -fx-border-color: #4F46E5;
+    -fx-border-color: #2563EB;
 }
 
 .input-error {
@@ -251,7 +251,7 @@
 }
 
 .assessment-table .table-row-cell:selected {
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: #EFF6FF;
 }
 
 .assessment-action-edit,
@@ -265,8 +265,8 @@
 }
 
 .assessment-action-edit {
-    -fx-background-color: #EEF2FF;
-    -fx-text-fill: #4F46E5;
+    -fx-background-color: #EFF6FF;
+    -fx-text-fill: #2563EB;
 }
 
 .assessment-action-review {
@@ -348,7 +348,7 @@
 }
 
 .assessment-form-input:focused {
-    -fx-border-color: #4F46E5;
+    -fx-border-color: #2563EB;
     -fx-border-width: 1.5px;
     -fx-effect: dropshadow(gaussian, rgba(79, 70, 229, 0.12), 6, 0, 0, 1);
 }
@@ -398,7 +398,7 @@
 }
 
 .mark-entry .table-row-cell:selected {
-    -fx-background-color: #EEF2FF;
+    -fx-background-color: #EFF6FF;
 }
 
 .mark-entry .mark-score-cell {
@@ -515,4 +515,19 @@
 /* Login form card — extends .card with a fixed min-width */
 .login-card {
     -fx-min-width: 360px;
+}
+
+/* ========================================================================= */
+/* Interaction polish — subtle lift on hover, blue active accents            */
+/* ========================================================================= */
+.card:hover {
+    -fx-effect: dropshadow(gaussian, rgba(37, 99, 235, 0.12), 18, 0, 0, 5);
+}
+
+.sidebar .button.nav-button-active {
+    -fx-effect: dropshadow(gaussian, rgba(37, 99, 235, 0.35), 12, 0, 0, 3);
+}
+
+.table-view .table-row-cell:hover {
+    -fx-background-color: #EFF6FF;
 }

@@ -4,59 +4,61 @@
 <head><title>My Results</title></head>
 <body>
 <main>
-    <div class="flex p-1 bg-slate-200/80 rounded-xl mb-6 max-w-xs mx-auto shadow-inner">
-        <a th:href="@{/student/marks}" class="flex-1 py-1.5 text-xs font-semibold text-center rounded-lg text-slate-600 hover:text-slate-900">Marks</a>
-        <a th:href="@{/student/results}" class="flex-1 py-1.5 text-xs font-semibold text-center rounded-lg shadow-sm bg-white text-indigo-700">Summary & Results</a>
+    <div class="flex p-1 bg-slate-200/70 rounded-xl mb-6 max-w-xs mx-auto shadow-inner">
+        <a th:href="@{/student/marks}" class="flex-1 py-1.5 text-xs font-semibold text-center rounded-lg text-slate-600 hover:text-slate-900 transition">Marks</a>
+        <a th:href="@{/student/results}" class="flex-1 py-1.5 text-xs font-semibold text-center rounded-lg bg-white text-blue-700 shadow-sm transition">Summary &amp; Results</a>
     </div>
 
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
         <div>
-            <h1 class="text-2xl font-semibold text-slate-900 tracking-tight">Term Summary & Results</h1>
-            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+            <h1 class="text-2xl sm:text-3xl font-semibold text-slate-900 tracking-tight">Term Summary &amp; Results</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1">
                 <span th:text="${termName != null && !#strings.isEmpty(termName) ? termName : 'No active term'}">No active term</span>
                 <span th:if="${year != null && !#strings.isEmpty(year)}">, <span th:text="${year}"></span></span>
-                Academic Performance
+                &middot; Academic Performance
             </p>
         </div>
-        <a th:href="@{/student/reports}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 self-start sm:self-auto"><i data-lucide="file-text" class="w-4 h-4"></i> Official Report Card</a>
+        <a th:href="@{/student/reports}" class="btn btn-secondary btn-sm self-start">
+            <i data-lucide="file-text" class="w-4 h-4"></i> Official Report Card
+        </a>
     </div>
 
-    <div class="bg-gradient-to-br from-indigo-900 via-indigo-800 to-indigo-950 text-white rounded-xl p-5 sm:p-6 mb-6 shadow-md">
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-indigo-700/60">
-            <div class="pt-2 sm:pt-0">
-                <span class="text-xs font-medium text-indigo-200 uppercase tracking-wider">Overall Average</span>
-                <div class="mt-1.5 text-3xl font-semibold font-mono tabular-nums"><span th:text="${overallAverage != null ? overallAverage : '—'}">—</span><span th:if="${overallAverage != null}" class="text-sm text-indigo-300">%</span></div>
+    <section class="hero p-5 sm:p-6 mb-6">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-5">
+            <div>
+                <span class="text-[11px] font-semibold text-blue-100 uppercase tracking-[0.12em]">Overall Average</span>
+                <div class="mt-1.5 text-3xl font-semibold font-mono tabular-nums"><span th:text="${overallAverage != null ? overallAverage : '—'}">—</span><span th:if="${overallAverage != null}" class="text-sm text-blue-200">%</span></div>
             </div>
-            <div class="pt-2 sm:pt-0 sm:pl-4">
-                <span class="text-xs font-medium text-indigo-200 uppercase tracking-wider">Overall Grade</span>
-                <div class="mt-1.5"><span th:if="${overallGrade != null}" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold font-mono bg-emerald-500 text-white" th:text="${overallGrade}">A</span><span th:unless="${overallGrade != null}" class="text-sm text-indigo-200">Not available</span></div>
+            <div>
+                <span class="text-[11px] font-semibold text-blue-100 uppercase tracking-[0.12em]">Overall Grade</span>
+                <div class="mt-2"><span th:if="${overallGrade != null}" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold font-mono bg-white/15 text-white border border-white/20" th:text="${overallGrade}">A</span><span th:unless="${overallGrade != null}" class="text-sm text-blue-200">Not available</span></div>
             </div>
-            <div class="pt-2 sm:pt-0 sm:pl-4">
-                <span class="text-xs font-medium text-indigo-200 uppercase tracking-wider">Stream Rank</span>
+            <div>
+                <span class="text-[11px] font-semibold text-blue-100 uppercase tracking-[0.12em]">Stream Rank</span>
                 <div class="mt-1.5 text-xl font-semibold font-mono tabular-nums">
                     <span th:text="${position != null ? position : 'Not ranked'}">Not ranked</span>
-                    <span th:if="${position != null}" class="text-xs text-indigo-300 font-normal">of <span th:text="${classSize}">0</span></span>
+                    <span th:if="${position != null}" class="text-xs text-blue-200 font-normal">of <span th:text="${classSize}">0</span></span>
                 </div>
             </div>
-            <div class="pt-2 sm:pt-0 sm:pl-4">
-                <span class="text-xs font-medium text-indigo-200 uppercase tracking-wider">Subjects</span>
+            <div>
+                <span class="text-[11px] font-semibold text-blue-100 uppercase tracking-[0.12em]">Subjects</span>
                 <div class="mt-1.5 text-2xl font-semibold font-mono tabular-nums" th:text="${#lists.size(subjects)}">0</div>
             </div>
         </div>
-        <div th:if="${expectedAssessments > 0 && recordedAssessments < expectedAssessments}" class="mt-5 pt-4 border-t border-indigo-700/60 text-sm text-indigo-100">
+        <div th:if="${expectedAssessments > 0 && recordedAssessments < expectedAssessments}" class="mt-5 pt-4 border-t border-white/15 text-sm text-blue-100">
             Results are incomplete: <span class="font-semibold" th:text="${recordedAssessments + ' of ' + expectedAssessments + ' published assessments have marks'}">0 of 0</span>. The average uses available marks only; ranking is withheld until all published marks are recorded.
         </div>
-        <div th:if="${expectedAssessments == 0}" class="mt-5 pt-4 border-t border-indigo-700/60 text-sm text-indigo-100">
+        <div th:if="${expectedAssessments == 0}" class="mt-5 pt-4 border-t border-white/15 text-sm text-blue-100">
             No assessments have been published for your class and stream in this term.
         </div>
-    </div>
+    </section>
 
     <section class="mb-8">
         <h2 class="text-lg font-semibold text-slate-900 mb-3">Subject Performance</h2>
         <div th:if="${#lists.isEmpty(subjects)}"><div th:replace="~{fragments/empty-state :: empty('No subject results yet', 'Subject results will appear after assessments are published for the current term.')}"></div></div>
-        <div th:unless="${#lists.isEmpty(subjects)}" class="space-y-3">
-            <article th:each="sub : ${subjects}" class="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-sm">
-                <div class="flex items-center justify-between gap-3 mb-2.5">
+        <div th:unless="${#lists.isEmpty(subjects)}" class="space-y-3 stagger">
+            <article th:each="sub : ${subjects}" class="card card-hover p-4 sm:p-5">
+                <div class="flex items-center justify-between gap-3 mb-3">
                     <div class="min-w-0">
                         <div class="flex items-center gap-2">
                             <span class="font-semibold text-sm sm:text-base text-slate-900" th:text="${sub.subjectName}">Subject</span>
@@ -69,11 +71,13 @@
                         <div class="font-mono text-base sm:text-lg font-semibold text-slate-900 tabular-nums">
                             <span th:text="${sub.average != null ? #numbers.formatDecimal(sub.average, 1, 1) + '%' : 'N/A'}">N/A</span>
                         </div>
-                        <span th:if="${sub.grade != null}" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700" th:text="${sub.grade}">A</span>
+                        <span th:if="${sub.grade != null}" class="badge badge-blue" th:text="${sub.grade}">A</span>
                     </div>
                 </div>
-                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div th:if="${sub.average != null}" class="h-full rounded-full transition-all duration-500" th:style="${'width:' + sub.average + '%'}" th:classappend="${sub.average >= 80 ? 'bg-emerald-500' : (sub.average >= 70 ? 'bg-indigo-600' : (sub.average >= 60 ? 'bg-blue-500' : (sub.average >= 50 ? 'bg-amber-500' : 'bg-red-500')))}"></div>
+                <div class="progress">
+                    <span th:if="${sub.average != null}"
+                          th:style="${'width:' + sub.average + '%'}"
+                          th:classappend="${sub.average >= 80 ? 'bg-emerald-500' : (sub.average >= 70 ? 'bg-blue-600' : (sub.average >= 60 ? 'bg-blue-400' : (sub.average >= 50 ? 'bg-amber-500' : 'bg-red-500')))}"></span>
                 </div>
             </article>
         </div>
