@@ -256,6 +256,10 @@ public class DashboardController {
         Button markEntry = new Button("Go to Mark Entry");
         markEntry.setMaxWidth(Double.MAX_VALUE);
         markEntry.getStyleClass().add("quick-action");
+        Label markBadge = new Label("M");
+        markBadge.getStyleClass().addAll("quick-action-badge", "badge-blue");
+        markEntry.setGraphic(markBadge);
+        markEntry.setContentDisplay(javafx.scene.control.ContentDisplay.LEFT);
         markEntry.setOnAction(event -> {
             if (onOpenMarkEntry != null) {
                 onOpenMarkEntry.run();

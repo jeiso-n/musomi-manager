@@ -45,15 +45,45 @@
         <!-- Flexible spacer — pushes branding copy toward center -->
         <Region VBox.vgrow="ALWAYS"/>
 
-        <!-- Center: headline + sub-heading -->
-        <VBox spacing="16">
-            <padding><Insets left="64" right="64" bottom="60"/></padding>
+        <!-- Center: headline + feature list -->
+        <VBox spacing="18">
+            <padding><Insets left="64" right="64" bottom="34"/></padding>
             <Label text="Better Education Management"
                    styleClass="display-white"
                    wrapText="true"/>
             <Label text="Track performance. Empower teachers. Support every student."
                    styleClass="body-small text-white-subtle"
                    wrapText="true"/>
+
+            <VBox spacing="12" styleClass="login-features">
+                <HBox spacing="12" alignment="CENTER_LEFT">
+                    <Label text="✓" styleClass="login-feature-check"/>
+                    <Label text="Mark entry, assessments and publishing in one flow"
+                           styleClass="login-feature-text"
+                           wrapText="true"/>
+                </HBox>
+                <HBox spacing="12" alignment="CENTER_LEFT">
+                    <Label text="✓" styleClass="login-feature-check"/>
+                    <Label text="PDF report cards and class performance analytics"
+                           styleClass="login-feature-text"
+                           wrapText="true"/>
+                </HBox>
+                <HBox spacing="12" alignment="CENTER_LEFT">
+                    <Label text="✓" styleClass="login-feature-check"/>
+                    <Label text="Student results portal included"
+                           styleClass="login-feature-text"
+                           wrapText="true"/>
+                </HBox>
+            </VBox>
+        </VBox>
+
+        <!-- Bottom: small footer line -->
+        <VBox spacing="4">
+            <padding><Insets left="64" right="64" bottom="40"/></padding>
+            <Label text="Built for Ugandan secondary schools"
+                   styleClass="body-small text-white-subtle"/>
+            <Label text="Version 1.0.0"
+                   styleClass="body-small text-white-subtle"/>
         </VBox>
 
     </VBox>

@@ -791,3 +791,48 @@
     -fx-background-radius: 4px;
 }
 
+
+/* Consistent page headers */
+.page-header {
+    -fx-background-color: linear-gradient(to bottom right, #1D4ED8, #2563EB);
+    -fx-background-radius: 14px;
+    -fx-padding: 20px 26px;
+    -fx-effect: dropshadow(gaussian, rgba(29, 78, 216, 0.22), 16, 0, 0, 5);
+}
+
+.page-header .label {
+    -fx-text-fill: #FFFFFF;
+}
+
+.page-header .label:focused {
+    -fx-text-fill: #FFFFFF;
+}
+
+.page-title, .fxml-inline-020, .fxml-inline-024, .h1 {
+    -fx-font-size: 24px;
+    -fx-font-weight: 700;
+}
+
+.page-header .page-subtitle,
+.page-header .fxml-inline-021,
+.page-header .fxml-inline-025 {
+    -fx-text-fill: #DBEAFE;
+    -fx-font-size: 13px;
+}
+
+/* Login feature list */
+.login-feature-check {
+    -fx-background-color: rgba(255, 255, 255, 0.18);
+    -fx-background-radius: 20px;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 11px;
+    -fx-padding: 4px 8px;
+    -fx-min-width: 22px;
+    -fx-alignment: center;
+}
+
+.login-feature-text {
+    -fx-text-fill: #EFF6FF;
+    -fx-font-size: 13px;
+}
+

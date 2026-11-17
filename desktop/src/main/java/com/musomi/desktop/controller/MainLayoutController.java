@@ -372,6 +372,7 @@ public class MainLayoutController {
             controller.setSearchQuery(result.title());
 
             contentArea.getChildren().setAll(roster);
+            SceneManager.getInstance().applyViewPolish((Parent) roster);
             setActiveButton(myClassesButton);
 
         } catch (Exception exception) {
@@ -808,6 +809,7 @@ public class MainLayoutController {
             }
 
             contentArea.getChildren().setAll(view);
+            SceneManager.getInstance().applyViewPolish((Parent) view);
 
             log.debug("Successfully loaded: {}", fxmlPath);
 

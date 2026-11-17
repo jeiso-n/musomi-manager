@@ -8,7 +8,11 @@ import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableView;
+import javafx.scene.layout.VBox;
+
+import java.util.Set;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -168,6 +172,7 @@ public final class SceneManager {
             playEntrance(root);
             UiMotion.install(root);
             applyTablePolicies(root);
+            decoratePageHeader(root);
             log.debug("Navigation complete: {}", destination);
 
         } catch (IOException ex) {
@@ -226,6 +231,16 @@ public final class SceneManager {
      * @param root the newly loaded scene root
      */
     /** Keeps every table within its viewport instead of showing a horizontal bar. */
+
+    /** Re-applies shared visual polish to a view loaded inside the main layout. */
+    public void applyViewPolish(Parent view) {
+        if (view == null) {
+            return;
+        }
+        UiMotion.install(view);
+        applyTablePolicies(view);
+        decoratePageHeader(view);
+    }
     private void applyTablePolicies(Parent root) {
         root.lookupAll(".table-view").forEach(node -> {
             if (node instanceof TableView<?> table) {
@@ -234,6 +249,35 @@ public final class SceneManager {
         });
     }
 
+
+    /** Gives every page the same blue header band as the dashboard. */
+    private void decoratePageHeader(Parent root) {
+        if (LOGIN_FXML.equals(currentFxmlPath) || isInside(root, "login-card")) {
+            return;
+        }
+        Set<String> titleClasses = Set.of("page-title", "fxml-inline-020", "fxml-inline-024", "h1");
+        for (var node : root.lookupAll(".label")) {
+            if (node instanceof Label label && label.getText() != null
+                    && !label.getText().isBlank()
+                    && label.getStyleClass().stream().anyMatch(titleClasses::contains)) {
+                if (label.getParent() instanceof VBox header
+                        && !header.getStyleClass().contains("page-hero")
+                        && !header.getStyleClass().contains("page-header")) {
+                    header.getStyleClass().add("page-header");
+                }
+                return;
+            }
+        }
+    }
+
+    private boolean isInside(javafx.scene.Node node, String styleClass) {
+        for (var current = node; current != null; current = current.getParent()) {
+            if (current.getStyleClass().contains(styleClass)) {
+                return true;
+            }
+        }
+        return false;
+    }
     private void playEntrance(Parent root) {
         if (!Platform.isFxApplicationThread()) {
             return;
