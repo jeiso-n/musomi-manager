@@ -6,6 +6,19 @@ Musomi Manager is a school learning-record system for Ugandan secondary schools.
 **Runtime:** Java 21, Spring Boot 4, JavaFX 21, PostgreSQL 16
 **Frontends:** JavaFX desktop for administrators and teachers; responsive Thymeleaf web portal for students.
 
+## Install the Windows desktop app
+
+Administrators and teachers use the desktop app; students use the web portal.
+
+1. Download the latest portable package from [Releases](https://github.com/jeiso-n/musomi-manager/releases/latest): `MusomiManager-1.0.0-win64-portable.zip` (Windows 10/11, 64-bit).
+2. Extract it anywhere (for example `C:\Users\<you>\Musomi Manager`).
+3. Double-click `MusomiManager.exe`. If Windows shows "Windows protected your PC", choose **More info -> Run anyway**.
+4. Sign in with your school account.
+
+No Java installation is required — the runtime is bundled. A school that runs its own backend needs a desktop build pointed at that server (the demo build talks to the hosted demo instance).
+
+Students open the web portal instead: <https://musomi-manager.onrender.com/login>.
+
 ## V1 scope
 
 - Role-based login for administrators, teachers, and students
