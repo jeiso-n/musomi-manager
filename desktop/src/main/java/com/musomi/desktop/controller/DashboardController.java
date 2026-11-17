@@ -255,6 +255,7 @@ public class DashboardController {
 
         Button markEntry = new Button("Go to Mark Entry");
         markEntry.setMaxWidth(Double.MAX_VALUE);
+        markEntry.getStyleClass().add("quick-action");
         markEntry.setOnAction(event -> {
             if (onOpenMarkEntry != null) {
                 onOpenMarkEntry.run();
@@ -278,6 +279,7 @@ public class DashboardController {
     private Button createAdminAction(String text, String viewPath) {
         Button button = new Button(text);
         button.setMaxWidth(Double.MAX_VALUE);
+        button.getStyleClass().add("quick-action");
         button.setOnAction(event -> {
             if (onOpenAdminView != null) {
                 onOpenAdminView.accept(viewPath);

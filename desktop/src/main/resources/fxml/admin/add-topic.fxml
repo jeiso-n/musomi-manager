@@ -42,7 +42,7 @@
 
     <HBox spacing="10.0">
 
-        <Button text="Cancel"
+        <Button text="Cancel" styleClass="btn-secondary"
                 onAction="#handleCancel"/>
 
         <Button text="Create Topic"

@@ -354,3 +354,15 @@ body {
 .score-progress-98 { width: 98%; }
 .score-progress-99 { width: 99%; }
 .score-progress-100 { width: 100%; }
+
+/* Press feedback — buttons and interactive cards respond to the click */
+.btn:active {
+    transform: translateY(0) scale(0.98);
+}
+.card-hover:active {
+    transform: translateY(0) scale(0.995);
+}
+.link:hover i {
+    transform: translateX(2px);
+    transition: transform 160ms var(--ease);
+}

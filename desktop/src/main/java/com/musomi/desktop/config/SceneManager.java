@@ -1,5 +1,6 @@
 package com.musomi.desktop.config;
 
+import com.musomi.desktop.util.UiMotion;
 import javafx.animation.FadeTransition;
 import javafx.animation.Interpolator;
 import javafx.animation.ParallelTransition;
@@ -164,6 +165,7 @@ public final class SceneManager {
             primaryStage.setScene(scene);
             currentFxmlPath = destination;
             playEntrance(root);
+            UiMotion.install(root);
             log.debug("Navigation complete: {}", destination);
 
         } catch (IOException ex) {

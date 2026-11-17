@@ -139,13 +139,13 @@
                 <Label text="Quick Actions"
                        styleClass="section-title"/>
 
-                <Button text="+ Add Student"
+                <Button text="+ Add Student" styleClass="quick-action"
                         maxWidth="Infinity"/>
 
-                <Button text="+ Add Class"
+                <Button text="+ Add Class" styleClass="quick-action"
                         maxWidth="Infinity"/>
 
-                <Button text="+ Add Subject"
+                <Button text="+ Add Subject" styleClass="quick-action"
                         maxWidth="Infinity"/>
 
             </VBox>
