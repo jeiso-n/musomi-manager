@@ -260,7 +260,8 @@ public final class SceneManager {
             if (node instanceof Label label && label.getText() != null
                     && !label.getText().isBlank()
                     && label.getStyleClass().stream().anyMatch(titleClasses::contains)) {
-                if (label.getParent() instanceof VBox header
+                VBox header = findHeaderBox(label);
+                if (header != null
                         && !header.getStyleClass().contains("page-hero")
                         && !header.getStyleClass().contains("page-header")) {
                     header.getStyleClass().add("page-header");
@@ -268,6 +269,25 @@ public final class SceneManager {
                 return;
             }
         }
+    }
+
+    /**
+     * Finds the header VBox that holds the page title (and usually a subtitle),
+     * walking up a few ancestors so titles nested in HBoxes still get the band.
+     */
+    private VBox findHeaderBox(Label title) {
+        javafx.scene.Node current = title.getParent();
+        for (int depth = 0; current != null && depth < 4; depth++) {
+            if (current instanceof VBox box) {
+                boolean hasSubtitle = box.getChildren().stream()
+                        .anyMatch(n -> n instanceof Label l && n != title);
+                if (hasSubtitle) {
+                    return box;
+                }
+            }
+            current = current.getParent();
+        }
+        return title.getParent() instanceof VBox box ? box : null;
     }
 
     private boolean isInside(javafx.scene.Node node, String styleClass) {

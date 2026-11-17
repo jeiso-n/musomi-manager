@@ -7,12 +7,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javafx.fxml.FXML;
+import javafx.animation.Animation;
+import javafx.animation.Interpolator;
+import javafx.animation.TranslateTransition;
+import javafx.application.Platform;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
+import javafx.util.Duration;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.StackPane;
+import javafx.scene.Node;
 import javafx.scene.layout.VBox;
 
 import com.musomi.desktop.api.ApiException;
@@ -88,8 +96,28 @@ public class LoginController implements Initializable {
 
         visiblePasswordField.textProperty().addListener(
             (obs, oldVal, newVal) -> passwordField.setText(newVal));
-        passwordField.textProperty().addListener(
-            (obs, oldVal, newVal) -> visiblePasswordField.setText(newVal));
+        
+        Platform.runLater(this::animateGlow);
+    }
+
+    /** Slowly drifts the decorative glow circles so the brand panel feels alive. */
+    private void animateGlow() {
+        drift("login-glow", -14, 10, 9);
+        drift("login-glow-accent", 12, -8, 7);
+    }
+
+    private void drift(String selector, double dy, double dx, double seconds) {
+        Node glow = leftPanel == null ? null : leftPanel.lookup("." + selector);
+        if (glow == null) {
+            return;
+        }
+        TranslateTransition move = new TranslateTransition(Duration.seconds(seconds), glow);
+        move.setByX(dx);
+        move.setByY(dy);
+        move.setAutoReverse(true);
+        move.setCycleCount(Animation.INDEFINITE);
+        move.setInterpolator(Interpolator.EASE_BOTH);
+        move.play();
     }
 
     // -------------------------------------------------------------------------

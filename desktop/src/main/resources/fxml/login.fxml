@@ -6,6 +6,7 @@
 <?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.ProgressIndicator?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.shape.Circle?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
@@ -26,10 +27,19 @@
     <!-- ===================================================================
          LEFT PANEL — Indigo branding column
          =================================================================== -->
-    <VBox fx:id="leftPanel"
-          styleClass="login-left-panel"
-          prefWidth="704"
-          HBox.hgrow="ALWAYS">
+    <StackPane styleClass="login-left-panel"
+               prefWidth="704"
+               HBox.hgrow="ALWAYS">
+
+        <Circle radius="170" styleClass="login-glow"
+                StackPane.alignment="BOTTOM_LEFT"
+                translateX="-60" translateY="80"/>
+        <Circle radius="110" styleClass="login-glow-accent"
+                StackPane.alignment="TOP_RIGHT"
+                translateX="50" translateY="-40"/>
+
+        <VBox fx:id="leftPanel" spacing="0"
+              maxWidth="Infinity" maxHeight="Infinity">
 
         <!-- Top: logo placeholder + app name + optional school name -->
         <HBox alignment="CENTER_LEFT" spacing="12">
@@ -85,8 +95,8 @@
             <Label text="Version 1.0.0"
                    styleClass="body-small text-white-subtle"/>
         </VBox>
-
-    </VBox>
+        </VBox>
+    </StackPane>
 
     <!-- ===================================================================
          RIGHT PANEL — White login form column

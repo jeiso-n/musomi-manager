@@ -287,7 +287,7 @@
 
 /* Hover */
 .sidebar .button:hover {
-    -fx-background-color: #1D4ED8;
+    -fx-background-color: rgba(255, 255, 255, 0.10);
     -fx-text-fill: #FFFFFF;
 }
 
@@ -299,8 +299,7 @@
 /* Active page: controller applies this class dynamically */
 .sidebar .button.nav-button-active {
     -fx-background-color: #2563EB;
-    -fx-background-radius: 8px;
-    -fx-border-color: transparent;
+    -fx-background-radius: 9px;
     -fx-text-fill: #FFFFFF;
     -fx-font-weight: 700;
 }
@@ -1101,12 +1100,12 @@
 }
 
 .sidebar .button:hover {
-    -fx-background-color: #1D4ED8;
+    -fx-background-color: rgba(255, 255, 255, 0.10);
     -fx-text-fill: white;
 }
 
 .sidebar .button:focused {
-    -fx-background-color: #1D4ED8;
+    -fx-background-color: transparent;
 }
 
 .sidebar .button:disabled {
@@ -1200,7 +1199,7 @@
 }
 
 .sidebar .nav-button:hover {
-    -fx-background-color: #1D4ED8;
+    -fx-background-color: rgba(255, 255, 255, 0.10);
     -fx-text-fill: #FFFFFF;
 }
 

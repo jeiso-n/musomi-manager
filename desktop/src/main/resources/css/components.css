@@ -836,3 +836,75 @@
     -fx-font-size: 13px;
 }
 
+
+/* Sidebar refinement */
+.sidebar-brand { -fx-opacity: 0; -fx-max-height: 0; -fx-padding: 0; }
+.sidebar-caption {
+    -fx-text-fill: #93C5FD;
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-padding: 10px 10px 4px 10px;
+}
+.nav-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #E2E8F0;
+    -fx-font-size: 13px;
+    -fx-font-weight: 500;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 9px 12px;
+    -fx-background-radius: 9px;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 0 3px;
+    -fx-border-radius: 9px;
+    -fx-cursor: hand;
+}
+.nav-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.08);
+    -fx-text-fill: #FFFFFF;
+    -fx-border-color: transparent transparent transparent rgba(147, 197, 253, 0.6);
+}
+.nav-button:pressed {
+    -fx-background-color: rgba(255, 255, 255, 0.14);
+}
+.nav-button-active {
+    -fx-background-color: rgba(255, 255, 255, 0.14);
+    -fx-text-fill: #FFFFFF;
+    -fx-font-weight: 700;
+    -fx-border-color: transparent transparent transparent #60A5FA;
+}
+.nav-button:disabled {
+    -fx-opacity: 0.38;
+}
+
+/* Reports filter + stats */
+.filter-card {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 14px;
+    -fx-padding: 18px 20px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.06), 14, 0, 0, 4);
+}
+.stat-card {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 12px;
+    -fx-padding: 14px 16px;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 12px;
+}
+.stat-card-value {
+    -fx-font-size: 22px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #0F172A;
+}
+.stat-card-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: #64748B;
+}
+
+/* Login decorative glow */
+.login-glow {
+    -fx-fill: rgba(255, 255, 255, 0.035);
+}
+.login-glow-accent {
+    -fx-fill: rgba(96, 165, 250, 0.14);
+}
+

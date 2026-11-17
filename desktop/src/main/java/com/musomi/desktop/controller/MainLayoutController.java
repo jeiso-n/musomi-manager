@@ -701,18 +701,21 @@ public class MainLayoutController {
 
     private void setActiveButton(Button activeButton) {
 
-        // Reset all tracked nav buttons to inactive
-        if (dashboardButton   != null) dashboardButton.setStyle(INACTIVE_STYLE);
-        if (markEntryButton   != null) markEntryButton.setStyle(INACTIVE_STYLE);
-        if (myClassesButton   != null) myClassesButton.setStyle(INACTIVE_STYLE);
-        if (assessmentsButton != null) assessmentsButton.setStyle(INACTIVE_STYLE);
-        if (reportsButton     != null) reportsButton.setStyle(INACTIVE_STYLE);
-        if (adminReportsButton != null) adminReportsButton.setStyle(INACTIVE_STYLE);
-
+        // Reset all tracked nav buttons to inactive (CSS-driven styling)
+        if (dashboardButton   != null) clearActive(dashboardButton);
+        if (markEntryButton   != null) clearActive(markEntryButton);
+        if (myClassesButton   != null) clearActive(myClassesButton);
+        if (assessmentsButton != null) clearActive(assessmentsButton);
+        if (reportsButton     != null) clearActive(reportsButton);
+        if (adminReportsButton != null) clearActive(adminReportsButton);
 
         if (activeButton != null) {
-            activeButton.setStyle(ACTIVE_STYLE);
+            activeButton.getStyleClass().add("nav-button-active");
         }
+    }
+
+    private static void clearActive(Button button) {
+        button.getStyleClass().remove("nav-button-active");
     }
 
     // =========================================================
@@ -729,10 +732,10 @@ public class MainLayoutController {
 
             if (child instanceof Button button) {
 
-                button.setStyle(INACTIVE_STYLE);
+                button.getStyleClass().remove("nav-button-active");
 
                 if (activeText.equals(button.getText())) {
-                    button.setStyle(ACTIVE_STYLE);
+                    button.getStyleClass().add("nav-button-active");
                 }
             }
         }

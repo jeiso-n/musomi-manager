@@ -78,8 +78,7 @@
                         styleClass="sidebar-nav-scroll">
                 <content>
                     <VBox spacing="8">
-                        <Label text="MUSOMI MANAGER"
-                               styleClass="sidebar-brand"/>
+                        
 
                         <Label fx:id="sectionRoleLabel"
                                text="ADMIN"
@@ -118,51 +117,19 @@
                                     styleClass="nav-button"/>
                         </VBox>
 
-                        <VBox fx:id="adminNavSection"
-                              visible="false"
-                              managed="false"
-                              spacing="4">
-                            <Button text="Dashboard"
-                                    maxWidth="Infinity"
-                                    onAction="#showDashboard"
-                                    styleClass="nav-button"/>
-                            <Button fx:id="adminReportsButton"
-                                    text="Reports"
-                                    maxWidth="Infinity"
-                                    onAction="#onAdminReportsClicked"
-                                    styleClass="nav-button fxml-inline-014"/>
-                            <Button text="Users"
-                                    maxWidth="Infinity"
-                                    onAction="#showUsers"
-                                    styleClass="nav-button"/>
-                            <Button text="Classes"
-                                    maxWidth="Infinity"
-                                    onAction="#showClasses"
-                                    styleClass="nav-button"/>
-                            <Button text="Subjects"
-                                    maxWidth="Infinity"
-                                    onAction="#showSubjects"
-                                    styleClass="nav-button"/>
-                            <Button text="Topics"
-                                    maxWidth="Infinity"
-                                    onAction="#showTopics"
-                                    styleClass="nav-button"/>
-                            <Button text="Students"
-                                    maxWidth="Infinity"
-                                    onAction="#showStudents"
-                                    styleClass="nav-button"/>
-                            <Button text="Teacher Assignments"
-                                    maxWidth="Infinity"
-                                    onAction="#showTeacherAssignments"
-                                    styleClass="nav-button"/>
-                            <Button text="Settings"
-                                    maxWidth="Infinity"
-                                    onAction="#showSettings"
-                                    styleClass="nav-button"/>
-                            <Button text="Audit Log"
-                                    maxWidth="Infinity"
-                                    onAction="#showAuditLog"
-                                    styleClass="nav-button"/>
+                        <VBox fx:id="adminNavSection" visible="false" managed="false" spacing="4">
+                            <Button text="Dashboard" maxWidth="Infinity" onAction="#showDashboard" styleClass="nav-button"/>
+                            <Button fx:id="adminReportsButton" text="Reports" maxWidth="Infinity" onAction="#onAdminReportsClicked" styleClass="nav-button fxml-inline-014"/>
+                            <Label text="SCHOOL" styleClass="sidebar-caption"/>
+                            <Button text="Users" maxWidth="Infinity" onAction="#showUsers" styleClass="nav-button"/>
+                            <Button text="Classes" maxWidth="Infinity" onAction="#showClasses" styleClass="nav-button"/>
+                            <Button text="Subjects" maxWidth="Infinity" onAction="#showSubjects" styleClass="nav-button"/>
+                            <Button text="Topics" maxWidth="Infinity" onAction="#showTopics" styleClass="nav-button"/>
+                            <Button text="Students" maxWidth="Infinity" onAction="#showStudents" styleClass="nav-button"/>
+                            <Button text="Teacher Assignments" maxWidth="Infinity" onAction="#showTeacherAssignments" styleClass="nav-button"/>
+                            <Label text="SYSTEM" styleClass="sidebar-caption"/>
+                            <Button text="Settings" maxWidth="Infinity" onAction="#showSettings" styleClass="nav-button"/>
+                            <Button text="Audit Log" maxWidth="Infinity" onAction="#showAuditLog" styleClass="nav-button"/>
                         </VBox>
                     </VBox>
                 </content>

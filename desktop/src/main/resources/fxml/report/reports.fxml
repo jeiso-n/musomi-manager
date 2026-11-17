@@ -10,6 +10,7 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane xmlns="http://javafx.com/javafx"
@@ -26,68 +27,59 @@
                         <Insets top="24.0" right="28.0" bottom="28.0" left="28.0"/>
                     </padding>
 
-                    <VBox spacing="5.0">
+                    <VBox spacing="5.0" styleClass="page-header">
                         <Label text="Reports" styleClass="h1"/>
                         <Label text="Generate student report cards and review class performance for a selected term."
                                styleClass="body-small"/>
                     </VBox>
 
-                    <VBox spacing="10.0">
-                        <HBox spacing="12.0" alignment="CENTER_LEFT">
-                            <VBox spacing="5.0">
+                    <VBox spacing="14.0" styleClass="filter-card">
+                        <HBox spacing="14.0" alignment="BOTTOM_LEFT">
+                            <VBox spacing="6.0">
                                 <Label text="Class" styleClass="form-label"/>
-                                <ComboBox fx:id="classComboBox" prefWidth="210.0"
-                                          promptText="Select class"/>
+                                <ComboBox fx:id="classComboBox" prefWidth="210.0" promptText="Select class"/>
                             </VBox>
-                            <VBox spacing="5.0">
+                            <VBox spacing="6.0">
                                 <Label text="Stream" styleClass="form-label"/>
                                 <HBox spacing="6.0" alignment="CENTER_LEFT">
-                                    <ComboBox fx:id="streamComboBox" prefWidth="180.0"
-                                              promptText="Select stream"/>
-                                    <Button fx:id="addStreamButton" text="+ Stream"
-                                            onAction="#handleAddStream" styleClass="secondary-button"/>
+                                    <ComboBox fx:id="streamComboBox" prefWidth="180.0" promptText="Select stream"/>
+                                    <Button fx:id="addStreamButton" text="+ Stream" onAction="#handleAddStream" styleClass="secondary-button"/>
                                 </HBox>
                             </VBox>
-                            <VBox spacing="5.0">
+                            <VBox spacing="6.0">
                                 <Label text="Term" styleClass="form-label"/>
-                                <ComboBox fx:id="termComboBox" prefWidth="180.0"
-                                          promptText="Select term"/>
+                                <ComboBox fx:id="termComboBox" prefWidth="180.0" promptText="Select term"/>
                             </VBox>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Button fx:id="generateButton" text="Generate reports" onAction="#handleGenerateReports" styleClass="button-primary"/>
                         </HBox>
-                        <HBox alignment="CENTER_LEFT">
-                            <Button fx:id="generateButton"
-                                    text="Generate / Refresh Reports"
-                                    onAction="#handleGenerateReports"
-                                    styleClass="button-primary"/>
-                        </HBox>
-                        <Label text="Generating reports saves a new result snapshot. Partial and no-results reports are retained and are not ranked."
-                               styleClass="body-small"/>
+                        <Label text="Generating reports saves a new snapshot. Partial and no-results cards are kept but not ranked." styleClass="body-small"/>
                     </VBox>
 
-                    <VBox spacing="10.0" styleClass="card">
-                        <Label text="CLASS PERFORMANCE SUMMARY" styleClass="section-title"/>
-                        <GridPane hgap="28.0" vgap="14.0">
-                            <VBox spacing="3.0" GridPane.columnIndex="0" GridPane.rowIndex="0">
-                                <Label fx:id="studentCountLabel" text="—" styleClass="h2"/>
-                                <Label text="Reports in summary" styleClass="body-small"/>
+                    <VBox spacing="12.0" styleClass="card">
+                        <Label text="CLASS PERFORMANCE" styleClass="section-title"/>
+                        <HBox spacing="12.0">
+                            <VBox spacing="4.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                                <Label fx:id="studentCountLabel" text="—" styleClass="stat-card-value"/>
+                                <Label text="Reports" styleClass="stat-card-label"/>
                             </VBox>
-                            <VBox spacing="3.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
-                                <Label fx:id="classAverageLabel" text="—" styleClass="h2"/>
-                                <Label text="Class average (complete only)" styleClass="body-small"/>
+                            <VBox spacing="4.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                                <Label fx:id="classAverageLabel" text="—" styleClass="stat-card-value"/>
+                                <Label text="Class average" styleClass="stat-card-label"/>
                             </VBox>
-                            <VBox spacing="3.0" GridPane.columnIndex="2" GridPane.rowIndex="0">
-                                <Label fx:id="completeCountLabel" text="—" styleClass="h2"/>
-                                <Label text="Complete" styleClass="body-small"/>
+                            <VBox spacing="4.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                                <Label fx:id="completeCountLabel" text="—" styleClass="stat-card-value"/>
+                                <Label text="Complete" styleClass="stat-card-label"/>
                             </VBox>
-                            <VBox spacing="3.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
-                                <Label fx:id="partialCountLabel" text="—" styleClass="h2"/>
-                                <Label text="Partial" styleClass="body-small"/>
+                            <VBox spacing="4.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                                <Label fx:id="partialCountLabel" text="—" styleClass="stat-card-value"/>
+                                <Label text="Partial" styleClass="stat-card-label"/>
                             </VBox>
-                            <VBox spacing="3.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
-                                <Label fx:id="noResultsCountLabel" text="—" styleClass="h2"/>
-                                <Label text="No published results" styleClass="body-small"/>
+                            <VBox spacing="4.0" styleClass="stat-card" HBox.hgrow="ALWAYS">
+                                <Label fx:id="noResultsCountLabel" text="—" styleClass="stat-card-value"/>
+                                <Label text="No results" styleClass="stat-card-label"/>
                             </VBox>
-                        </GridPane>
+                        </HBox>
                         <Label text="Grade distribution (complete reports only)" styleClass="form-label"/>
                         <Label fx:id="gradeDistributionLabel" text="—" styleClass="body-small"/>
                     </VBox>
