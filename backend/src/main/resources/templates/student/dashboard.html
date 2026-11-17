@@ -98,7 +98,7 @@
     <section class="mb-6">
         <div class="flex items-center justify-between mb-3.5">
             <h2 class="text-lg font-semibold text-slate-900">Recent Published Marks</h2>
-            <a th:href="@{/student/marks}" class="link">View all marks <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></a>
+            <a th:href="@{/student/marks}" class="link">View all marks &rarr;</a>
         </div>
         <div th:if="${#lists.isEmpty(recentMarks)}"><div th:replace="~{fragments/empty-state :: empty('No published marks yet', 'Your marks will appear here once your teachers publish them for the current term.')}"></div></div>
         <div th:unless="${#lists.isEmpty(recentMarks)}" class="space-y-2.5 stagger">
